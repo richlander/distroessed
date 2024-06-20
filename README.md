@@ -11,11 +11,9 @@ $ dotnet run
 **Android**
  Android
   Releases active : 4
-  Unsupported active releases: 1
+  Unsupported active releases: 0
   Releases EOL soon: 0
   Supported inactive releases: 0
-  Releases that are active but not supported:
-  12.1
 
 **Apple**
  iOS
@@ -36,20 +34,23 @@ $ dotnet run
   Releases EOL soon: 0
   Supported inactive releases: 0
 
+ tvOS
+  No data found at endoflife.date
+
 **Linux**
  Alpine
   Releases active : 4
-  Unsupported active releases: 1
+  Unsupported active releases: 0
   Releases EOL soon: 0
   Supported inactive releases: 0
-  Releases that are active but not supported:
-  3.20
 
  Debian
   Releases active : 2
-  Unsupported active releases: 0
+  Unsupported active releases: 1
   Releases EOL soon: 1
   Supported inactive releases: 0
+  Releases that are active but not supported:
+  11
   Releases that are EOL within 2 months:
   11
 
@@ -61,11 +62,9 @@ $ dotnet run
 
  openSUSE Leap
   Releases active : 2
-  Unsupported active releases: 1
+  Unsupported active releases: 0
   Releases EOL soon: 0
   Supported inactive releases: 0
-  Releases that are active but not supported:
-  15.6
 
  Red Hat Enterprise Linux
   Releases active : 3
@@ -88,39 +87,34 @@ $ dotnet run
 
  Ubuntu
   Releases active : 4
-  Unsupported active releases: 0
+  Unsupported active releases: 1
   Releases EOL soon: 1
   Supported inactive releases: 0
+  Releases that are active but not supported:
+  23.10
   Releases that are EOL within 2 months:
   23.10
 
 **Windows**
+ Nano Server
+  No data found at endoflife.date
+
  Windows
   Releases active : 11
-  Unsupported active releases: 11
+  Unsupported active releases: 3
   Releases EOL soon: 0
   Supported inactive releases: 0
   Releases that are active but not supported:
-  11-23h2-e
-  11-23h2-w
-  10-22h2
-  11-22h2-e
-  11-22h2-w
   10-21h2-iot-lts
-  10-21h2-e-lts
   11-21h2-e
-  10-1809-e-lts
-  10-1607-e-lts
   10-1507-e-lts
 
  Windows Server
   Releases active : 4
-  Unsupported active releases: 4
+  Unsupported active releases: 0
   Releases EOL soon: 0
   Supported inactive releases: 0
-  Releases that are active but not supported:
-  23H2
-  2022
-  2019
-  2016
+
+ Windows Server Core
+  No data found at endoflife.date
 ```

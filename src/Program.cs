@@ -16,11 +16,28 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 
     foreach (SupportDistribution distro in family.Distributions)
     {
-        IList<SupportCycle>? cycles = await EndOfLifeDate.EndOfLifeDate.GetProduct(client, distro.Id) ?? throw new Exception();
+        IList<SupportCycle>? cycles = null;
         List<SupportCycle> unsupportedActiveRelease = [];
         List<SupportCycle> soonEolReleases = [];
         List<SupportCycle> supportedEolReleases = [];
         int activeReleases = 0;
+
+        Console.WriteLine($" {distro.Name}");
+
+        try
+        {
+            cycles = await EndOfLifeDate.EndOfLifeDate.GetProduct(client, distro.Id);
+            if (cycles is null)
+            {
+                continue;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            Console.WriteLine("  No data found at endoflife.date");
+            Console.WriteLine();
+            continue;
+        }
 
         foreach (SupportCycle cycle in cycles)
         {
@@ -51,7 +68,6 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
             }
         }
 
-        Console.WriteLine($" {distro.Name}");
         Console.WriteLine($"  Releases active : {activeReleases}");
         Console.WriteLine($"  Unsupported active releases: {unsupportedActiveRelease.Count}");
         Console.WriteLine($"  Releases EOL soon: {soonEolReleases.Count}");
