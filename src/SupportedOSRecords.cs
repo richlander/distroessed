@@ -6,4 +6,4 @@ public record SupportMatrix(string ChannelVersion, DateOnly LastUpdated, IList<S
 
 public record SupportFamily(string Name, IList<SupportDistribution> Distributions); 
 
-public record SupportDistribution(string Id, string Name, string LifecyclePolicy, IList<string> Architectures, IList<string> SupportedCycles); 
+public record SupportDistribution(string Id, string Name, string LifecyclePolicy, IList<string> Architectures, IList<string> SupportedCycles);

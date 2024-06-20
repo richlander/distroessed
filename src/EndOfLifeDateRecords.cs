@@ -30,20 +30,6 @@ public record SupportCycle(string Cycle, string Codename, DateOnly ReleaseDate)
 
         return new(false, DateOnly.MinValue);
     }
-
-    public bool IsActiveReleaseEolByDate(DateOnly date)
-    {
-        SupportInfo support = GetSupportInfo();
-
-        if (support.Active &&
-            support.EolDate > DateOnly.MinValue &&
-            date > support.EolDate)
-            {
-                return true;
-            }
-
-        return false;
-    }
 };
 
 public record struct SupportInfo(bool Active, DateOnly EolDate);
