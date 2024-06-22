@@ -2,6 +2,8 @@
 
 [.NET 9](README.md) is a [Standard Term Support (STS)](../../release-policies.md) release and [is supported](../../support.md) on multiple operating systems per their lifecycle policy.
 
+This file is generated from [supported-os.json](supported-os.json).
+
 PLACEHOLDER-FAMILIES
 ## Linux compatibility
 
@@ -9,11 +11,11 @@ Microsoft-provided portable Linux builds define [minimum compatibility](/linux-s
 
 PLACEHOLDER-LIBC
 
-Note: Arm32 builds are supported on distro versions with a [Y2038 compatible glibc](https://github.com/dotnet/core/discussions/9285), for example Debian 12, Ubuntu 22.04, and higher versions.
+Note: Arm32 glibc builds are supported on distro versions with a [Y2038 compatible glibc](https://github.com/dotnet/core/discussions/9285), for example Debian 12, Ubuntu 22.04, and higher versions.
 
-## QEMU compatibility
+## Notes
 
-The [QEMU](https://www.qemu.org/) emulator is not supported to run .NET apps. QEMU is used, for example, to emulate Arm64 containers on x64, and vice versa.
+PLACEHOLDER-NOTES
 
 ## Out of support OS versions
 

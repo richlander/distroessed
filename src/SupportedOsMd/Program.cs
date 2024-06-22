@@ -27,6 +27,10 @@ foreach (string line in File.ReadLines(template))
     {
         WriteLibcSection(writer, matrix.Libc);
     }
+    else if (line.StartsWith("PLACEHOLDER-NOTES"))
+    {
+        WriteNotesSection(writer, matrix.Notes);
+    }
 }
 
 writer.Close();
@@ -44,20 +48,44 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
         writer.WriteLine();
         WriteHeader(writer, columns);
         int link = linkCount;
+        List<string> notes = [];
 
         for (int i = 0; i < family.Distributions.Count; i++)
         {
             SupportDistribution distro = family.Distributions[i];
-            if (family.Name is "Windows")
+            IList<string> distroCycles = distro.SupportedCycles;
+            if (distro.Name is "Windows")
             {
-                ToUpper(distro.SupportedCycles);
+                distroCycles = SupportedOS.SimplifyWindowsVersions(distro.SupportedCycles);
             }
+
             int column = 0;
             WriteColumn(writer, columnLengths[column++], $"[{distro.Name}][{link++}]", false);
-            WriteColumn(writer, columnLengths[column++], MakeString(distro.SupportedCycles), true);
+            WriteColumn(writer, columnLengths[column++], MakeString(distroCycles), true);
             WriteColumn(writer, columnLengths[column++], MakeString(distro.Architectures), true);
             WriteColumn(writer, columnLengths[column++], $"[Lifecycle][{link++}]", true);
             writer.WriteLine();
+
+            if (distro.Notes is {Count: > 0})
+            {
+                foreach (string note in distro.Notes)
+                {
+                    notes.Add($"{distro.Name}: {note}");
+                }
+            }
+        }
+
+
+        if (notes.Count > 0)
+        {
+            writer.WriteLine();
+            writer.WriteLine("Notes:");
+            writer.WriteLine();
+
+            foreach (string note in notes)
+            {
+                writer.WriteLine($"* {note}");
+            }
         }
 
         writer.WriteLine();
@@ -90,6 +118,15 @@ void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
         writer.WriteLine();
     }
 }
+
+void WriteNotesSection(StreamWriter writer, IList<string> notes)
+{
+    foreach (string note in notes)
+    {
+        writer.WriteLine($"* {note}");
+    }
+}
+
 
 void WriteRepeatCharacter(StreamWriter writer, char repeatCharacter, int repeats)
 {
@@ -153,14 +190,5 @@ string MakeString(IList<string> values)
 
     return builder.ToString();
 }
-
-void ToUpper(IList<String> versions)
-{
-    for (int i = 0; i < versions.Count; i++)
-    {
-        string version = versions[i];
-        versions[i] = version.ToUpperInvariant();
-    }
-} 
 
 record struct Columns(string[] Labels, int[] Lengths);
