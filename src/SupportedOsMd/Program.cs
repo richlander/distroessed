@@ -53,15 +53,15 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
         for (int i = 0; i < family.Distributions.Count; i++)
         {
             SupportDistribution distro = family.Distributions[i];
-            IList<string> distroCycles = distro.SupportedCycles;
+            IList<string> distroVersions = distro.SupportedVersions;
             if (distro.Name is "Windows")
             {
-                distroCycles = SupportedOS.SimplifyWindowsVersions(distro.SupportedCycles);
+                distroVersions = SupportedOS.SimplifyWindowsVersions(distro.SupportedVersions);
             }
 
             int column = 0;
             WriteColumn(writer, columnLengths[column++], $"[{distro.Name}][{link++}]", false);
-            WriteColumn(writer, columnLengths[column++], MakeString(distroCycles), true);
+            WriteColumn(writer, columnLengths[column++], MakeString(distroVersions), true);
             WriteColumn(writer, columnLengths[column++], MakeString(distro.Architectures), true);
             WriteColumn(writer, columnLengths[column++], $"[Lifecycle][{link++}]", true);
             writer.WriteLine();

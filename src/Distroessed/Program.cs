@@ -42,7 +42,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         foreach (SupportCycle cycle in cycles)
         {
             SupportInfo support = cycle.GetSupportInfo();
-            bool distroCycleListed = distro.SupportedCycles.Contains(cycle.Cycle);
+            bool distroCycleListed = distro.SupportedVersions.Contains(cycle.Cycle);
 
             if (!support.Active)
             {
