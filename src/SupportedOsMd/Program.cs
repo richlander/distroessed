@@ -1,15 +1,19 @@
-﻿using System.ComponentModel;
-using System.Text;
+﻿using System.Text;
 using DotnetSupport;
 
-string template = "supported-os-template.md";
-string file = "supported-os.md";
+int version = 9;
+string template = $"supported-os-template{version}.md";
+string file = $"supported-os{version}.md";
+string supportJson = $"https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/{version}.0/supported-os.json";
 string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
 FileStream stream = File.OpenWrite(file);
 StreamWriter writer = new(stream);
+List<string> unsupportedVersions = [];
 
-SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(client) ?? throw new();
+
+
+SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
 
 foreach (string line in File.ReadLines(template))
 {
@@ -21,7 +25,7 @@ foreach (string line in File.ReadLines(template))
 
     if (line.StartsWith("PLACEHOLDER-FAMILIES"))
     {
-        WriteFamiliesSection(writer, matrix.Families);
+        WriteFamiliesSection(writer, matrix.Families, unsupportedVersions);
     }
     else if (line.StartsWith("PLACEHOLDER-LIBC"))
     {
@@ -31,11 +35,15 @@ foreach (string line in File.ReadLines(template))
     {
         WriteNotesSection(writer, matrix.Notes);
     }
+    else if (line.StartsWith("PLACEHOLDER-UNSUPPORTED"))
+    {
+        WriteUnSupportedSection(writer, unsupportedVersions);
+    }
 }
 
 writer.Close();
 
-void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
+void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, List<string> unsupportedVersions)
 {
     string[] columnLabels = [ "OS", "Version", "Architectures", "Lifecycle" ];
     int[] columnLengths = [32, 30, 20, 20 ];
@@ -54,6 +62,8 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
         {
             SupportDistribution distro = family.Distributions[i];
             IList<string> distroVersions = distro.SupportedVersions;
+            IList<string> distroUnsupportedVersions = distro.UnsupportedVersions ?? [];
+
             if (distro.Name is "Windows")
             {
                 distroVersions = SupportedOS.SimplifyWindowsVersions(distro.SupportedVersions);
@@ -73,8 +83,12 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
                     notes.Add($"{distro.Name}: {note}");
                 }
             }
-        }
 
+            foreach (string version in distroUnsupportedVersions)
+            {
+                unsupportedVersions.Add($"{distro.Name} {version}");
+            }
+        }
 
         if (notes.Count > 0)
         {
@@ -86,6 +100,7 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
             {
                 writer.WriteLine($"* {note}");
             }
+
         }
 
         writer.WriteLine();
@@ -127,6 +142,19 @@ void WriteNotesSection(StreamWriter writer, IList<string> notes)
     }
 }
 
+void WriteUnSupportedSection(StreamWriter writer, IList<string> unsupported)
+{
+    if (unsupported.Count is 0)
+    {
+        writer.WriteLine("None currently.");
+        return;
+    }
+
+    foreach (string version in unsupported)
+    {
+        writer.WriteLine($"* {version}");
+    }
+}
 
 void WriteRepeatCharacter(StreamWriter writer, char repeatCharacter, int repeats)
 {
