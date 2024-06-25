@@ -7,7 +7,7 @@ namespace DotnetRelease;
 public class Releases
 {
     public static Task<ReleaseOverview?> GetDotnetRelease(HttpClient client, string url) => client.GetFromJsonAsync<ReleaseOverview>(url, DotnetReleaseSerializerContext.Default.ReleaseOverview);
-    public static ValueTask<ReleaseOverview?> GetDotnetReleaseLocal(string url) => JsonSerializer.DeserializeAsync<ReleaseOverview>(File.OpenRead(url), DotnetReleaseSerializerContext.Default.ReleaseOverview);
+    public static ValueTask<ReleaseOverview?> GetDotnetRelease(Stream stream) => JsonSerializer.DeserializeAsync<ReleaseOverview>(stream, DotnetReleaseSerializerContext.Default.ReleaseOverview);
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]

@@ -1,58 +1,68 @@
 ﻿using DotnetRelease;
 using DotnetSupport;
 using EndOfLifeDate;
+using ReleaseReport;
 
-if (args.Length is 0 || !int.TryParse(args[0], out int version))
+if (args.Length is 0 || !int.TryParse(args[0], out int ver))
 {
     ReportInvalidArgs();
     return;
 }
 
-string defaultSupportJson = $"https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/{version}.0/supported-os.json";
-string supportJson = args.Length > 1 ? args[1] : defaultSupportJson;
-bool preferFilePath = false;
+string version = $"{ver}.0";
+string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/";
+string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
+bool preferWeb = baseUrl.StartsWith("https");
+string supportMatrixUrl, releaseUrl;
+SupportMatrix? matrix = null;
+ReleaseOverview? release = null;
+List<ReportFamily> reportFamilies = [];
+Report report = new(DateTime.UtcNow, version, reportFamilies);
 
-if (args.Length > 2 && int.TryParse(args[2], out int preferFileArg))
+if (preferWeb)
 {
-    preferFilePath = true;
-
-    if (preferFileArg is 2)
-    {
-        supportJson = Path.Combine(args[1], $"{version}.0","supported-os.json");
-    }
+    supportMatrixUrl = $"{baseUrl}/{version}/supported-os.json";
+    releaseUrl = $"{baseUrl}/{version}/releases.json";
 }
-
+else
+{
+    supportMatrixUrl = Path.Combine(baseUrl, version,"supported-os.json");
+    releaseUrl = Path.Combine(baseUrl, version,"releases.json");   
+}
 
 HttpClient client= new();
 DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 
-var version = 6;
-var supportMatrixUrl = $@"K:\GitRepos\core\release-notes\{version}.0\supported-os.json";
-var releaseUrl = $@"K:\GitRepos\core\release-notes\{version}.0\releases.json";
-SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(supportMatrixUrl);
-ReleaseOverview? release = await Releases.GetDotnetReleaseLocal(releaseUrl);
+if (preferWeb)
+{
+    matrix = await SupportedOS.GetSupportMatrix(client, supportMatrixUrl);
+    release = await Releases.GetDotnetRelease(client, releaseUrl);
+}
+else
+{
+    matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportMatrixUrl));
+    release = await Releases.GetDotnetRelease(File.OpenRead(supportMatrixUrl));
+}
 
-DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{version}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
-DateOnly eolDate = release?.EolDate ?? DateOnly.MaxValue;
-bool productIsEol = eolDate < DateOnly.FromDateTime(DateTime.UtcNow);
+DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{ver}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
 foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 {
-    Console.WriteLine($"**{family.Name}**");
+    List<ReportDistribution> reportDistributions = [];
+    ReportFamily reportFamily = new(family.Name,reportDistributions);
+    reportFamilies.Add(reportFamily);
 
     foreach (SupportDistribution distro in family.Distributions)
     {
         IList<SupportCycle>? cycles = null;
+        List<SupportCycle> activeReleases = [];
         List<SupportCycle> missingCycles = [];
         List<SupportCycle> unsupportedActiveRelease = [];
         List<SupportCycle> soonEolReleases = [];
         List<SupportCycle> supportedEolReleases = [];
-        int activeReleases = 0;
-
-        Console.WriteLine($" {distro.Name}");
         
         try
         {
-            cycles = await EndOfLifeDate.EndOfLifeDate.GetProduct(client, distro.Id);
+            cycles = await Product.GetProduct(client, distro.Id);
             if (cycles is null)
             {
                 continue;
@@ -68,22 +78,21 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         foreach (SupportCycle cycle in cycles)
         {
             SupportInfo support = cycle.GetSupportInfo();
-            bool distroCycleListed = distro.SupportedVersions.Contains(cycle.Cycle);
-            bool distroCycleUnlisted = distro.UnsupportedVersions?.Contains(cycle.Cycle) ?? false;
-            bool isActive = support.Active;
+            bool distroCycleSupported = distro.SupportedVersions.Contains(cycle.Cycle);
+            bool distroCycleUnsupported = distro.UnsupportedVersions?.Contains(cycle.Cycle) ?? false;
+            bool isActive = support.IsActive;
 
             if (isActive)
             {
-                activeReleases++;
+                activeReleases.Add(cycle);
             }
-
-            if (!isActive || productIsEol)
+            else
             {
-                if (distroCycleListed)
+                if (distroCycleSupported)
                 {
                     supportedEolReleases.Add(cycle);
                 }
-                else if (!productIsEol && support.EolDate >= initialRelease && cycle.ReleaseDate <= eolDate && !distroCycleUnlisted)
+                else
                 {
                     missingCycles.Add(cycle);
                 }
@@ -91,7 +100,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
                 continue;
             }
 
-            if (!distroCycleListed)
+            if (!distroCycleSupported)
             {
                 unsupportedActiveRelease.Add(cycle);
             }
@@ -103,6 +112,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
             }
         }
 
+        ReportDistribution reportDistribution = new(distro.Name, activeReleases, missingCycles, unsupportedActiveRelease, supportedEolReleases, soonEolReleases);
         Console.WriteLine($"  Releases active : {activeReleases}");
         Console.WriteLine($"  Missing releases: {missingCycles.Count}");
         Console.WriteLine($"  Unsupported active releases: {unsupportedActiveRelease.Count}");
@@ -121,7 +131,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 void ReportInvalidArgs()
 {
     Console.WriteLine("Invalid args.");
-    Console.WriteLine("Expected: version [URL] [1 == URL is absolute file path; 2 == add $\"{version}.0\\supported-os.json\" to end");
+    Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }
 
 void PrintMessageAboutCycles(bool condition, IEnumerable<SupportCycle> cycles, string message, int indent = 0)

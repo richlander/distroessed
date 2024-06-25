@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotnetSupport", "DotnetSupp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotnetRelease", "DotnetRelease\DotnetRelease.csproj", "{BA60A845-611B-4D43-B7B0-DE8A062F09FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReleaseReport", "ReleaseReport\ReleaseReport.csproj", "{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{BA60A845-611B-4D43-B7B0-DE8A062F09FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA60A845-611B-4D43-B7B0-DE8A062F09FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA60A845-611B-4D43-B7B0-DE8A062F09FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

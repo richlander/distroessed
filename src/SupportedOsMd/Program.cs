@@ -2,26 +2,23 @@
 using DotnetSupport;
 using SupportedOsMd;
 
-if (args.Length is 0 || !int.TryParse(args[0], out int version))
+if (args.Length is 0 || !int.TryParse(args[0], out int ver))
 {
     ReportInvalidArgs();
     return;
 }
 
+string version = $"{ver}.0";
 string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/";
-string supportJson = args.Length > 1 ? args[1] : baseDefaultURL;
-bool preferFilePath = !supportJson.StartsWith("https");
+string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
+bool preferWeb = baseUrl.StartsWith("https");
+string supportJson = baseUrl;
 
 if (!supportJson.EndsWith(".json"))
 {
-    if (preferFilePath)
-    {
-        supportJson = Path.Combine(supportJson, $"{version}.0","supported-os.json");
-    }
-    else
-    {
-        supportJson = $"{supportJson}/{version}.0/supported-os.json";
-    }
+    supportJson = preferWeb ?
+        $"{baseUrl}/{version}/supported-os.json" :
+        Path.Combine(baseUrl, version,"supported-os.json");
 }
 
 string template = $"supported-os-template{version}.md";
@@ -34,13 +31,13 @@ List<string> unsupportedVersions = [];
 
 SupportMatrix? matrix = null;
 
-if (preferFilePath)
+if (preferWeb)
 {
-    matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportJson)) ?? throw new();
+    matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
 }
 else
 {
-    matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
+    matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportJson)) ?? throw new();
 }
 
 
@@ -82,7 +79,7 @@ Console.WriteLine(path);
 void ReportInvalidArgs()
 {
     Console.WriteLine("Invalid args.");
-    Console.WriteLine("Expected: version [URL | Absolute path to .json | Absolute path root]");
+    Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }
 
 void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, List<string> unsupportedVersions)

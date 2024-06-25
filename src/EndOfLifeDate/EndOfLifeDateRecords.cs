@@ -29,7 +29,7 @@ public record SupportCycle(string Cycle, string Codename, DateOnly ReleaseDate)
     }
 };
 
-public record struct SupportInfo(bool Active, DateOnly EolDate);
+public record struct SupportInfo(bool IsActive, DateOnly EolDate);
 
 /*
 [
