@@ -2,13 +2,34 @@
 using DotnetSupport;
 using EndOfLifeDate;
 
+if (args.Length is 0 || !int.TryParse(args[0], out int version))
+{
+    ReportInvalidArgs();
+    return;
+}
+
+string defaultSupportJson = $"https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/{version}.0/supported-os.json";
+string supportJson = args.Length > 1 ? args[1] : defaultSupportJson;
+bool preferFilePath = false;
+
+if (args.Length > 2 && int.TryParse(args[2], out int preferFileArg))
+{
+    preferFilePath = true;
+
+    if (preferFileArg is 2)
+    {
+        supportJson = Path.Combine(args[1], $"{version}.0","supported-os.json");
+    }
+}
+
+
 HttpClient client= new();
 DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 
 var version = 6;
 var supportMatrixUrl = $@"K:\GitRepos\core\release-notes\{version}.0\supported-os.json";
 var releaseUrl = $@"K:\GitRepos\core\release-notes\{version}.0\releases.json";
-SupportMatrix? matrix = await SupportedOS.GetSupportMatrixLocal(supportMatrixUrl);
+SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(supportMatrixUrl);
 ReleaseOverview? release = await Releases.GetDotnetReleaseLocal(releaseUrl);
 
 DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{version}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
@@ -95,6 +116,12 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 
         Console.WriteLine();
     }
+}
+
+void ReportInvalidArgs()
+{
+    Console.WriteLine("Invalid args.");
+    Console.WriteLine("Expected: version [URL] [1 == URL is absolute file path; 2 == add $\"{version}.0\\supported-os.json\" to end");
 }
 
 void PrintMessageAboutCycles(bool condition, IEnumerable<SupportCycle> cycles, string message, int indent = 0)

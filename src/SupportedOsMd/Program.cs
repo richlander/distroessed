@@ -8,17 +8,19 @@ if (args.Length is 0 || !int.TryParse(args[0], out int version))
     return;
 }
 
-string defaultSupportJson = $"https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/{version}.0/supported-os.json";
-string supportJson = args.Length > 1 ? args[1] : defaultSupportJson;
-bool preferFilePath = false;
+string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/";
+string supportJson = args.Length > 1 ? args[1] : baseDefaultURL;
+bool preferFilePath = !supportJson.StartsWith("https");
 
-if (args.Length > 2 && int.TryParse(args[2], out int preferFileArg))
+if (!supportJson.EndsWith(".json"))
 {
-    preferFilePath = true;
-
-    if (preferFileArg is 2)
+    if (preferFilePath)
     {
-        supportJson = Path.Combine(args[1], $"{version}.0","supported-os.json");
+        supportJson = Path.Combine(supportJson, $"{version}.0","supported-os.json");
+    }
+    else
+    {
+        supportJson = $"{supportJson}/{version}.0/supported-os.json";
     }
 }
 
@@ -69,11 +71,18 @@ foreach (string line in File.ReadLines(template))
 }
 
 writer.Close();
+var writtenFile = File.OpenRead(file);
+long length = writtenFile.Length;
+string path = writtenFile.Name;
+writtenFile.Close();
+
+Console.WriteLine($"Generated {length} bytes");
+Console.WriteLine(path);
 
 void ReportInvalidArgs()
 {
     Console.WriteLine("Invalid args.");
-    Console.WriteLine("Expected: version [URL] [1 == URL is absolute file path; 2 == add $\"{version}.0\\supported-os.json\" to end");
+    Console.WriteLine("Expected: version [URL | Absolute path to .json | Absolute path root]");
 }
 
 void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, List<string> unsupportedVersions)
