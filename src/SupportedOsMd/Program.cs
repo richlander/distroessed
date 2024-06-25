@@ -2,21 +2,45 @@
 using DotnetSupport;
 using SupportedOsMd;
 
-int version = 9;
+if (args.Length is 0 || !int.TryParse(args[0], out int version))
+{
+    ReportInvalidArgs();
+    return;
+}
+
+string defaultSupportJson = $"https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/{version}.0/supported-os.json";
+string supportJson = args.Length > 1 ? args[1] : defaultSupportJson;
+bool preferFilePath = false;
+
+if (args.Length > 2 && int.TryParse(args[2], out int preferFileArg))
+{
+    preferFilePath = true;
+
+    if (preferFileArg is 2)
+    {
+        supportJson = Path.Combine(args[1], $"{version}.0/supported-os.json");
+    }
+}
+
 string template = $"supported-os-template{version}.md";
 string file = $"supported-os{version}.md";
-string supportJson = $"https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/{version}.0/supported-os.json";
-var supportMatrixUrl = $@"K:\GitRepos\core\release-notes\{version}.0\supported-os.json";
 string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
 FileStream stream = File.OpenWrite(file);
 StreamWriter writer = new(stream);
 List<string> unsupportedVersions = [];
 
+SupportMatrix? matrix = null;
 
+if (preferFilePath)
+{
+    matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportJson)) ?? throw new();
+}
+else
+{
+    matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
+}
 
-SupportMatrix? matrix = await SupportedOS.GetSupportMatrixLocal(supportMatrixUrl) ?? throw new();
-//SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
 
 foreach (string line in File.ReadLines(template))
 {
@@ -45,6 +69,12 @@ foreach (string line in File.ReadLines(template))
 }
 
 writer.Close();
+
+void ReportInvalidArgs()
+{
+    Console.WriteLine("Invalid args.");
+    Console.WriteLine("Expected: version [URL] [1 == URL is absolute file path; 2 == add $\"{version}.0\\supported-os.json\" to end");
+}
 
 void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, List<string> unsupportedVersions)
 {

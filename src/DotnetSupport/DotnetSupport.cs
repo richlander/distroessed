@@ -7,7 +7,7 @@ namespace DotnetSupport;
 public class SupportedOS
 {
     public static Task<SupportMatrix?> GetSupportMatrix(HttpClient client, string url) => client.GetFromJsonAsync<SupportMatrix>(url, SupportMatrixSerializerContext.Default.SupportMatrix);
-    public static ValueTask<SupportMatrix?> GetSupportMatrixLocal(string url) => JsonSerializer.DeserializeAsync<SupportMatrix>(File.OpenRead(url), SupportMatrixSerializerContext.Default.SupportMatrix);
+    public static ValueTask<SupportMatrix?> GetSupportMatrix(Stream stream) => JsonSerializer.DeserializeAsync<SupportMatrix>(stream, SupportMatrixSerializerContext.Default.SupportMatrix);
 
     public static IList<string> SimplifyWindowsVersions(IList<String> versions)
     {
