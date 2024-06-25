@@ -18,7 +18,7 @@ if (args.Length > 2 && int.TryParse(args[2], out int preferFileArg))
 
     if (preferFileArg is 2)
     {
-        supportJson = Path.Combine(args[1], $"{version}.0/supported-os.json");
+        supportJson = Path.Combine(args[1], $"{version}.0","supported-os.json");
     }
 }
 
