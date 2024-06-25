@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
     <ProjectReference Include="..\EndOfLifeDate\EndOfLifeDate.csproj" />
     <ProjectReference Include="..\DotnetSupport\DotnetSupport.csproj" />
   </ItemGroup>

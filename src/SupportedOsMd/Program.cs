@@ -1,10 +1,12 @@
 ﻿using System.Text;
 using DotnetSupport;
+using SupportedOsMd;
 
 int version = 9;
 string template = $"supported-os-template{version}.md";
 string file = $"supported-os{version}.md";
 string supportJson = $"https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/{version}.0/supported-os.json";
+var supportMatrixUrl = $@"K:\GitRepos\core\release-notes\{version}.0\supported-os.json";
 string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
 FileStream stream = File.OpenWrite(file);
@@ -13,7 +15,8 @@ List<string> unsupportedVersions = [];
 
 
 
-SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
+SupportMatrix? matrix = await SupportedOS.GetSupportMatrixLocal(supportMatrixUrl) ?? throw new();
+//SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
 
 foreach (string line in File.ReadLines(template))
 {
@@ -219,4 +222,7 @@ string MakeString(IList<string> values)
     return builder.ToString();
 }
 
-record struct Columns(string[] Labels, int[] Lengths);
+namespace SupportedOsMd
+{
+    record struct Columns(string[] Labels, int[] Lengths);
+}

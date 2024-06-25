@@ -1,5 +1,5 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DotnetSupport;
@@ -7,6 +7,7 @@ namespace DotnetSupport;
 public class SupportedOS
 {
     public static Task<SupportMatrix?> GetSupportMatrix(HttpClient client, string url) => client.GetFromJsonAsync<SupportMatrix>(url, SupportMatrixSerializerContext.Default.SupportMatrix);
+    public static ValueTask<SupportMatrix?> GetSupportMatrixLocal(string url) => JsonSerializer.DeserializeAsync<SupportMatrix>(File.OpenRead(url), SupportMatrixSerializerContext.Default.SupportMatrix);
 
     public static IList<string> SimplifyWindowsVersions(IList<String> versions)
     {

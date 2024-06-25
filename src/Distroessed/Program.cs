@@ -1,15 +1,19 @@
-﻿using System.CodeDom.Compiler;
-using System.ComponentModel;
-using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Text.Json.Serialization;
+﻿using DotnetRelease;
 using DotnetSupport;
 using EndOfLifeDate;
 
 HttpClient client= new();
 DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 
-SupportMatrix? matrix = await SupportedOS.GetSupportMatrix(client);
+var version = 6;
+var supportMatrixUrl = $@"K:\GitRepos\core\release-notes\{version}.0\supported-os.json";
+var releaseUrl = $@"K:\GitRepos\core\release-notes\{version}.0\releases.json";
+SupportMatrix? matrix = await SupportedOS.GetSupportMatrixLocal(supportMatrixUrl);
+ReleaseOverview? release = await Releases.GetDotnetReleaseLocal(releaseUrl);
+
+DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{version}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
+DateOnly eolDate = release?.EolDate ?? DateOnly.MaxValue;
+bool productIsEol = eolDate < DateOnly.FromDateTime(DateTime.UtcNow);
 foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 {
     Console.WriteLine($"**{family.Name}**");
@@ -17,13 +21,14 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
     foreach (SupportDistribution distro in family.Distributions)
     {
         IList<SupportCycle>? cycles = null;
+        List<SupportCycle> missingCycles = [];
         List<SupportCycle> unsupportedActiveRelease = [];
         List<SupportCycle> soonEolReleases = [];
         List<SupportCycle> supportedEolReleases = [];
         int activeReleases = 0;
 
         Console.WriteLine($" {distro.Name}");
-
+        
         try
         {
             cycles = await EndOfLifeDate.EndOfLifeDate.GetProduct(client, distro.Id);
@@ -43,18 +48,27 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         {
             SupportInfo support = cycle.GetSupportInfo();
             bool distroCycleListed = distro.SupportedVersions.Contains(cycle.Cycle);
+            bool distroCycleUnlisted = distro.UnsupportedVersions?.Contains(cycle.Cycle) ?? false;
+            bool isActive = support.Active;
 
-            if (!support.Active)
+            if (isActive)
+            {
+                activeReleases++;
+            }
+
+            if (!isActive || productIsEol)
             {
                 if (distroCycleListed)
                 {
                     supportedEolReleases.Add(cycle);
                 }
+                else if (!productIsEol && support.EolDate >= initialRelease && cycle.ReleaseDate <= eolDate && !distroCycleUnlisted)
+                {
+                    missingCycles.Add(cycle);
+                }
 
                 continue;
             }
-
-            activeReleases++;
 
             if (!distroCycleListed)
             {
@@ -69,10 +83,12 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         }
 
         Console.WriteLine($"  Releases active : {activeReleases}");
+        Console.WriteLine($"  Missing releases: {missingCycles.Count}");
         Console.WriteLine($"  Unsupported active releases: {unsupportedActiveRelease.Count}");
         Console.WriteLine($"  Releases EOL soon: {soonEolReleases.Count}");
         Console.WriteLine($"  Supported inactive releases: {supportedEolReleases.Count}");
 
+        PrintMessageAboutCycles(missingCycles.Count > 0, missingCycles, "Releases that had active support but were never supported:", 2);
         PrintMessageAboutCycles(unsupportedActiveRelease.Count > 0, unsupportedActiveRelease, "Releases that are active but not supported:", 2);
         PrintMessageAboutCycles(soonEolReleases.Count > 0, soonEolReleases, "Releases that are EOL within 2 months:", 2);
         PrintMessageAboutCycles(supportedEolReleases.Count > 0, supportedEolReleases, "Releases that are EOL but supported:", 2);
