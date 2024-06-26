@@ -26,7 +26,7 @@ string template = $"supported-os-template{ver}.md";
 string file = $"supported-os{ver}.md";
 string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
-FileStream stream = File.OpenWrite(file);
+FileStream stream = File.Open(file, FileMode.Create);
 StreamWriter writer = new(stream);
 
 SupportMatrix? matrix = null;
