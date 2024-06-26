@@ -111,7 +111,8 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
             WriteColumn(writer, columnLengths[column++], $"[{distro.Name}][{link++}]", false);
             WriteColumn(writer, columnLengths[column++], MakeString(distroVersions), true);
             WriteColumn(writer, columnLengths[column++], MakeString(distro.Architectures), true);
-            WriteColumn(writer, columnLengths[column++], $"[Lifecycle][{link++}]", true);
+            string lifecycleText = distro.Lifecycle is null ? "N/A" : $"[Lifecycle][{link++}]";
+            WriteColumn(writer, columnLengths[column++], lifecycleText, true);
             writer.WriteLine();
 
             if (distro.Notes is {Count: > 0})
@@ -140,7 +141,10 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
         foreach (SupportDistribution distro in family.Distributions)
         {
             writer.WriteLine($"[{linkCount++}]: {distro.Link}");
-            writer.WriteLine($"[{linkCount++}]: {distro.Lifecycle}");
+            if (distro.Lifecycle is {})
+            {
+                writer.WriteLine($"[{linkCount++}]: {distro.Lifecycle}");
+            }
         }
 
         writer.WriteLine();
@@ -199,7 +203,7 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
         return;
     }
     
-    string[] columnLabels = [ "OS", "Version", "End of Life" ];
+    string[] columnLabels = [ "OS", "Version", "Date" ];
     int[] columnLengths = [32, 30, 20];
     Columns columns = new(columnLabels, columnLengths);
     
