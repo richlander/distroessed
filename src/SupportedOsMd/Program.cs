@@ -189,7 +189,8 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
 
     // Order the list of cycles by their EoL date.
     var orderedEolCycles = eolCycles
-        .OrderByDescending(entry => GetEolDateForCycle(entry.Cycle))
+        .OrderBy(entry => entry.Distribution.Name)
+        .ThenByDescending(entry => GetEolDateForCycle(entry.Cycle))
         .ToArray();
 
     if (eolCycles.Length == 0)
@@ -229,7 +230,7 @@ string GetEolTextForCycle(SupportCycle? cycle)
     var eolDate = GetEolDateForCycle(cycle);
     if (cycle == null || eolDate == DateOnly.MinValue) return "-";
 
-    var result = eolDate.ToString("d", CultureInfo.InvariantCulture);
+    var result = eolDate.ToString("yyyy-MM-dd");
     var link = cycle.Link;
     if (link != null)
     {
