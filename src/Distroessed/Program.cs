@@ -43,6 +43,8 @@ else
 }
 
 DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{majorVersion}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
+DateOnly eolDate = release?.EolDate ?? DateOnly.MaxValue;
+
 foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 {
     ReportFamily reportFamily = new(family.Name, []);
@@ -80,6 +82,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
             bool isUnsupported = distro.UnsupportedVersions?.Contains(cycle.Cycle) ?? false;
             // EndofLife.Date statement
             bool isActive = support.IsActive;
+            bool hasOverlappingLifecycle = initialRelease <= support.EolDate && cycle.ReleaseDate <= eolDate;
 
             if (isActive)
             {
@@ -90,7 +93,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
                 Cases (EOLDate, dotnet):
                 1. (Active, Supported)
                 2. (Active, Unsupported)
-                3. (Active, Unlisted)
+                3. (OverlappingLifecycle, Unlisted)
                 4. (EOL, Supported)
                 5. (Active - EolSoon, Supported)
                 // these are not covered
@@ -110,7 +113,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
                 unsupportedActiveRelease.Add(cycle.Cycle);
             }
             // Case 3
-            else if (isActive)
+            else if (hasOverlappingLifecycle && !isSupported && !isUnsupported)
             {
                 missingReleases.Add(cycle.Cycle);
             }
@@ -141,4 +144,3 @@ static void ReportInvalidArgs()
     Console.WriteLine("Invalid args.");
     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }
-
