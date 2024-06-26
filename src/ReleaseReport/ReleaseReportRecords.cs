@@ -4,4 +4,4 @@ public record Report(DateTime Timestamp, string Version, IList<ReportFamily> Fam
 
 public record ReportFamily(string Name, IList<ReportDistribution> Distributions);
 
-public record ReportDistribution(string Name, int ReleasesActive, int ReleasesMissing, int ReleasesUnsupportedActive, int ReleasesSupportNotActive, IList<string> ReleasesEOLSoon);
+public record ReportDistribution(string Name, IList<string> ActiveReleases, IList<string> ActiveReleasesUnsupported, IList<string> ActiveReleasesEOLSoon, IList<string>  NotActiveReleasesSupported, IList<string>  ReleasesMissing);

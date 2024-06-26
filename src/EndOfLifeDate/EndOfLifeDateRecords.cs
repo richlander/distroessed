@@ -17,7 +17,7 @@ public record SupportCycle(string Cycle, string Codename, DateOnly ReleaseDate)
     {
         if (Eol is "False")
         {
-            return new(true, DateOnly.MinValue);
+            return new(true, DateOnly.MaxValue);
         }
         else if (Eol is not null && DateOnly.TryParse(Eol, out DateOnly eolDate))
         {

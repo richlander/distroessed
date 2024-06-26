@@ -1,23 +1,25 @@
-﻿using DotnetRelease;
+﻿using System.Collections;
+using DotnetRelease;
 using DotnetSupport;
 using EndOfLifeDate;
 using ReleaseReport;
 
-if (args.Length is 0 || !int.TryParse(args[0], out int ver))
+if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
     ReportInvalidArgs();
     return;
 }
 
-string version = $"{ver}.0";
+string version = $"{majorVersion}.0";
 string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/";
 string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
 bool preferWeb = baseUrl.StartsWith("https");
+HttpClient client= new();
+DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 string supportMatrixUrl, releaseUrl;
 SupportMatrix? matrix = null;
 ReleaseOverview? release = null;
-List<ReportFamily> reportFamilies = [];
-Report report = new(DateTime.UtcNow, version, reportFamilies);
+Report report = new(DateTime.UtcNow, version, []);
 
 if (preferWeb)
 {
@@ -30,9 +32,6 @@ else
     releaseUrl = Path.Combine(baseUrl, version,"releases.json");   
 }
 
-HttpClient client= new();
-DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
-
 if (preferWeb)
 {
     matrix = await SupportedOS.GetSupportMatrix(client, supportMatrixUrl);
@@ -44,21 +43,20 @@ else
     release = await Releases.GetDotnetRelease(File.OpenRead(supportMatrixUrl));
 }
 
-DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{ver}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
+DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{majorVersion}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
 foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 {
-    List<ReportDistribution> reportDistributions = [];
-    ReportFamily reportFamily = new(family.Name,reportDistributions);
-    reportFamilies.Add(reportFamily);
+    ReportFamily reportFamily = new(family.Name, []);
+    report.Families.Add(reportFamily);
 
     foreach (SupportDistribution distro in family.Distributions)
     {
         IList<SupportCycle>? cycles = null;
-        List<SupportCycle> activeReleases = [];
-        List<SupportCycle> missingCycles = [];
-        List<SupportCycle> unsupportedActiveRelease = [];
-        List<SupportCycle> soonEolReleases = [];
-        List<SupportCycle> supportedEolReleases = [];
+        List<string> activeReleases = [];
+        List<string> unsupportedActiveRelease = [];
+        List<string> soonEolReleases = [];
+        List<string> supportedUnActiveReleases = [];
+        List<string> missingReleases = [];
         
         try
         {
@@ -70,7 +68,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         }
         catch (HttpRequestException)
         {
-            Console.WriteLine("  No data found at endoflife.date");
+            Console.WriteLine($"No data found at endoflife.date for: {distro.Id}");
             Console.WriteLine();
             continue;
         }
@@ -78,88 +76,70 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         foreach (SupportCycle cycle in cycles)
         {
             SupportInfo support = cycle.GetSupportInfo();
-            bool distroCycleSupported = distro.SupportedVersions.Contains(cycle.Cycle);
-            bool distroCycleUnsupported = distro.UnsupportedVersions?.Contains(cycle.Cycle) ?? false;
+            // dotnet statements
+            bool isSupported = distro.SupportedVersions.Contains(cycle.Cycle);
+            bool isUnsupported = distro.UnsupportedVersions?.Contains(cycle.Cycle) ?? false;
+            // EndofLife.Date statement
             bool isActive = support.IsActive;
 
             if (isActive)
             {
-                activeReleases.Add(cycle);
-            }
-            else
-            {
-                if (distroCycleSupported)
-                {
-                    supportedEolReleases.Add(cycle);
-                }
-                else
-                {
-                    missingCycles.Add(cycle);
-                }
-
-                continue;
+                activeReleases.Add(cycle.Cycle);
             }
 
-            if (!distroCycleSupported)
-            {
-                unsupportedActiveRelease.Add(cycle);
-            }
+            /*
+                Cases (EOLDate, dotnet):
+                1. (Active, Supported)
+                2. (Active, Unsupported)
+                3. (Active, Unlisted)
+                4. (EOL, Supported)
+                5. (Active - EolSoon, Supported)
+                // these are not covered
+                6. (Unlisted, Listed)
+                7. (EOL, UnSupported | Unlisted)
+                8. (Listed, Unlisted)
+            */
 
-            if (support.EolDate > DateOnly.MinValue &&
-                threeMonthsDate > support.EolDate)
+            // Case 1
+            if (isActive && isSupported)
             {
-                soonEolReleases.Add(cycle);
+                // nothing to do
+            }
+            // Case 2
+            else if (isActive && isUnsupported)
+            {
+                unsupportedActiveRelease.Add(cycle.Cycle);
+            }
+            // Case 3
+            else if (isActive)
+            {
+                missingReleases.Add(cycle.Cycle);
+            }
+            // Case 4
+            else if (!isActive && isSupported)
+            {
+                supportedUnActiveReleases.Add(cycle.Cycle);
+            }            
+
+            if (isActive && support.EolDate < threeMonthsDate)
+            {
+                soonEolReleases.Add(cycle.Cycle);
             }
         }
 
-        ReportDistribution reportDistribution = new(distro.Name, activeReleases, missingCycles, unsupportedActiveRelease, supportedEolReleases, soonEolReleases);
-        Console.WriteLine($"  Releases active : {activeReleases}");
-        Console.WriteLine($"  Missing releases: {missingCycles.Count}");
-        Console.WriteLine($"  Unsupported active releases: {unsupportedActiveRelease.Count}");
-        Console.WriteLine($"  Releases EOL soon: {soonEolReleases.Count}");
-        Console.WriteLine($"  Supported inactive releases: {supportedEolReleases.Count}");
-
-        PrintMessageAboutCycles(missingCycles.Count > 0, missingCycles, "Releases that had active support but were never supported:", 2);
-        PrintMessageAboutCycles(unsupportedActiveRelease.Count > 0, unsupportedActiveRelease, "Releases that are active but not supported:", 2);
-        PrintMessageAboutCycles(soonEolReleases.Count > 0, soonEolReleases, "Releases that are EOL within 2 months:", 2);
-        PrintMessageAboutCycles(supportedEolReleases.Count > 0, supportedEolReleases, "Releases that are EOL but supported:", 2);
-
-        Console.WriteLine();
+        ReportDistribution reportDistribution = new(distro.Name, activeReleases, unsupportedActiveRelease, soonEolReleases, supportedUnActiveReleases, missingReleases );
+        reportFamily.Distributions.Add(reportDistribution);
     }
 }
 
-void ReportInvalidArgs()
+var reportJson = ReleaseReport.Release.WriteReport(report);
+
+Console.WriteLine(reportJson);
+
+
+static void ReportInvalidArgs()
 {
     Console.WriteLine("Invalid args.");
     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }
 
-void PrintMessageAboutCycles(bool condition, IEnumerable<SupportCycle> cycles, string message, int indent = 0)
-{
-    if (!condition)
-    {
-        return;
-    }
-
-    WriteIndent(indent);
-    Console.WriteLine(message);
-
-    foreach (SupportCycle cycle in cycles)
-    {
-        WriteIndent(indent);
-        Console.WriteLine(cycle.Cycle);
-    }
-}
-
-void WriteIndent(int indent)
-{
-    if (indent is 0)
-    {
-        return;
-    }
-
-    for (int i = 0; i < indent; i++)
-    {
-        Console.Write(' ');
-    }
-}
