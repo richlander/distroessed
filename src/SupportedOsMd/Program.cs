@@ -207,10 +207,16 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
     foreach (var entry in orderedEolCycles)
     {
         var eol = GetEolTextForCycle(entry.Cycle);
+        var distroName = entry.Distribution.Name;
+        var distroVersion = entry.Version;
+        if (distroName is "Windows")
+        {
+            distroVersion = SupportedOS.PrettyifyWindowsVersion(distroVersion);
+        }
 
         int column = 0;
-        WriteColumn(writer, columnLengths[column++], entry.Distribution.Name, false);
-        WriteColumn(writer, columnLengths[column++], entry.Version, true);
+        WriteColumn(writer, columnLengths[column++], distroName, false);
+        WriteColumn(writer, columnLengths[column++], distroVersion, true);
         WriteColumn(writer, columnLengths[column++], eol, true);
         writer.WriteLine();
     }
