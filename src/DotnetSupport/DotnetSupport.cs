@@ -15,11 +15,11 @@ public class SupportedOS
         int length = 7;
         for (int i = 0; i < versions.Count; i++)
         {
-            string version = versions[i];
+            var version = versions[i];
             if (i + 1 < versions.Count)
             {
-                if (versions[i].Contains("-e") && versions[i + 1].Contains("-w") &&
-                    versions[i].AsSpan().StartsWith(versions[i + 1].AsSpan(0, length)))
+                if (version.Contains("-e") && versions[i + 1].Contains("-w") &&
+                    version.AsSpan().StartsWith(versions[i + 1].AsSpan(0, length)))
                 {
                     version = version.AsSpan(0, length).ToString();
                     i++;
@@ -42,6 +42,10 @@ public class SupportedOS
         if (version.Length is 7)
         {
             return version;
+        }
+        else if (version.Contains('W'))
+        {
+            return $"{version.AsSpan(0, 7)} (W)";
         }
         else if (version.Contains('E'))
         {
