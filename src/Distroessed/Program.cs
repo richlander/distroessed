@@ -39,7 +39,7 @@ if (preferWeb)
 else
 {
     matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportMatrixUrl));
-    release = await Releases.GetDotnetRelease(File.OpenRead(supportMatrixUrl));
+    release = await Releases.GetDotnetRelease(File.OpenRead(releaseUrl));
 }
 
 DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{majorVersion}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
