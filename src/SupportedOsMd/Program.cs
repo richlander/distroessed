@@ -189,7 +189,7 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
 
     // Order the list of cycles by their EoL date.
     var orderedEolCycles = eolCycles
-        .OrderBy(entry => GetEolDateForCycle(entry.Cycle))
+        .OrderByDescending(entry => GetEolDateForCycle(entry.Cycle))
         .ToArray();
 
     if (eolCycles.Length == 0)
