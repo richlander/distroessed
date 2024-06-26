@@ -7,7 +7,7 @@ This file is generated from [supported-os.json](supported-os.json) and is based 
 PLACEHOLDER-FAMILIES
 ## Linux compatibility
 
-Microsoft-provided [portable](../../linux-support.md) Linux builds define [minimum compatibility](/linux-support.md) primarily via libc version.
+Microsoft-provided [portable Linux builds](../../linux.md) define minimum compatibility primarily via libc version.
 
 PLACEHOLDER-LIBC
 
