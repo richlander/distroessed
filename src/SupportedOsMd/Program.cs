@@ -10,7 +10,7 @@ if (args.Length is 0 || !int.TryParse(args[0], out int ver))
 }
 
 string version = $"{ver}.0";
-string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/os-support/release-notes/";
+string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
 string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
 bool preferWeb = baseUrl.StartsWith("https");
 string supportJson = baseUrl;
