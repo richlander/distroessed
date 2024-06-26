@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using DotnetRelease;
+﻿using DotnetRelease;
 using DotnetSupport;
 using EndOfLifeDate;
 using ReleaseReport;
