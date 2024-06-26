@@ -1,3 +1,4 @@
+using System.Data;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,25 +14,47 @@ public class SupportedOS
     {
         List<string> updated = [];
         int length = 7;
-        Span<char> upper = stackalloc char[length];
         for (int i = 0; i < versions.Count; i++)
         {
+            string version = versions[i];
             if (i + 1 < versions.Count)
             {
-                if (versions[i + 1].AsSpan().StartsWith(versions[i].AsSpan(0, length)))
+                if (versions[i].Contains("-e") && versions[i + 1].Contains("-w") &&
+                    versions[i].AsSpan().StartsWith(versions[i + 1].AsSpan(0, length)))
                 {
-                    versions[i].AsSpan(0, length).ToUpperInvariant(upper);
-                    updated.Add(upper.ToString());
+                    version = version.AsSpan(0, length).ToString();
                     i++;
-                    continue;
                 }
             }
 
-            updated.Add(versions[i].ToUpperInvariant());
+            string prettyVersion = PrettyifyWindowsVersion(version);
+            updated.Add(prettyVersion);
         }
 
         return updated;
-    } 
+    }
+
+    public static string PrettyifyWindowsVersion(string version)
+    {
+        // This is calling for a parser
+        
+        version = version.Replace('-', ' ').ToUpperInvariant();
+
+        if (version.Length is 7)
+        {
+            return version;
+        }
+        else if (version.Contains('E'))
+        {
+            return $"{version.AsSpan(0, 7)} (E)";
+        }
+        else if (version.Contains("IOT"))
+        {
+            return $"{version.AsSpan(0, 7)} (IoT)";
+        }
+
+        return version;
+    }
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]

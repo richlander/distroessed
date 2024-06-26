@@ -21,8 +21,8 @@ if (!supportJson.EndsWith(".json"))
         Path.Combine(baseUrl, version,"supported-os.json");
 }
 
-string template = $"supported-os-template{version}.md";
-string file = $"supported-os{version}.md";
+string template = $"supported-os-template{ver}.md";
+string file = $"supported-os{ver}.md";
 string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
 FileStream stream = File.OpenWrite(file);
