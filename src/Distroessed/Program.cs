@@ -50,7 +50,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 
     foreach (SupportDistribution distro in family.Distributions)
     {
-        IList<SupportCycle>? cycles = null;
+        IList<SupportCycle>? cycles;
         List<string> activeReleases = [];
         List<string> unsupportedActiveRelease = [];
         List<string> soonEolReleases = [];
@@ -95,7 +95,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
                 5. (Active - EolSoon, Supported)
                 // these are not covered
                 6. (Unlisted, Listed)
-                7. (EOL, UnSupported | Unlisted)
+                7. (EOL, Unsupported | Unlisted)
                 8. (Listed, Unlisted)
             */
 
@@ -126,7 +126,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
             }
         }
 
-        ReportDistribution reportDistribution = new(distro.Name, activeReleases, unsupportedActiveRelease, soonEolReleases, supportedUnActiveReleases, missingReleases );
+        ReportDistribution reportDistribution = new(distro.Name, activeReleases, unsupportedActiveRelease, soonEolReleases, supportedUnActiveReleases, missingReleases);
         reportFamily.Distributions.Add(reportDistribution);
     }
 }
