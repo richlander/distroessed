@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DotnetSupport\DotnetSupport.csproj" />
+    <ProjectReference Include="..\EndOfLifeDate\EndOfLifeDate.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,5 +1,6 @@
-﻿using System.Text;
+﻿using System.Globalization;
 using DotnetSupport;
+using EndOfLifeDate;
 using SupportedOsMd;
 
 if (args.Length is 0 || !int.TryParse(args[0], out int ver))
@@ -27,7 +28,6 @@ string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
 FileStream stream = File.OpenWrite(file);
 StreamWriter writer = new(stream);
-List<string> unsupportedVersions = [];
 
 SupportMatrix? matrix = null;
 
@@ -51,7 +51,7 @@ foreach (string line in File.ReadLines(template))
 
     if (line.StartsWith("PLACEHOLDER-FAMILIES"))
     {
-        WriteFamiliesSection(writer, matrix.Families, unsupportedVersions);
+        WriteFamiliesSection(writer, matrix.Families);
     }
     else if (line.StartsWith("PLACEHOLDER-LIBC"))
     {
@@ -63,7 +63,7 @@ foreach (string line in File.ReadLines(template))
     }
     else if (line.StartsWith("PLACEHOLDER-UNSUPPORTED"))
     {
-        WriteUnSupportedSection(writer, unsupportedVersions);
+        await WriteUnSupportedSection(writer, matrix.Families);
     }
 }
 
@@ -82,10 +82,10 @@ void ReportInvalidArgs()
     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }
 
-void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, List<string> unsupportedVersions)
+void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
 {
     string[] columnLabels = [ "OS", "Version", "Architectures", "Lifecycle" ];
-    int[] columnLengths = [32, 30, 20, 20 ];
+    int[] columnLengths = [32, 30, 20, 20];
     Columns columns = new(columnLabels, columnLengths);
     int linkCount = 0;
 
@@ -101,7 +101,6 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Li
         {
             SupportDistribution distro = family.Distributions[i];
             IList<string> distroVersions = distro.SupportedVersions;
-            IList<string> distroUnsupportedVersions = distro.UnsupportedVersions ?? [];
 
             if (distro.Name is "Windows")
             {
@@ -122,11 +121,6 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Li
                     notes.Add($"{distro.Name}: {note}");
                 }
             }
-
-            foreach (string version in distroUnsupportedVersions)
-            {
-                unsupportedVersions.Add($"{distro.Name} {version}");
-            }
         }
 
         if (notes.Count > 0)
@@ -139,7 +133,6 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Li
             {
                 writer.WriteLine($"* {note}");
             }
-
         }
 
         writer.WriteLine();
@@ -181,18 +174,62 @@ void WriteNotesSection(StreamWriter writer, IList<string> notes)
     }
 }
 
-void WriteUnSupportedSection(StreamWriter writer, IList<string> unsupported)
+async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> families)
 {
-    if (unsupported.Count is 0)
+    // Get all unsupported cycles in parallel.
+    var eolCycles = await Task.WhenAll(families
+        .SelectMany(f => f.Distributions
+            .SelectMany(d => (d.UnsupportedVersions ?? [])
+                .Select(async v => new
+                {
+                    Distribution = d,
+                    Version = v,
+                    Cycle = await GetProductCycle(d, v)
+                }))));
+
+    // Order the list of cycles by their EoL date.
+    var orderedEolCycles = eolCycles
+        .OrderBy(entry => GetEolDateForCycle(entry.Cycle))
+        .ToArray();
+
+    if (eolCycles.Length == 0)
     {
         writer.WriteLine("None currently.");
         return;
     }
+    
+    string[] columnLabels = [ "OS", "Version", "End of Life" ];
+    int[] columnLengths = [32, 30, 20];
+    Columns columns = new(columnLabels, columnLengths);
+    
+    WriteHeader(writer, columns);
 
-    foreach (string version in unsupported)
+    foreach (var entry in orderedEolCycles)
     {
-        writer.WriteLine($"* {version}");
+        var eol = GetEolTextForCycle(entry.Cycle);
+
+        int column = 0;
+        WriteColumn(writer, columnLengths[column++], entry.Distribution.Name, false);
+        WriteColumn(writer, columnLengths[column++], entry.Version, true);
+        WriteColumn(writer, columnLengths[column++], eol, true);
+        writer.WriteLine();
     }
+
+    writer.WriteLine();
+}
+
+string GetEolTextForCycle(SupportCycle? cycle)
+{
+    var eolDate = GetEolDateForCycle(cycle);
+    if (cycle == null || eolDate == DateOnly.MinValue) return "-";
+
+    var result = eolDate.ToString("d", CultureInfo.InvariantCulture);
+    var link = cycle.Link;
+    if (link != null)
+    {
+        result = $"[{result}]({link})";
+    }
+    return result;
 }
 
 void WriteRepeatCharacter(StreamWriter writer, char repeatCharacter, int repeats)
@@ -245,17 +282,26 @@ void WriteColumn(StreamWriter writer, int columnLength, string value, bool front
 
 string MakeString(IList<string> values)
 {
-    StringBuilder builder = new();
-    for (int i = 0; i < values.Count; i++)
-    {
-        if (i > 0)
-        {
-            builder.Append(", ");
-        }
-        builder.Append(values[i]);
-    }
+    return string.Join(", ", values);
+}
 
-    return builder.ToString();
+async Task<SupportCycle?> GetProductCycle(SupportDistribution distro, string unsupportedVersion)
+{
+    try
+    {
+        return await Product.GetProductCycle(client, distro.Id, unsupportedVersion);
+    }
+    catch (HttpRequestException)
+    {
+        Console.WriteLine($"No data found at endoflife.date for: {distro.Id} {unsupportedVersion}");
+        Console.WriteLine();
+        return null;
+    }
+}
+
+DateOnly GetEolDateForCycle(SupportCycle? supportCycle)
+{
+    return supportCycle?.GetSupportInfo().EolDate ?? DateOnly.MinValue;
 }
 
 namespace SupportedOsMd

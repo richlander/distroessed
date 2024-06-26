@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace EndOfLifeDate;
 
 public record SupportProduct(SupportCycle[] Cycles);
-public record SupportCycle(string Cycle, string Codename, DateOnly ReleaseDate)
+public record SupportCycle(string Cycle, string Codename, DateOnly ReleaseDate, string? Link)
 {
     [JsonConverter(typeof(EolStringConverter))]
     public string? Eol { get; set; }
