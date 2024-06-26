@@ -93,7 +93,16 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
     {
         writer.WriteLine($"## {family.Name}");
         writer.WriteLine();
-        WriteHeader(writer, columns);
+
+        if (family.Name is "Apple")
+        {
+            WriteHeader(writer, new(columnLabels, [32, 30, 20]));
+        }
+        else
+        {
+            WriteHeader(writer, columns);
+        }
+
         int link = linkCount;
         List<string> notes = [];
 
@@ -111,8 +120,10 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
             WriteColumn(writer, columnLengths[column++], $"[{distro.Name}][{link++}]", false);
             WriteColumn(writer, columnLengths[column++], MakeString(distroVersions), true);
             WriteColumn(writer, columnLengths[column++], MakeString(distro.Architectures), true);
-            string lifecycleText = distro.Lifecycle is null ? "N/A" : $"[Lifecycle][{link++}]";
-            WriteColumn(writer, columnLengths[column++], lifecycleText, true);
+            if (distro.Lifecycle is not null)
+            {
+                WriteColumn(writer, columnLengths[column++], $"[Lifecycle][{link++}]", true);
+            }
             writer.WriteLine();
 
             if (distro.Notes is {Count: > 0})
