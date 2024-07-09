@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotnetRelease", "DotnetRele
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReleaseReport", "ReleaseReport\ReleaseReport.csproj", "{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkdownHelpers", "MarkdownHelpers\MarkdownHelpers.csproj", "{54629CF0-692A-4237-A1E9-C19022C40C48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2DFC8D38-2167-4388-ACDB-DD4548AA18BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54629CF0-692A-4237-A1E9-C19022C40C48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54629CF0-692A-4237-A1E9-C19022C40C48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54629CF0-692A-4237-A1E9-C19022C40C48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54629CF0-692A-4237-A1E9-C19022C40C48}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

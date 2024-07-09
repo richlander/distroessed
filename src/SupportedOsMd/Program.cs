@@ -1,7 +1,6 @@
-﻿using System.Globalization;
-using DotnetSupport;
+﻿using DotnetSupport;
 using EndOfLifeDate;
-using SupportedOsMd;
+using MarkdownHelpers;
 
 if (args.Length is 0 || !int.TryParse(args[0], out int ver))
 {
@@ -84,9 +83,8 @@ void ReportInvalidArgs()
 
 void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
 {
-    string[] columnLabels = [ "OS", "Version", "Architectures", "Lifecycle" ];
-    int[] columnLengths = [32, 30, 20, 20];
-    Columns columns = new(columnLabels, columnLengths);
+    string[] labels = [ "OS", "Versions", "Architectures", "Lifecycle" ];
+    int[] lengths = [32, 30, 20, 20];
     int linkCount = 0;
 
     foreach (SupportFamily family in families)
@@ -96,11 +94,11 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
 
         if (family.Name is "Apple")
         {
-            WriteHeader(writer, new(columnLabels, [32, 30, 20]));
+            Markdown.WriteHeader(writer, labels, [32, 30, 20]);
         }
         else
         {
-            WriteHeader(writer, columns);
+            Markdown.WriteHeader(writer, labels, lengths);
         }
 
         int link = linkCount;
@@ -117,13 +115,17 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
             }
 
             int column = 0;
-            WriteColumn(writer, columnLengths[column++], $"[{distro.Name}][{link++}]", false);
-            WriteColumn(writer, columnLengths[column++], MakeString(distroVersions), true);
-            WriteColumn(writer, columnLengths[column++], MakeString(distro.Architectures), true);
+            var versions = distroVersions.Count is 0 ? 
+                "[None](#out-of-support-os-versions)" : 
+                Join(distroVersions);
+            Markdown.WriteColumn(writer, $"[{distro.Name}][{link++}]", lengths[column++], false);
+            Markdown.WriteColumn(writer, versions, lengths[column++]);
+            Markdown.WriteColumn(writer, Join(distro.Architectures), lengths[column++]);
             if (distro.Lifecycle is not null)
             {
-                WriteColumn(writer, columnLengths[column++], $"[Lifecycle][{link++}]", true);
+                Markdown.WriteColumn(writer, $"[Lifecycle][{link++}]", lengths[column++]);
             }
+
             writer.WriteLine();
 
             if (distro.Notes is {Count: > 0})
@@ -166,17 +168,15 @@ void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
 {
     string[] columnLabels = [ "Libc", "Version", "Architectures", "Source"];
     int[] columnLengths = [25, 10, 20, 20 ];
-    Columns columns = new(columnLabels, columnLengths);
-
-    WriteHeader(writer, columns);
+    Markdown.WriteHeader(writer, columnLabels, columnLengths);
 
     foreach (SupportLibc libc in supportedLibc)
     {
         int column = 0;
-        WriteColumn(writer, columnLengths[column++], libc.Name, false);
-        WriteColumn(writer, columnLengths[column++], libc.Version, true);
-        WriteColumn(writer, columnLengths[column++], MakeString(libc.Architectures), true);
-        WriteColumn(writer, columnLengths[column++], libc.Source, true);
+        Markdown.WriteColumn(writer, libc.Name, columnLengths[column++], false);
+        Markdown.WriteColumn(writer, libc.Version, columnLengths[column++]);
+        Markdown.WriteColumn(writer, Join(libc.Architectures), columnLengths[column++]);
+        Markdown.WriteColumn(writer, libc.Source, columnLengths[column++]);
         writer.WriteLine();
     }
 }
@@ -214,11 +214,10 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
         return;
     }
     
-    string[] columnLabels = [ "OS", "Version", "Date" ];
-    int[] columnLengths = [32, 30, 20];
-    Columns columns = new(columnLabels, columnLengths);
+    string[] labels = [ "OS", "Version", "Date" ];
+    int[] lengths = [32, 30, 20];
     
-    WriteHeader(writer, columns);
+    Markdown.WriteHeader(writer, labels, lengths);
 
     foreach (var entry in orderedEolCycles)
     {
@@ -231,13 +230,11 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
         }
 
         int column = 0;
-        WriteColumn(writer, columnLengths[column++], distroName, false);
-        WriteColumn(writer, columnLengths[column++], distroVersion, true);
-        WriteColumn(writer, columnLengths[column++], eol, true);
+        Markdown.WriteColumn(writer, distroName, lengths[column++], false);
+        Markdown.WriteColumn(writer, distroVersion, lengths[column++]);
+        Markdown.WriteColumn(writer, eol, lengths[column++]);
         writer.WriteLine();
     }
-
-    writer.WriteLine();
 }
 
 string GetEolTextForCycle(SupportCycle? cycle)
@@ -252,59 +249,6 @@ string GetEolTextForCycle(SupportCycle? cycle)
         result = $"[{result}]({link})";
     }
     return result;
-}
-
-void WriteRepeatCharacter(StreamWriter writer, char repeatCharacter, int repeats)
-{
-    for (int i = 0; i < repeats; i++)
-    {
-        writer.Write(repeatCharacter);
-    }
-}
-
-void WriteHeader(StreamWriter writer, Columns columns)
-{
-    var (columnLabels, columnLengths) = columns;
-
-    for (int i = 0; i < columnLengths.Length; i++)
-    {
-        WriteColumn(writer, columnLengths[i], columnLabels[i], i > 0);
-    }
-
-    writer.WriteLine();
-
-    for (int i = 0; i < columnLengths.Length; i++)
-    {
-        WriteRepeatCharacter(writer, '-', columnLengths[i]);
-        writer.Write("|");
-    }
-
-    writer.WriteLine();
-}
-
-void WriteColumn(StreamWriter writer, int columnLength, string value, bool frontPad, char repeatCharacter = ' ')
-{
-    if (frontPad)
-    {
-        writer.Write(' ');
-    }
-
-    writer.Write(value);
-    if (value.Length < columnLength)
-    {
-        int length = frontPad ? columnLength - value.Length - 1 : columnLength - value.Length;
-        WriteRepeatCharacter(writer, repeatCharacter, length);
-        writer.Write("|");
-    }
-    else
-    {
-        writer.Write(" |");
-    }
-}
-
-string MakeString(IList<string> values)
-{
-    return string.Join(", ", values);
 }
 
 async Task<SupportCycle?> GetProductCycle(SupportDistribution distro, string unsupportedVersion)
@@ -326,7 +270,4 @@ DateOnly GetEolDateForCycle(SupportCycle? supportCycle)
     return supportCycle?.GetSupportInfo().EolDate ?? DateOnly.MinValue;
 }
 
-namespace SupportedOsMd
-{
-    record struct Columns(string[] Labels, int[] Lengths);
-}
+static string Join(IEnumerable<string>? strings) => strings is null ? "" : string.Join(", ", strings);
