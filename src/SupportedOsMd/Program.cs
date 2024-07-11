@@ -8,6 +8,8 @@ if (args.Length is 0 || !int.TryParse(args[0], out int ver))
     return;
 }
 
+const string oosLink = "[OOS]: #out-of-support-os-versions";
+bool hasANoSupportedOS = false;
 string version = $"{ver}.0";
 string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
 string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
@@ -50,7 +52,7 @@ foreach (string line in File.ReadLines(template))
 
     if (line.StartsWith("PLACEHOLDER-FAMILIES"))
     {
-        WriteFamiliesSection(writer, matrix.Families);
+        WriteFamiliesSection(writer, matrix.Families, out hasANoSupportedOS);
     }
     else if (line.StartsWith("PLACEHOLDER-LIBC"))
     {
@@ -64,6 +66,12 @@ foreach (string line in File.ReadLines(template))
     {
         await WriteUnSupportedSection(writer, matrix.Families);
     }
+}
+
+if (hasANoSupportedOS)
+{
+    writer.WriteLine();
+    writer.WriteLine(oosLink);
 }
 
 writer.Close();
@@ -81,8 +89,9 @@ void ReportInvalidArgs()
     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }
 
-void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
+void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, out bool hasANoSupportedOS)
 {
+    hasANoSupportedOS = false;
     string[] labels = [ "OS", "Versions", "Architectures", "Lifecycle" ];
     int[] lengths = [32, 30, 20, 20];
     int linkCount = 0;
@@ -115,9 +124,17 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families)
             }
 
             int column = 0;
-            var versions = distroVersions.Count is 0 ? 
-                "[None](#out-of-support-os-versions)" : 
-                Join(distroVersions);
+            string versions = "";
+            if (distroVersions.Count is 0)
+            {
+                versions = "[None][OOS]";
+                hasANoSupportedOS = true;
+            }
+            else
+            {
+                versions = Join(distroVersions);
+            }
+
             Markdown.WriteColumn(writer, $"[{distro.Name}][{link++}]", lengths[column++], false);
             Markdown.WriteColumn(writer, versions, lengths[column++]);
             Markdown.WriteColumn(writer, Join(distro.Architectures), lengths[column++]);
