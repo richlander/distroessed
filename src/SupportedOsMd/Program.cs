@@ -50,7 +50,11 @@ foreach (string line in File.ReadLines(template))
         continue;
     }
 
-    if (line.StartsWith("PLACEHOLDER-FAMILIES"))
+    if (line.StartsWith("PLACEHOLDER-LASTUPDATED"))
+    {
+        WriteLastUpdatedSection(writer, matrix.LastUpdated);
+    }
+    else if (line.StartsWith("PLACEHOLDER-FAMILIES"))
     {
         WriteFamiliesSection(writer, matrix.Families, out hasANoSupportedOS);
     }
@@ -87,6 +91,11 @@ void ReportInvalidArgs()
 {
     Console.WriteLine("Invalid args.");
     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
+}
+
+void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
+{
+    writer.WriteLine($"Last updated: {date.ToString("yyyy-MM-dd")}");
 }
 
 void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, out bool hasANoSupportedOS)
