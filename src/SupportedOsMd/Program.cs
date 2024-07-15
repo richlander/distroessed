@@ -8,8 +8,6 @@ if (args.Length is 0 || !int.TryParse(args[0], out int ver))
     return;
 }
 
-const string oosLink = "[OOS]: #out-of-support-os-versions";
-bool hasANoSupportedOS = false;
 string version = $"{ver}.0";
 string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
 string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
@@ -29,8 +27,8 @@ string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
 FileStream stream = File.Open(file, FileMode.Create);
 StreamWriter writer = new(stream);
-
 SupportMatrix? matrix = null;
+Link pageLinks = new();
 
 if (preferWeb)
 {
@@ -40,7 +38,6 @@ else
 {
     matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportJson)) ?? throw new();
 }
-
 
 foreach (string line in File.ReadLines(template))
 {
@@ -56,7 +53,7 @@ foreach (string line in File.ReadLines(template))
     }
     else if (line.StartsWith("PLACEHOLDER-FAMILIES"))
     {
-        WriteFamiliesSection(writer, matrix.Families, out hasANoSupportedOS);
+        WriteFamiliesSection(writer, matrix.Families, pageLinks);
     }
     else if (line.StartsWith("PLACEHOLDER-LIBC"))
     {
@@ -72,11 +69,16 @@ foreach (string line in File.ReadLines(template))
     }
 }
 
-if (hasANoSupportedOS)
+if (pageLinks.Count > 0)
 {
     writer.WriteLine();
-    writer.WriteLine(oosLink);
+
+    foreach (string link in pageLinks.GetReferenceLinkAnchors())
+    {
+        writer.WriteLine(link);
+    }
 }
+
 
 writer.Close();
 var writtenFile = File.OpenRead(file);
@@ -98,61 +100,68 @@ void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
     writer.WriteLine($"Last updated: {date.ToString("yyyy-MM-dd")}");
 }
 
-void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, out bool hasANoSupportedOS)
+void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
 {
-    hasANoSupportedOS = false;
     string[] labels = [ "OS", "Versions", "Architectures", "Lifecycle" ];
-    int[] lengths = [32, 30, 20, 20];
+    int[] lengths = [32, 30, 24, 24];
+    Table defaultTable = new(writer, lengths);
     int linkCount = 0;
 
     foreach (SupportFamily family in families)
     {
+        Table table = defaultTable;
+        Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
         writer.WriteLine();
 
         if (family.Name is "Apple")
         {
-            Markdown.WriteHeader(writer, labels, [32, 30, 20]);
+            int[] appleLengths = [32, 30, 24];
+            table = new(writer, appleLengths);
+            table.WriteHeader(labels.AsSpan(0, 3));
         }
         else
         {
-            Markdown.WriteHeader(writer, labels, lengths);
+            table.WriteHeader(labels);
         }
 
-        int link = linkCount;
         List<string> notes = [];
 
         for (int i = 0; i < family.Distributions.Count; i++)
         {
             SupportDistribution distro = family.Distributions[i];
             IList<string> distroVersions = distro.SupportedVersions;
+            bool hasLifecycle = distro.Lifecycle is not null;
 
             if (distro.Name is "Windows")
             {
                 distroVersions = SupportedOS.SimplifyWindowsVersions(distro.SupportedVersions);
             }
 
-            int column = 0;
             string versions = "";
             if (distroVersions.Count is 0)
             {
-                versions = "[None][OOS]";
-                hasANoSupportedOS = true;
+                var noneLink = links.AddReferenceLink("None", "#out-of-support-os-versions");
+                versions = noneLink;
             }
             else
             {
                 versions = Join(distroVersions);
             }
 
-            Markdown.WriteColumn(writer, $"[{distro.Name}][{link++}]", lengths[column++], false);
-            Markdown.WriteColumn(writer, versions, lengths[column++]);
-            Markdown.WriteColumn(writer, Join(distro.Architectures), lengths[column++]);
+            var distroLink = familyLinks.AddIndexReferenceLink(distro.Name, distro.Link);
+            table.WriteColumn(distroLink);
+            table.WriteColumn(versions);
+            table.WriteColumn(Join(distro.Architectures));
+
             if (distro.Lifecycle is not null)
             {
-                Markdown.WriteColumn(writer, $"[Lifecycle][{link++}]", lengths[column++]);
+                var lifecycleLink = familyLinks.AddIndexReferenceLink("Lifecycle", distro.Lifecycle);
+                table.WriteColumn(lifecycleLink);
             }
 
-            writer.WriteLine();
+            table.EndRow();
+            linkCount = familyLinks.Index;
 
             if (distro.Notes is {Count: > 0})
             {
@@ -177,13 +186,9 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, ou
 
         writer.WriteLine();
 
-        foreach (SupportDistribution distro in family.Distributions)
+        foreach (var refLink in familyLinks.GetReferenceLinkAnchors())
         {
-            writer.WriteLine($"[{linkCount++}]: {distro.Link}");
-            if (distro.Lifecycle is {})
-            {
-                writer.WriteLine($"[{linkCount++}]: {distro.Lifecycle}");
-            }
+            writer.WriteLine(refLink);
         }
 
         writer.WriteLine();
@@ -193,17 +198,17 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, ou
 void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
 {
     string[] columnLabels = [ "Libc", "Version", "Architectures", "Source"];
-    int[] columnLengths = [25, 10, 20, 20 ];
-    Markdown.WriteHeader(writer, columnLabels, columnLengths);
+    int[] columnLengths = [16, 10, 24, 16 ];
+    Table table = new(writer, columnLengths);
+    table.WriteHeader(columnLabels);
 
     foreach (SupportLibc libc in supportedLibc)
     {
-        int column = 0;
-        Markdown.WriteColumn(writer, libc.Name, columnLengths[column++], false);
-        Markdown.WriteColumn(writer, libc.Version, columnLengths[column++]);
-        Markdown.WriteColumn(writer, Join(libc.Architectures), columnLengths[column++]);
-        Markdown.WriteColumn(writer, libc.Source, columnLengths[column++]);
-        writer.WriteLine();
+        table.WriteColumn(libc.Name);
+        table.WriteColumn(libc.Version);
+        table.WriteColumn(Join(libc.Architectures));
+        table.WriteColumn(libc.Source);
+        table.EndRow();
     }
 }
 
@@ -242,8 +247,9 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
     
     string[] labels = [ "OS", "Version", "Date" ];
     int[] lengths = [32, 30, 20];
+    Table table = new(writer, lengths);
     
-    Markdown.WriteHeader(writer, labels, lengths);
+    table.WriteHeader(labels);
 
     foreach (var entry in orderedEolCycles)
     {
@@ -255,11 +261,10 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
             distroVersion = SupportedOS.PrettyifyWindowsVersion(distroVersion);
         }
 
-        int column = 0;
-        Markdown.WriteColumn(writer, distroName, lengths[column++], false);
-        Markdown.WriteColumn(writer, distroVersion, lengths[column++]);
-        Markdown.WriteColumn(writer, eol, lengths[column++]);
-        writer.WriteLine();
+        table.WriteColumn(distroName);
+        table.WriteColumn(distroVersion);
+        table.WriteColumn(eol);
+        table.EndRow();
     }
 }
 
