@@ -4,7 +4,7 @@ namespace MarkdownHelpers;
 
 public class StringBuilderIWriter(StringBuilder builder) : IWriter
 {
-    private StringBuilder _sb = builder;
+    private readonly StringBuilder _sb = builder;
 
     public void Write(string value) => _sb.Append(value);
 
@@ -17,7 +17,7 @@ public class StringBuilderIWriter(StringBuilder builder) : IWriter
 
 public class StreamWriterIWriter(StreamWriter writer) : IWriter
 {
-    private StreamWriter _writer = writer;
+    private readonly StreamWriter _writer = writer;
 
     public void Write(string value) => _writer.Write(value);
 
@@ -26,5 +26,12 @@ public class StreamWriterIWriter(StreamWriter writer) : IWriter
     public void WriteLine(string value) => _writer.WriteLine(value);
 
     public void WriteLine() => _writer.WriteLine();
+}
+
+public class Writer
+{
+    public static IWriter GetWriter(StringBuilder builder) => new StringBuilderIWriter(builder);
+
+    public static IWriter GetWriter(StreamWriter writer) => new StreamWriterIWriter(writer);
 
 }

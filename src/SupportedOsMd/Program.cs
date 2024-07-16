@@ -65,7 +65,7 @@ foreach (string line in File.ReadLines(template))
     }
     else if (line.StartsWith("PLACEHOLDER-UNSUPPORTED"))
     {
-        await WriteUnSupportedSection(writer, matrix.Families);
+        await WriteUnSupportedSection(writer, matrix.Families, client);
     }
 }
 
@@ -79,7 +79,6 @@ if (pageLinks.Count > 0)
     }
 }
 
-
 writer.Close();
 var writtenFile = File.OpenRead(file);
 long length = writtenFile.Length;
@@ -89,22 +88,22 @@ writtenFile.Close();
 Console.WriteLine($"Generated {length} bytes");
 Console.WriteLine(path);
 
-void ReportInvalidArgs()
+static void ReportInvalidArgs()
 {
     Console.WriteLine("Invalid args.");
     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }
 
-void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
+static void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
 {
     writer.WriteLine($"Last updated: {date.ToString("yyyy-MM-dd")}");
 }
 
-void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
+static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
 {
     string[] labels = [ "OS", "Versions", "Architectures", "Lifecycle" ];
     int[] lengths = [32, 30, 24, 24];
-    Table defaultTable = new(writer, lengths);
+    Table defaultTable = new(Writer.GetWriter(writer), lengths);
     int linkCount = 0;
 
     foreach (SupportFamily family in families)
@@ -117,7 +116,7 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Li
         if (family.Name is "Apple")
         {
             int[] appleLengths = [32, 30, 24];
-            table = new(writer, appleLengths);
+            table = new(Writer.GetWriter(writer), appleLengths);
             table.WriteHeader(labels.AsSpan(0, 3));
         }
         else
@@ -195,11 +194,11 @@ void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Li
     }
 }
 
-void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
+static void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
 {
     string[] columnLabels = [ "Libc", "Version", "Architectures", "Source"];
     int[] columnLengths = [16, 10, 24, 16 ];
-    Table table = new(writer, columnLengths);
+    Table table = new(Writer.GetWriter(writer), columnLengths);
     table.WriteHeader(columnLabels);
 
     foreach (SupportLibc libc in supportedLibc)
@@ -212,7 +211,7 @@ void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
     }
 }
 
-void WriteNotesSection(StreamWriter writer, IList<string> notes)
+static void WriteNotesSection(StreamWriter writer, IList<string> notes)
 {
     foreach (string note in notes)
     {
@@ -220,7 +219,7 @@ void WriteNotesSection(StreamWriter writer, IList<string> notes)
     }
 }
 
-async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> families)
+static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> families, HttpClient client)
 {
     // Get all unsupported cycles in parallel.
     var eolCycles = await Task.WhenAll(families
@@ -230,7 +229,7 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
                 {
                     Distribution = d,
                     Version = v,
-                    Cycle = await GetProductCycle(d, v)
+                    Cycle = await GetProductCycle(client, d, v)
                 }))));
 
     // Order the list of cycles by their EoL date.
@@ -246,8 +245,8 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
     }
     
     string[] labels = [ "OS", "Version", "Date" ];
-    int[] lengths = [32, 30, 20];
-    Table table = new(writer, lengths);
+    int[] lengths = [24, 16, 24];
+    Table table = new(Writer.GetWriter(writer), lengths);
     
     table.WriteHeader(labels);
 
@@ -268,7 +267,7 @@ async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> fam
     }
 }
 
-string GetEolTextForCycle(SupportCycle? cycle)
+static string GetEolTextForCycle(SupportCycle? cycle)
 {
     var eolDate = GetEolDateForCycle(cycle);
     if (cycle == null || eolDate == DateOnly.MinValue) return "-";
@@ -282,7 +281,7 @@ string GetEolTextForCycle(SupportCycle? cycle)
     return result;
 }
 
-async Task<SupportCycle?> GetProductCycle(SupportDistribution distro, string unsupportedVersion)
+static async Task<SupportCycle?> GetProductCycle(HttpClient client, SupportDistribution distro, string unsupportedVersion)
 {
     try
     {
@@ -296,7 +295,7 @@ async Task<SupportCycle?> GetProductCycle(SupportDistribution distro, string uns
     }
 }
 
-DateOnly GetEolDateForCycle(SupportCycle? supportCycle)
+static DateOnly GetEolDateForCycle(SupportCycle? supportCycle)
 {
     return supportCycle?.GetSupportInfo().EolDate ?? DateOnly.MinValue;
 }

@@ -15,15 +15,6 @@ public class Table(IWriter writer, int[] columns)
     private int _realLength = 0;
     private int _specLength = 0;
     
-    public Table(StringBuilder builder, int[] columns) : this(new StringBuilderIWriter(builder), columns)
-    {
-    }
-
-    public Table(StreamWriter stream, int[] columns) : this(new StreamWriterIWriter(stream), columns)
-    {
-    }
-
-
     public bool UseOuterPipes { get; set; } = false;
 
     public void EndRow()
@@ -92,7 +83,7 @@ public class Table(IWriter writer, int[] columns)
         int remaining = _specLength - _realLength;
         if (remaining > 0)
         {
-            WriteRepeatCharacter(repeatCharacter, remaining);
+            _writer.WriteRepeatCharacter(repeatCharacter, remaining);
             _realLength += remaining;
         }
 
@@ -106,14 +97,6 @@ public class Table(IWriter writer, int[] columns)
         if (writeEndPipe)
         {
             _writer.Write('|');
-        }
-    }
-
-    private void WriteRepeatCharacter(char repeatCharacter, int repeats)
-    {
-        for (int i = 0; i < repeats; i++)
-        {
-            _writer.Write(repeatCharacter);
         }
     }
 
