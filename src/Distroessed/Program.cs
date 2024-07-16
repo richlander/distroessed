@@ -1,7 +1,5 @@
 ﻿using DotnetRelease;
-using DotnetSupport;
 using EndOfLifeDate;
-using ReleaseReport;
 
 if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
@@ -18,7 +16,7 @@ DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 string supportMatrixUrl, releaseUrl;
 SupportMatrix? matrix = null;
 ReleaseOverview? release = null;
-Report report = new(DateTime.UtcNow, version, []);
+ReportOverview report = new(DateTime.UtcNow, version, []);
 
 if (preferWeb)
 {
@@ -134,7 +132,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
     }
 }
 
-var reportJson = ReleaseReport.Release.WriteReport(report);
+var reportJson = ReleaseReport.WriteReport(report);
 
 Console.WriteLine(reportJson);
 

@@ -1,4 +1,4 @@
-﻿using DotnetSupport;
+﻿using DotnetRelease;
 using EndOfLifeDate;
 using MarkdownHelpers;
 

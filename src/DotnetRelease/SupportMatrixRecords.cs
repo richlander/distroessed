@@ -1,4 +1,4 @@
-namespace DotnetSupport;
+namespace DotnetRelease;
 
 public record SupportMatrix(string ChannelVersion, DateOnly LastUpdated, IList<SupportFamily> Families, IList<SupportLibc> Libc, IList<string> Notes);
 
