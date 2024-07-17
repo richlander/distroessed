@@ -1,4 +1,5 @@
-﻿using DotnetRelease;
+﻿using System.Text;
+using DotnetRelease;
 using MarkdownHelpers;
 
 // if (args.Length is 0 || !int.TryParse(args[0], out int ver))
@@ -85,9 +86,19 @@ foreach (var distro in packageOverview.Distributions)
 
         guard.StartRegion("bash");
 
-        foreach (var command in distro.Commands ?? [])
+        int commandCount = distro?.InstallCommands?.Count is null ? 0 : distro.InstallCommands.Count;
+        for(int i = 0; i < commandCount; i++)
         {
-            guard.WriteLine($"{command} && \\");
+            var command = distro!.InstallCommands![i];
+            var commandString = GetCommandString(command);
+            guard.Write(commandString);
+
+            if (i + 1 < commandCount)
+            {
+                guard.Write(" &&");
+            }
+
+            guard.WriteLine($" \\");
         }
 
         guard.UpdateIndent(4);
@@ -116,4 +127,28 @@ writer.Close();
 //     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 // }
 
-// static string Join(IEnumerable<string>? strings) => strings is null ? "" : string.Join(", ", strings);
+
+static string GetCommandString(Command command)
+{
+    StringBuilder builder = new();
+
+    if (command.RunUnderSudo)
+    {
+        builder.Append("sudo ");
+    }
+
+    builder.Append(command.CommandRoot);
+
+    for(int i = 0; i < command.CommandParts.Count; i++)
+    {
+        var part = command.CommandParts[i];
+        if (part == "{packageName}")
+        {
+            continue;
+        }
+
+        builder.Append($" {part}");
+    }
+
+    return builder.ToString();
+}

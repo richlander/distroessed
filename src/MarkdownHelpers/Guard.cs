@@ -21,4 +21,10 @@ public class Guard(IWriter writer)
         _writer.WriteLine(value);
     }
 
+        public void Write(string value)
+        {
+            _writer.WriteRepeatCharacter(' ', _indent);
+            _writer.Write(value);
+        }
+
 }
