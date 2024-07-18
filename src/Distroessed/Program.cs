@@ -15,7 +15,7 @@ HttpClient client= new();
 DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 string supportMatrixUrl, releaseUrl;
 SupportMatrix? matrix = null;
-ReleaseOverview? release = null;
+ReleasesOverview? release = null;
 ReportOverview report = new(DateTime.UtcNow, version, []);
 
 if (preferWeb)

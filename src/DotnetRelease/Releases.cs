@@ -6,12 +6,12 @@ namespace DotnetRelease;
 
 public class Releases
 {
-    public static Task<ReleaseOverview?> GetDotnetRelease(HttpClient client, string url) => client.GetFromJsonAsync<ReleaseOverview>(url, ReleaseSerializerContext.Default.ReleaseOverview);
-    public static ValueTask<ReleaseOverview?> GetDotnetRelease(Stream stream) => JsonSerializer.DeserializeAsync<ReleaseOverview>(stream, ReleaseSerializerContext.Default.ReleaseOverview);
+    public static Task<ReleasesOverview?> GetDotnetRelease(HttpClient client, string url) => client.GetFromJsonAsync<ReleasesOverview>(url, ReleaseSerializerContext.Default.ReleasesOverview);
+    public static ValueTask<ReleasesOverview?> GetDotnetRelease(Stream stream) => JsonSerializer.DeserializeAsync<ReleasesOverview>(stream, ReleaseSerializerContext.Default.ReleasesOverview);
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(ReleaseOverview))]
+[JsonSerializable(typeof(ReleasesOverview))]
 internal partial class ReleaseSerializerContext : JsonSerializerContext
 {
 }
