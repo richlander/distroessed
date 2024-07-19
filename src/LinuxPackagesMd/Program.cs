@@ -106,6 +106,7 @@ foreach (var distro in packageOverview.Distributions)
         guard.UpdateIndent(4);
 
         int count = release.Packages.Count;
+        var packages = release.Packages.OrderBy(p => p.Name).ToList();
         for (int i = 0; i < count; i++)
         {
             string endChar = "";
@@ -114,7 +115,7 @@ foreach (var distro in packageOverview.Distributions)
                 endChar = " \\";
             }
 
-            guard.WriteLine($"{release.Packages[i].Name}{endChar}");
+            guard.WriteLine($"{packages[i].Name}{endChar}");
         }
 
         guard.EndRegion();  

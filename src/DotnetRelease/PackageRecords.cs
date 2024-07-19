@@ -8,18 +8,15 @@ public record PackageOverview(
     [property: Description("Major (or major.minor) version of product.")]
     string ChannelVersion,
 
-    [property: Description("End of life date of product version.")]
-    DateOnly EolDate,
-    
     [property: Description("Set of nominal packages used by product, with descriptions.")]
     IList<Package> Packages, 
     
     [property: Description("Set of distributions where the product can be used.")]
     IList<Distribution> Distributions);
 
-[Description("A nominal package is a distro-agnostic representation of a package, including the scenarios for which the package is required. A nominal package will be referenced a distribution package, with a distribution-specific package name.")]
+[Description("A nominal package is a distro-agnostic representation of a package, including the scenarios for which the package is required. A nominal package will be referenced by a distribution package, with a distribution-specific package name.")]
 public record Package(
-    [property: Description("Id of nominal package.")]
+    [property: Description("ID of nominal package.")]
     string Id,
         
     [property: Description("Display name of nominal package.")]
@@ -29,15 +26,15 @@ public record Package(
     IList<Scenario> RequiredScenarios,
 
     [property: Description("Related references.")]
-    IList<string>? References);
+    IList<string>? References = null);
 
 [Description("An operating system distribution, with required package install commands and specific packages for distribution releases.")]
 public record Distribution(
-    [Description("Name of the distribution, matching ID in /etc/os-release.")]
+    [Description("Name of the distribution, matching ID in /etc/os-release,however, the expectation is that this value starts with a capital letter (proper noun).")]
     string Name,
     
     [Description("Commands required to install packages within the distribution.")]
-    IList<Command>? InstallCommands,
+    IList<Command> InstallCommands,
     
     [Description("Releases for that distribution.")]    
     IList<DistroRelease> Releases);
@@ -51,7 +48,7 @@ public record Command(
     string CommandRoot,
         
     [Description("The command parts or arguments that need to be used.")]    
-    IList<string> CommandParts);
+    IList<string>? CommandParts = null);
 
 [Description("A distribution release with a list of packages to install.")]
 public record DistroRelease(
@@ -63,7 +60,7 @@ public record DistroRelease(
 
 [Description("A distro archive package to install, with a reference to a logical package with more information.")]
 public record DistroPackage(
-    [property: Description("Reference to nominal package id, to providing access to required scenarios and other information.")]
+    [property: Description("Reference to nominal package ID, providing access to required scenarios and other information.")]
     string Id,
     
     [property: Description("Package name in the distro archive.")]
