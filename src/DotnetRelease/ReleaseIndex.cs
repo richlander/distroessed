@@ -18,10 +18,3 @@ public class ReleaseIndex
 internal partial class ReleaseIndexSerializerContext : JsonSerializerContext
 {
 }
-
-public class SnakeCaseStringEnumConverter<TEnum> : JsonStringEnumConverter<TEnum>
-    where TEnum : struct, Enum
-{
-    public SnakeCaseStringEnumConverter() : base(JsonNamingPolicy.KebabCaseLower)
-    { }
-}

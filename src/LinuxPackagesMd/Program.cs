@@ -19,11 +19,11 @@ string packageJson = baseUrl;
 if (!packageJson.EndsWith(".json"))
 {
     packageJson = preferWeb ?
-        $"{baseUrl}/{version}/linux-packages.json" :
-        Path.Combine(baseUrl, version,"linux-packages.json");
+        $"{baseUrl}/{version}/os-packages.json" :
+        Path.Combine(baseUrl, version,"os-packages.json");
 }
 
-string file = "required-packages.md";
+string file = "os-packages.md";
 HttpClient client = new();
 FileStream stream = File.Open(file, FileMode.Create);
 StreamWriter writer = new(stream);
@@ -40,7 +40,9 @@ else
 
 writer.WriteLine("# .NET 9 Required Packages");
 writer.WriteLine();
-writer.WriteLine("Several packages must be installed to run .NET apps and the .NET SDK. This is handled automatically if .NET is [installed through archive packages](../../linux.md).");
+writer.WriteLine("Various packages must be installed to run .NET apps and the .NET SDK. This is handled automatically if .NET is [installed through archive packages](../../linux.md).");
+writer.WriteLine();
+writer.WriteLine("This file is generated from [os-packages.json](os-packages.json).");
 writer.WriteLine();
 
 writer.WriteLine("## Package Overview");
@@ -59,7 +61,7 @@ foreach (var package in packageOverview.Packages)
     var pkgLink = link.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
     packageTable.WriteColumn(pkgLink);
     packageTable.WriteColumn(package.Name);
-    packageTable.WriteColumn(string.Join("<br>", package.Required ?? []));
+    packageTable.WriteColumn(string.Join("<br>", package.RequiredScenarios ?? []));
     packageTable.WriteColumn(string.Join("<br>", package.References ?? []));
     packageTable.EndRow();
 }

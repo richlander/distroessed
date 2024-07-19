@@ -35,16 +35,26 @@ var exporterOptions = new JsonSchemaExporterOptions()
 
     };
 
-var packageSchema = JsonSchemaExporter.GetJsonSchemaAsNode(JsonSerializerOptions.Default, typeof(PackageOverview), exporterOptions);
-var supportSchema = JsonSchemaExporter.GetJsonSchemaAsNode(JsonSerializerOptions.Default, typeof(SupportMatrix), exporterOptions);
-var reportSchema = JsonSchemaExporter.GetJsonSchemaAsNode(JsonSerializerOptions.Default, typeof(ReportOverview), exporterOptions);
-var releaseIndexSchema = JsonSchemaExporter.GetJsonSchemaAsNode(serializerOptions, typeof(ReleaseIndexOverview), exporterOptions);
+List<Tuple<Type, string>> models = [
+    new (typeof(PackageOverview), "dotnet-os-packages.json"),
+    new (typeof(SupportMatrix), "dotnet-support-matrix.json"),
+    new (typeof(ReportOverview), "dotnet-support-report.json"),
+    new (typeof(ReleaseIndexOverview), "dotnet-release-index.json")
+];
 
-File.WriteAllText("dotnet-required-packages.json", packageSchema.ToString());
-File.WriteAllText("dotnet-support-matrix.json", supportSchema.ToString());
-File.WriteAllText("dotnet-support-report.json", reportSchema.ToString());
-File.WriteAllText("dotnet-release-index.json", releaseIndexSchema.ToString());
+foreach (var model in models)
+{
+    var (type, file ) = model;
 
+    WriteSchema(type, file);
+}
+
+void WriteSchema(Type type, string targetFile)
+{
+    var schema = JsonSchemaExporter.GetJsonSchemaAsNode(serializerOptions, type, exporterOptions);
+    File.WriteAllText(targetFile, schema.ToString());
+}
 
 static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? provider, bool inherit = false) where TAttribute : Attribute
     => provider?.GetCustomAttributes(typeof(TAttribute), inherit).FirstOrDefault() as TAttribute;
+
