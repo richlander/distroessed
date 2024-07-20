@@ -50,7 +50,7 @@ writer.WriteLine();
 writer.WriteLine("The following table lists required packages, including the scenarios by which they are needed.");
 writer.WriteLine();
 
-string[] packageLabels = ["Id", "Name", "Required", "References"];
+string[] packageLabels = ["Id", "Name", "Required scenarios", "Notes"];
 int[] packageColumns = [16, 12, 16, 32 ];
 Table packageTable = new(Writer.GetWriter(writer), packageColumns);
 Link link = new();
@@ -58,11 +58,19 @@ packageTable.WriteHeader(packageLabels);
 
 foreach (var package in packageOverview.Packages)
 {
+    BreakBuffer buffer = new(new());
+    if (package.MinVersion is {})
+    {
+        buffer.Append($"Minimum required version {package.MinVersion}");
+    }
+
+    buffer.AppendRange(package.References ?? []);
+
     var pkgLink = link.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
     packageTable.WriteColumn(pkgLink);
     packageTable.WriteColumn(package.Name);
     packageTable.WriteColumn(string.Join("<br>", package.RequiredScenarios ?? []));
-    packageTable.WriteColumn(string.Join("<br>", package.References ?? []));
+    packageTable.WriteColumn(buffer.ToString());
     packageTable.EndRow();
 }
 

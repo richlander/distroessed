@@ -25,12 +25,15 @@ public record Package(
     [property: Description("Required scenarios for which the package must be used.")]
     IList<Scenario> RequiredScenarios,
 
+    [property: Description("Minimum required version of library.")]
+    string? MinVersion = null,
+
     [property: Description("Related references.")]
     IList<string>? References = null);
 
 [Description("An operating system distribution, with required package install commands and specific packages for distribution releases.")]
 public record Distribution(
-    [Description("Name of the distribution, matching ID in /etc/os-release,however, the expectation is that this value starts with a capital letter (proper noun).")]
+    [Description("Name of the distribution, matching ID in /etc/os-release, however, the expectation is that this value starts with a capital letter (proper noun).")]
     string Name,
     
     [Description("Commands required to install packages within the distribution.")]
