@@ -27,7 +27,7 @@ string placeholder = "PLACEHOLDER-";
 HttpClient client = new();
 FileStream stream = File.Open(file, FileMode.Create);
 StreamWriter writer = new(stream);
-SupportMatrix? matrix = null;
+SupportedOSMatrix? matrix = null;
 Link pageLinks = new();
 
 if (preferWeb)
@@ -285,7 +285,7 @@ static async Task<SupportCycle?> GetProductCycle(HttpClient client, SupportDistr
 {
     try
     {
-        return await Product.GetProductCycle(client, distro.Id, unsupportedVersion);
+        return await EndOfLifeDate.Product.GetProductCycle(client, distro.Id, unsupportedVersion);
     }
     catch (HttpRequestException)
     {

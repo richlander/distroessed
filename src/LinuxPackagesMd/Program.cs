@@ -27,15 +27,15 @@ string file = "os-packages.md";
 HttpClient client = new();
 FileStream stream = File.Open(file, FileMode.Create);
 StreamWriter writer = new(stream);
-PackageOverview? packageOverview = null;
+OSPackagesOverview? packageOverview = null;
 
 if (preferWeb)
 {
-    packageOverview = await Packages.GetPackageOverview(client, packageJson) ?? throw new();
+    packageOverview = await OSPackages.GetPackages(client, packageJson) ?? throw new();
 }
 else
 {
-    packageOverview = await Packages.GetPackageOverview(File.OpenRead(packageJson)) ?? throw new();
+    packageOverview = await OSPackages.GetPackages(File.OpenRead(packageJson)) ?? throw new();
 }
 
 writer.WriteLine("# .NET 9 Required Packages");

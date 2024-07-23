@@ -36,10 +36,10 @@ var exporterOptions = new JsonSchemaExporterOptions()
     };
 
 List<Tuple<Type, string>> models = [
-    new (typeof(PackageOverview), "dotnet-os-packages.json"),
-    new (typeof(SupportMatrix), "dotnet-support-matrix.json"),
+    new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
+    new (typeof(SupportedOSMatrix), "dotnet-support-matrix.json"),
     new (typeof(ReportOverview), "dotnet-support-report.json"),
-    new (typeof(ReleaseIndexOverview), "dotnet-release-index.json")
+    new (typeof(MajorReleasesIndex), "dotnet-release-index.json")
 ];
 
 foreach (var model in models)
