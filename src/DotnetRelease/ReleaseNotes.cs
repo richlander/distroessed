@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
@@ -54,42 +53,4 @@ public class ReleaseNotes
     public static Task<SupportedOSMatrix?> GetSupportedOSes(HttpClient client, string url) => client.GetFromJsonAsync<SupportedOSMatrix>(url, SupportedOSMatrixSerializerContext.Default.SupportedOSMatrix);
     
     public static ValueTask<SupportedOSMatrix?> GetSupportedOSes(Stream stream) => JsonSerializer.DeserializeAsync<SupportedOSMatrix>(stream, SupportedOSMatrixSerializerContext.Default.SupportedOSMatrix);
-}
-
-[JsonSourceGenerationOptions(
-        PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(MajorReleasesIndex))]
-internal partial class MajorReleasesIndexSerializerContext : JsonSerializerContext
-{
-}
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(MajorReleaseOverview))]
-internal partial class MajorReleaseOverviewSerializerContext : JsonSerializerContext
-{
-}
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(PatchReleasesIndex))]
-internal partial class PatchReleasesIndexSerializerContext : JsonSerializerContext
-{
-}
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(PatchReleaseOverview))]
-internal partial class PatchReleaseOverviewSerializerContext : JsonSerializerContext
-{
-}
-
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(OSPackagesOverview))]
-internal partial class OSPackagesSerializerContext : JsonSerializerContext
-{
-}
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(SupportedOSMatrix))]
-internal partial class SupportedOSMatrixSerializerContext : JsonSerializerContext
-{
 }

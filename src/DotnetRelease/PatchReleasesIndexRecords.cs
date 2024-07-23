@@ -14,7 +14,7 @@ public record PatchReleaseIndexItem(
     string ReleaseVersion,
 
     [property: Description("Date of release.")]    
-    string Date,
+    DateOnly ReleaseDate,
     
     [property: Description("Security status of release.")]
     bool Security,

@@ -12,7 +12,7 @@ public record MajorReleaseOverview(
     string LatestRelease,
     
     [property: Description("The date of the most recent release date for the channel-version.")]
-    string LatestReleaseDate,
+    DateOnly LatestReleaseDate,
     
     [property: Description("The runtime version of the most recent patch release for the channel-version.")]
     string LatestRuntime,
@@ -25,6 +25,9 @@ public record MajorReleaseOverview(
     
     [property: Description("The release type for a .NET version.")]
     ReleaseType ReleaseType,
+
+    [property: Description("The end of life (EOL) date for the major version.")]
+    DateOnly EolDate,
     
     [property: Description("Link to lifecycle page for product.")]
     string Lifecycle,
@@ -36,7 +39,7 @@ public record MajorReleaseOverview(
 public record PatchRelease(
 
     [property: Description("The date of the patch release.")]
-    string ReleaseDate,
+    DateOnly ReleaseDate,
 
     [property: Description("The version of the release")]
     string ReleaseVersion,
@@ -63,7 +66,8 @@ public record PatchRelease(
             JsonPropertyName("aspnetcore-runtime")]
     AspNetCoreComponent AspNetCoreRuntime,
 
-    [property: Description("Windows Desktop component of release.")]
+    [property: Description("Windows Desktop component of release."),
+            JsonPropertyName("windowsdesktop")]
     Component WindowsDesktop
 
 );
@@ -102,10 +106,12 @@ public record SdkComponent(
     [property: Description("The version of Visual Studio that includes this component version.")]
     string VSVersion,
 
-    [property: Description("The version of C# included in this component version.")]
+    [property: Description("The version of C# included in this component version."),
+            JsonPropertyName("csharp-version")]
     string CSharpVersion,
 
-    [property: Description("The version of F# included in this component version.")]
+    [property: Description("The version of F# included in this component version."),
+            JsonPropertyName("fsharp-version")]
     string FSharpVersion,
 
     [property: Description("The version of Visual Basic included in this component version.")]

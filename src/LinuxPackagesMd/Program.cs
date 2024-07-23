@@ -31,11 +31,11 @@ OSPackagesOverview? packageOverview = null;
 
 if (preferWeb)
 {
-    packageOverview = await OSPackages.GetPackages(client, packageJson) ?? throw new();
+    packageOverview = await ReleaseNotes.GetOSPackages(client, packageJson) ?? throw new();
 }
 else
 {
-    packageOverview = await OSPackages.GetPackages(File.OpenRead(packageJson)) ?? throw new();
+    packageOverview = await ReleaseNotes.GetOSPackages(File.OpenRead(packageJson)) ?? throw new();
 }
 
 writer.WriteLine("# .NET 9 Required Packages");
@@ -150,9 +150,8 @@ static string GetCommandString(Command command)
 
     builder.Append(command.CommandRoot);
 
-    for(int i = 0; i < command.CommandParts.Count; i++)
+    foreach (var part in command.CommandParts ?? [])
     {
-        var part = command.CommandParts[i];
         if (part == "{packageName}")
         {
             continue;

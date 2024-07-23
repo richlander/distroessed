@@ -18,7 +18,7 @@ public record MajorReleaseIndexItem(
     string LatestRelease,
     
     [property: Description("The date of the most recent release date for the channel-version.")]
-    string LatestReleaseDate,
+    DateOnly LatestReleaseDate,
     
     [property: Description("The security status of the most recent release date for the channel-version.")]
     bool Security,
@@ -36,7 +36,7 @@ public record MajorReleaseIndexItem(
     SupportPhase SupportPhase,
 
     [property: Description("End of life date of .NET version.")]
-    string EolDate,
+    DateOnly EolDate,
     
     [property: Description("The release type for a .NET version.")]
     ReleaseType ReleaseType,

@@ -32,11 +32,11 @@ Link pageLinks = new();
 
 if (preferWeb)
 {
-    matrix = await SupportedOS.GetSupportMatrix(client, supportJson) ?? throw new();
+    matrix = await ReleaseNotes.GetSupportedOSes(client, supportJson) ?? throw new();
 }
 else
 {
-    matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportJson)) ?? throw new();
+    matrix = await ReleaseNotes.GetSupportedOSes(File.OpenRead(supportJson)) ?? throw new();
 }
 
 foreach (string line in File.ReadLines(template))
@@ -55,11 +55,11 @@ foreach (string line in File.ReadLines(template))
     {
         WriteFamiliesSection(writer, matrix.Families, pageLinks);
     }
-    else if (line.StartsWith("PLACEHOLDER-LIBC"))
+    else if (line.StartsWith("PLACEHOLDER-LIBC") && matrix.Libc is {})
     {
         WriteLibcSection(writer, matrix.Libc);
     }
-    else if (line.StartsWith("PLACEHOLDER-NOTES"))
+    else if (line.StartsWith("PLACEHOLDER-NOTES") && matrix.Notes is {})
     {
         WriteNotesSection(writer, matrix.Notes);
     }

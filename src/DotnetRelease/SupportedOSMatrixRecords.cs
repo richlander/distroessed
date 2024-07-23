@@ -10,6 +10,9 @@ public record SupportedOSMatrix(
     [property: Description("Major (or major.minor) version of product.")]
     string ChannelVersion,
 
+    [property: Description("Date when file was last updated")]
+    DateOnly LastUpdated,
+
     [property: Description("Supported operating system families.")]
     IList<SupportFamily> Families)
     {
