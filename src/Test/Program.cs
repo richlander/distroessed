@@ -1,13 +1,13 @@
-﻿using DotnetRelease;
-HttpClient client = new();
-var releases = await ReleaseNotes.GetMajorReleasesIndex(client, ReleaseNotes.MajorReleasesIndexUrl);
+﻿using System.Text.Json;
+using DotnetRelease;
+// HttpClient client = new();
+// var uri = $"{ReleaseNotes.OfficialBaseUri}9.0/releases.json";
+var releases = await ReleaseNotes.GetMajorRelease(File.OpenRead("/Users/rich/git/core/release-notes/9.0/releases.json"));
 
 if (releases is null)
 {
     return;
 }
 
-foreach(var release in releases.ReleasesIndex)
-{
-    Console.WriteLine($"{release.ChannelVersion}; {release.ReleaseType}; {release.SupportPhase}; {release.SupportedOsJson}; {release.ReleasesJson}");
-}
+var json = JsonSerializer.Serialize(releases, MajorReleaseOverviewSerializerContext.Default.MajorReleaseOverview);
+File.WriteAllText("releases.json", json);

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace DotnetRelease;
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<SupportPhase>))]
-[Description("The various support phases of a product.")]
+[Description("The support phases of a product.")]
 public enum SupportPhase
 {
     Preview,
@@ -15,7 +15,7 @@ public enum SupportPhase
 }
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseType>))]
-[Description("The various release types, offering different support lengths.")]
+[Description("The release types, offering different support lengths.")]
 public enum ReleaseType
 {
     LTS,

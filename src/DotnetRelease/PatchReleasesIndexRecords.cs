@@ -6,33 +6,40 @@ namespace DotnetRelease;
 // For release-index.json file
 // Index of patch release for a major version
 // Example: https://github.com/dotnet/core/blob/main/release-notes/9.0/release-index.json
-[Description("A set of product releases with high-level information, like latest version.")]
-public record PatchReleasesIndex(string ChannelVersion, IList<PatchReleaseIndexItem> Releases);
+[Description("A set of product patch releases with high-level information, like version and whether the release contains security fixes.")]
+public record PatchReleasesIndex(
+    [property: Description("Major (or major.minor) version of the product.")]
+    string ChannelVersion,
+
+    [property: Description("The version (branding) of the most recent patch release.")]
+    string LatestRelease,
+    
+    [property: Description("The date of the most recent patch release.")]
+    DateOnly LatestReleaseDate,
+
+    [property: Description("Wehther the latest release includes security fixes.")]
+    bool LatestReleaseSecurity,
+
+    [property: Description("Link to supported OS matrix (JSON format)."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SupportedOsInfoUri,
+
+    [property: Description("Link to OS package information (JSON format)."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? OsPackagesInfoUri,
+
+    [property: Description("Set of patch releases.")]
+    IList<PatchReleaseIndexItem> Releases);
 
 public record PatchReleaseIndexItem(
-    [property: Description("Version of release.")]
+    [property: Description("Version (branding) of the release.")]
     string ReleaseVersion,
 
     [property: Description("Date of release.")]    
     DateOnly ReleaseDate,
     
-    [property: Description("Security status of release.")]
+    [property: Description("Whether the release contains any CVE fixes.")]
     bool Security,
 
-    [property: Description("Url to detailed description of release."),
-            JsonPropertyName("release.json")]
-    string ReleaseJson);
-
-/*
-{
-    "channel-version": "8.0",
-    "releases": [
-        {
-            "version": "8.0.7",
-            "date": "2024-07-09",
-            "security": true,
-            "release.json": "https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/8.0/8.0.1/release.json"
-        }
-    ]
-}
-*/
+    [property: Description("Link to detailed description of the release.")]
+    string ReleaseInfoUri);
