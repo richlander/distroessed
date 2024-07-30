@@ -50,7 +50,7 @@ public record PatchRelease(
 
     [property: Description("Windows Desktop component of the release."),
         JsonPropertyName("windowsdesktop")]
-    Component WindowsDesktop);
+    Component? WindowsDesktop = null);
 
 [Description("A disclosed vulnerability (AKA CVE).")]
 public record Cve(
@@ -68,17 +68,16 @@ public record RuntimeComponent(
     [property: Description("The display or branding variant of the version, if different.")]
     string VersionDisplay,
 
-    [property: Description("The minimum version of Visual Studio that supports this component version."),
-        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string VSSupport,
-
     [property: Description("The version of Visual Studio that includes this component version."),
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string VSVersion,
 
     [property: Description("The files that are available for this component.")]
-    IList<ComponentFile> Files
-);
+    IList<ComponentFile> Files,
+
+    [property: Description("The minimum version of Visual Studio that supports this component version."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? VSSupport = null);
 
 [Description("SDK component of the release.")]
 public record SdkComponent(
@@ -153,10 +152,10 @@ public record ComponentFile(
     
     [property: Description("Fully-qualified URL of file.")]
     string Url,
+
+    [property: Description("Content hash of file.")]
+    string Hash,
     
     [property: Description("Short-link URL to file."),
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string Akams,
-
-    [property: Description("Content hash of file.")]
-    string Hash);
+    string? Akams = null);
