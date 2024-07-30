@@ -64,7 +64,7 @@ public record DistroRelease(
     [Description("The version number for the release, matching VERSION_ID in /etc/os-release.")]    
     string Release,
     
-    [Description("TODO")]    
+    [Description("The packages required by the distro release.")]    
     IList<DistroPackage> Packages);
 
 [Description("A distro archive package to install, with a reference to a logical package with more information.")]
