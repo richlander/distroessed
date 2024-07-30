@@ -6,6 +6,7 @@ namespace DotnetRelease;
 // For os-packages.json file
 // List of packages required by product
 // Example: https://github.com/dotnet/core/blob/main/release-notes/9.0/supported-os.json
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("The set of packages required by a given product version for a set of distros.")]
 public record OSPackagesOverview(
     [property: Description("Major (or major.minor) version of product.")]
@@ -17,6 +18,7 @@ public record OSPackagesOverview(
     [property: Description("Set of distributions where the product can be used.")]
     IList<Distribution> Distributions);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A nominal package is a distro-agnostic representation of a package, including the scenarios for which the package is required. A nominal package will be referenced by a distribution package, with a distribution-specific package name.")]
 public record Package(
     [property: Description("ID of nominal package.")]
@@ -34,6 +36,7 @@ public record Package(
     [property: Description("Related references.")]
     IList<string>? References = null);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("An operating system distribution, with required package install commands and specific packages for distribution releases.")]
 public record Distribution(
     [Description("Name of the distribution, matching ID in /etc/os-release, however, the expectation is that this value starts with a capital letter (proper noun).")]
@@ -45,6 +48,7 @@ public record Distribution(
     [Description("Releases for that distribution.")]    
     IList<DistroRelease> Releases);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A command to be run to install packages")]
 public record Command(
     [Description("Whether the command needs to be run under sudo.")]    
@@ -56,6 +60,7 @@ public record Command(
     [Description("The command parts or arguments that need to be used.")]    
     IList<string>? CommandParts = null);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A distribution release with a list of packages to install.")]
 public record DistroRelease(
     [Description("The name of the release, matching PRETTY_NAME in /etc/os-release.")]    
@@ -67,6 +72,7 @@ public record DistroRelease(
     [Description("The packages required by the distro release.")]    
     IList<DistroPackage> Packages);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A distro archive package to install, with a reference to a logical package with more information.")]
 public record DistroPackage(
     [property: Description("Reference to nominal package ID, providing access to required scenarios and other information.")]

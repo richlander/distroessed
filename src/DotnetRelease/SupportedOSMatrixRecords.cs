@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
 // For supported-os.json file
 // Set of operating systems supported by product
 // Example: https://github.com/dotnet/core/blob/main/release-notes/9.0/supported-os.json
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Operating system support matrix for a given major product version.")]
 public record SupportedOSMatrix(
     [property: Description("Major (or major.minor) version of product.")]
@@ -23,6 +25,7 @@ public record SupportedOSMatrix(
         public IList<string>? Notes { get; set; } = null;
     };
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Operating system family, such as Linux.")]
 public record SupportFamily(
     [property: Description("Operating system family name.")]
@@ -31,6 +34,7 @@ public record SupportFamily(
     [property: Description("Supported operating system family distributions.")]
     IList<SupportDistribution> Distributions); 
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A supported operating system distribution, like iOS or Ubuntu.")]
 public record SupportDistribution(
     [property: Description("ID for distribution matching IDs used at https://endoflife.date/.")]
@@ -58,6 +62,7 @@ public record SupportDistribution(
     public IList<string>? Notes { get; set; } = null;
 }
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Minimum supported libc versions, for both glibc and musl, with the allowance for different versions per architecture.")]
 public record SupportLibc(
     [property: Description("Name of libc library.")]

@@ -6,11 +6,13 @@ namespace DotnetRelease;
 // For release-index.json file
 // Index of major releases for a product
 // Example: https://github.com/dotnet/core/blob/main/release-notes/releases-index.json
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A set of major product releases with high-level information, like latest patch version.")]
 public record MajorReleasesIndex(
     [property: Description("Set of major releases.")]
     IList<MajorReleaseIndexItem> ReleasesIndex);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A major version release, including the latest patch version, and whether that patch version included security updates.")]
 public record MajorReleaseIndexItem(
     [property: Description("Major (or major.minor) version of product.")]

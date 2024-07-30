@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("A patch release for a major product version.")]
 public record PatchReleaseOverview(
     [property: Description("Major (or major.minor) version of product.")]
     string ChannelVersion,
@@ -19,6 +21,8 @@ public record PatchReleaseOverview(
     [property: Description("A patch release with detailed release information.")]
     PatchRelease Release);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("Detailed information for the patch release.")]
 public record PatchRelease(
     [property: Description("The date of the patch release.")]
     DateOnly ReleaseDate,
@@ -52,6 +56,7 @@ public record PatchRelease(
         JsonPropertyName("windowsdesktop")]
     Component? WindowsDesktop = null);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A disclosed vulnerability (AKA CVE).")]
 public record Cve(
     [property: Description("The ID tracking the CVE.")]
@@ -60,6 +65,7 @@ public record Cve(
     [property: Description("The URL tracking the CVE at the authoritative site.")]
     string CveUrl);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Runtime component of a release.")]
 public record RuntimeComponent(
     [property: Description("The version of the component.")]
@@ -79,6 +85,7 @@ public record RuntimeComponent(
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? VSSupport = null);
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("SDK component of the release.")]
 public record SdkComponent(
     [property: Description("The version of the component.")]
@@ -111,6 +118,7 @@ public record SdkComponent(
     IList<ComponentFile> Files
 );
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("ASP.NET Core component of the release.")]
 public record AspNetCoreComponent(
     [property: Description("The version of the component.")]
@@ -130,6 +138,7 @@ public record AspNetCoreComponent(
     IList<ComponentFile> Files
 );
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Component that is part of the release.")]
 public record Component(
     [property: Description("The version of the component.")]
@@ -142,6 +151,7 @@ public record Component(
     IList<ComponentFile> Files
 );
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("File that is part of a release.")]
 public record ComponentFile(
     [property: Description("File name.")]
