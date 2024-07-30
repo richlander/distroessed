@@ -47,7 +47,7 @@ List<Tuple<Type, string>> models = [
 
 foreach (var model in models)
 {
-    var (type, file ) = model;
+    var (type, file) = model;
 
     WriteSchema(type, file);
 }

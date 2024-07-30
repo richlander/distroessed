@@ -37,7 +37,7 @@ public record MajorReleaseOverview(
     [property: Description("Link to lifecycle page for the product.")]
     string LifecyclePolicy,
 
-    [property: Description("Link to index file of detailed release descriptions  (JSON format), with one file per patch release.")]
+    [property: Description("Link to index file of detailed release descriptions (JSON format), with one file per patch release.")]
     string? PatchReleasesIndexUri,
 
     [property: Description("Link to supported OS matrix (JSON format)."),

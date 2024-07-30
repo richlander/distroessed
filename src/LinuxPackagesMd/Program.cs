@@ -51,7 +51,7 @@ writer.WriteLine("The following table lists required packages, including the sce
 writer.WriteLine();
 
 string[] packageLabels = ["Id", "Name", "Required scenarios", "Notes"];
-int[] packageColumns = [16, 12, 16, 32 ];
+int[] packageColumns = [16, 12, 16, 32];
 Table packageTable = new(Writer.GetWriter(writer), packageColumns);
 Link link = new();
 packageTable.WriteHeader(packageLabels);

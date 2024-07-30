@@ -97,7 +97,6 @@ static void ProcessMajorRelease(MajorReleaseOverview majorReleaseOverview, strin
 
     string patchReleasesIndexJson = Path.Combine(dir, "patch-releases-index.json");
     WritePatchReleasesIndex(index, patchReleasesIndexJson);
-
 }
 
 static void WriteMajorReleasesIndex(MajorReleasesIndex index, string file)
@@ -105,7 +104,6 @@ static void WriteMajorReleasesIndex(MajorReleasesIndex index, string file)
     var json = JsonSerializer.Serialize(index, MajorReleasesIndexSerializerContext.Default.MajorReleasesIndex);
     File.WriteAllText(file, json);
     Console.WriteLine($"Writing {file}");
-
 }
 
 static void WritePatchReleasesIndex(PatchReleasesIndex index, string file)

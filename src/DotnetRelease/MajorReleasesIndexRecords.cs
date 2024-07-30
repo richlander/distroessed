@@ -50,7 +50,7 @@ public record MajorReleaseIndexItem(
     [property: Description("Link to detailed release descriptions (JSON format), with all patch releases in one file.")]
     string PatchReleasesInfoUri,
 
-    [property: Description("Link to index file of detailed release descriptions  (JSON format), with one file per patch release."),
+    [property: Description("Link to index file of detailed release descriptions (JSON format), with one file per patch release."),
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? PatchReleasesIndexUri = null,
 
