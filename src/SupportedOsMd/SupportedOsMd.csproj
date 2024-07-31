@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DotnetSupport\DotnetSupport.csproj" />
+    <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
     <ProjectReference Include="..\EndOfLifeDate\EndOfLifeDate.csproj" />
     <ProjectReference Include="..\MarkdownHelpers\MarkdownHelpers.csproj" />
   </ItemGroup>

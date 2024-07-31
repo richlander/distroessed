@@ -2,13 +2,10 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace DotnetSupport;
+namespace DotnetRelease;
 
 public class SupportedOS
 {
-    public static Task<SupportMatrix?> GetSupportMatrix(HttpClient client, string url) => client.GetFromJsonAsync<SupportMatrix>(url, SupportMatrixSerializerContext.Default.SupportMatrix);
-    public static ValueTask<SupportMatrix?> GetSupportMatrix(Stream stream) => JsonSerializer.DeserializeAsync<SupportMatrix>(stream, SupportMatrixSerializerContext.Default.SupportMatrix);
-
     public static IList<string> SimplifyWindowsVersions(IList<String> versions)
     {
         List<string> updated = [];
@@ -58,10 +55,4 @@ public class SupportedOS
 
         return version;
     }
-}
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(SupportMatrix))]
-internal partial class SupportMatrixSerializerContext : JsonSerializerContext
-{
 }

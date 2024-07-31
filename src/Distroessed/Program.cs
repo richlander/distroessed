@@ -1,7 +1,5 @@
 ﻿using DotnetRelease;
-using DotnetSupport;
 using EndOfLifeDate;
-using ReleaseReport;
 
 if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
@@ -16,9 +14,9 @@ bool preferWeb = baseUrl.StartsWith("https");
 HttpClient client= new();
 DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 string supportMatrixUrl, releaseUrl;
-SupportMatrix? matrix = null;
-ReleaseOverview? release = null;
-Report report = new(DateTime.UtcNow, version, []);
+SupportedOSMatrix? matrix = null;
+MajorReleaseOverview? majorRelease = null;
+ReportOverview report = new(DateTime.UtcNow, version, []);
 
 if (preferWeb)
 {
@@ -33,17 +31,17 @@ else
 
 if (preferWeb)
 {
-    matrix = await SupportedOS.GetSupportMatrix(client, supportMatrixUrl);
-    release = await Releases.GetDotnetRelease(client, releaseUrl);
-}
+    matrix = await ReleaseNotes.GetSupportedOSes(client, supportMatrixUrl);
+    majorRelease = await ReleaseNotes.GetMajorRelease(client, releaseUrl);
+}   
 else
 {
-    matrix = await SupportedOS.GetSupportMatrix(File.OpenRead(supportMatrixUrl));
-    release = await Releases.GetDotnetRelease(File.OpenRead(releaseUrl));
+    matrix = await ReleaseNotes.GetSupportedOSes(File.OpenRead(supportMatrixUrl));
+    majorRelease = await ReleaseNotes.GetMajorRelease(File.OpenRead(releaseUrl));
 }
 
-DateOnly initialRelease = release?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{majorVersion}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
-DateOnly eolDate = release?.EolDate ?? DateOnly.MaxValue;
+DateOnly initialRelease = majorRelease?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{majorVersion}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
+DateOnly eolDate = majorRelease?.EolDate ?? DateOnly.MaxValue;
 
 foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
 {
@@ -61,7 +59,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         
         try
         {
-            cycles = await Product.GetProduct(client, distro.Id);
+            cycles = await EndOfLifeDate.Product.GetProduct(client, distro.Id);
             if (cycles is null)
             {
                 continue;
@@ -134,7 +132,7 @@ foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
     }
 }
 
-var reportJson = ReleaseReport.Release.WriteReport(report);
+var reportJson = ReleaseReport.WriteReport(report);
 
 Console.WriteLine(reportJson);
 

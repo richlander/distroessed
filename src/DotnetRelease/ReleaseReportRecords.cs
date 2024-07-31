@@ -1,6 +1,6 @@
-namespace ReleaseReport;
+namespace DotnetRelease;
 
-public record Report(DateTime Timestamp, string Version, IList<ReportFamily> Families);
+public record ReportOverview(DateTime Timestamp, string Version, IList<ReportFamily> Families);
 
 public record ReportFamily(string Name, IList<ReportDistribution> Distributions);
 

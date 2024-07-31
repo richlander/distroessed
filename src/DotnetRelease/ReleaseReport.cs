@@ -1,11 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ReleaseReport;
+namespace DotnetRelease;
 
-public class Release
+public class ReleaseReport
 {
-    public static string WriteReport(Report report) => JsonSerializer.Serialize(report, ReportJsonSerializerContext.Default.Report);
+    public static string WriteReport(ReportOverview report) => JsonSerializer.Serialize(report, ReportJsonSerializerContext.Default.ReportOverview);
 }
 
 
@@ -14,7 +14,7 @@ public class Release
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     WriteIndented = true
     )]
-[JsonSerializable(typeof(Report))]
+[JsonSerializable(typeof(ReportOverview))]
 internal partial class ReportJsonSerializerContext : JsonSerializerContext
 {
 }

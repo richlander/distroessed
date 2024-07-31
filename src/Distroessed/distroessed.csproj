@@ -3,8 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
     <ProjectReference Include="..\EndOfLifeDate\EndOfLifeDate.csproj" />
-    <ProjectReference Include="..\DotnetSupport\DotnetSupport.csproj" />
-    <ProjectReference Include="..\ReleaseReport\ReleaseReport.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
