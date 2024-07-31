@@ -5,6 +5,17 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using DotnetRelease;
 
+List<ModelInfo> models = [
+    new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),
+    new (typeof(MajorReleaseOverview), "dotnet-releases.json"),
+    new (typeof(PatchReleasesIndex), "dotnet-patch-releases-index.json"),
+    new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
+    new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
+    new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
+    // new (typeof(ReportOverview), "dotnet-support-report.json"),
+];
+
+
 var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions.Default)
 {
     PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
@@ -13,7 +24,7 @@ var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions.Default)
 var exporterOptions = new JsonSchemaExporterOptions()
     {
         
-        TransformSchemaNode = static (ctx, schema) =>
+        TransformSchemaNode = (ctx, schema) =>
         {
             if (schema is not JsonObject schemaObj || schemaObj.ContainsKey("$ref"))
             {
@@ -35,25 +46,14 @@ var exporterOptions = new JsonSchemaExporterOptions()
 
     };
 
-List<Tuple<Type, string>> models = [
-    new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),
-    new (typeof(MajorReleaseOverview), "dotnet-releases.json"),
-    new (typeof(PatchReleasesIndex), "dotnet-patch-releases-index.json"),
-    new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
-    new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
-    new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
-    new (typeof(ReportOverview), "dotnet-support-report.json"),
-];
-
 foreach (var model in models)
 {
-    var (type, file) = model;
-
-    WriteSchema(type, file);
+    WriteSchema(model);
 }
 
-void WriteSchema(Type type, string targetFile)
+void WriteSchema(ModelInfo modelInfo)
 {
+    var (type, targetFile) = modelInfo;
     var schema = JsonSchemaExporter.GetJsonSchemaAsNode(serializerOptions, type, exporterOptions);
     File.WriteAllText(targetFile, schema.ToString());
 }
@@ -61,3 +61,4 @@ void WriteSchema(Type type, string targetFile)
 static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? provider, bool inherit = false) where TAttribute : Attribute
     => provider?.GetCustomAttributes(typeof(TAttribute), inherit).FirstOrDefault() as TAttribute;
 
+record ModelInfo(Type Type, string TargetFile);
