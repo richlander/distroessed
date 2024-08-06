@@ -65,11 +65,12 @@ public class ReleaseReportGenerator
                         2. (Active, Unsupported)
                         3. (OverlappingLifecycle, Unlisted)
                         4. (EOL, Supported)
-                        5. (Active - EolSoon, Supported)
-                        6. (EOL, Unsupported | Unlisted)
+                        5. (EOL, Unsupported)
+                        6. (Active - EolSoon, Supported)
                         // these are not covered
                         7. (Listed, Unlisted)
-                        8. (Unlisted, Listed)
+                        8. (EOL, Unlisted)
+                        9. (Unlisted, Listed)
                     */
 
                     // Case 1
@@ -92,20 +93,20 @@ public class ReleaseReportGenerator
                     {
                         supportedUnActiveReleases.Add(cycle.Cycle);
                     }
-                    // Case 6
-                    else if (!isActive && !isSupported)
+                    // Case 5
+                    else if (!isActive && isUnsupported)
                     {
                         unsupportedUnActiveReleases.Add(cycle.Cycle);
                     }
 
-                    // Case 5
+                    // Case 6
                     if (isActive && support.EolDate < threeMonthsDate)
                     {
                         soonEolReleases.Add(cycle.Cycle);
                     }
                 }
 
-                ReportDistribution reportDistribution = new(distro.Name, activeReleases, unsupportedActiveRelease, soonEolReleases, supportedUnActiveReleases, missingReleases);
+                ReportDistribution reportDistribution = new(distro.Name, activeReleases, unsupportedActiveRelease, soonEolReleases, supportedUnActiveReleases, unsupportedUnActiveReleases, missingReleases);
                 reportFamily.Distributions.Add(reportDistribution);
             }
         }
