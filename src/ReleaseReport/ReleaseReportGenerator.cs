@@ -26,6 +26,7 @@ public class ReleaseReportGenerator
                 List<string> unsupportedActiveRelease = [];
                 List<string> soonEolReleases = [];
                 List<string> supportedUnActiveReleases = [];
+                List<string> unsupportedUnActiveReleases = [];
                 List<string> missingReleases = [];
                 
                 try
@@ -65,10 +66,10 @@ public class ReleaseReportGenerator
                         3. (OverlappingLifecycle, Unlisted)
                         4. (EOL, Supported)
                         5. (Active - EolSoon, Supported)
+                        6. (EOL, Unsupported | Unlisted)
                         // these are not covered
-                        6. (Unlisted, Listed)
-                        7. (EOL, Unsupported | Unlisted)
-                        8. (Listed, Unlisted)
+                        7. (Listed, Unlisted)
+                        8. (Unlisted, Listed)
                     */
 
                     // Case 1
@@ -90,8 +91,14 @@ public class ReleaseReportGenerator
                     else if (!isActive && isSupported)
                     {
                         supportedUnActiveReleases.Add(cycle.Cycle);
-                    }            
+                    }
+                    // Case 6
+                    else if (!isActive && !isSupported)
+                    {
+                        unsupportedUnActiveReleases.Add(cycle.Cycle);
+                    }
 
+                    // Case 5
                     if (isActive && support.EolDate < threeMonthsDate)
                     {
                         soonEolReleases.Add(cycle.Cycle);
