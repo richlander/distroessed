@@ -9,16 +9,12 @@ if (args.Length is 0 || !int.TryParse(args[0], out int ver))
 }
 
 string version = $"{ver}.0";
-string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
-string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
-bool preferWeb = baseUrl.StartsWith("https");
-string supportJson = baseUrl;
+string? baseUrl = args.Length > 1 ? args[1] : null;
+string supportJson = baseUrl ?? string.Empty;
 
 if (!supportJson.EndsWith(".json"))
 {
-    supportJson = preferWeb ?
-        $"{baseUrl}/{version}/supported-os.json" :
-        Path.Combine(baseUrl, version,"supported-os.json");
+    supportJson = ReleaseNotes.GetUri(ReleaseNotes.SupportedOS, version, baseUrl);
 }
 
 string template = $"supported-os-template{ver}.md";
@@ -29,6 +25,7 @@ FileStream stream = File.Open(file, FileMode.Create);
 StreamWriter writer = new(stream);
 SupportedOSMatrix? matrix = null;
 Link pageLinks = new();
+bool preferWeb = supportJson.StartsWith("https");
 
 if (preferWeb)
 {

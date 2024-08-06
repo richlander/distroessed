@@ -10,4 +10,4 @@ if (releases is null)
 }
 
 var json = JsonSerializer.Serialize(releases, MajorReleaseOverviewSerializerContext.Default.MajorReleaseOverview);
-File.WriteAllText("releases.json", json);
+File.WriteAllText(ReleaseNotes.Releases, json);
