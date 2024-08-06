@@ -3,43 +3,16 @@ using EndOfLifeDate;
 
 public class ReleaseReportGenerator
 {
-    public static async Task<ReportOverview> GetReportOverviewAsync(int majorVersion, string? baseUrl = null)
+    public static async Task<ReportOverview> GetReportOverviewAsync(SupportedOSMatrix? matrix, MajorReleaseOverview? majorRelease)
     {
-        baseUrl ??= "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
-
-        string version = $"{majorVersion}.0";
-        bool preferWeb = baseUrl.StartsWith("https");
-        HttpClient client= new();
+        string version = matrix?.ChannelVersion
+                         ?? majorRelease?.ChannelVersion
+                         ?? "0.0";
+        HttpClient client = new();
         DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
-        string supportMatrixUrl, releaseUrl;
-        SupportedOSMatrix? matrix = null;
-        MajorReleaseOverview? majorRelease = null;
-        ReportOverview report = new(DateTime.UtcNow, version, []);
-
-        if (preferWeb)
-        {
-            supportMatrixUrl = $"{baseUrl}/{version}/supported-os.json";
-            releaseUrl = $"{baseUrl}/{version}/releases.json";
-        }
-        else
-        {
-            supportMatrixUrl = Path.Combine(baseUrl, version,"supported-os.json");
-            releaseUrl = Path.Combine(baseUrl, version,"releases.json");   
-        }
-
-        if (preferWeb)
-        {
-            matrix = await ReleaseNotes.GetSupportedOSes(client, supportMatrixUrl);
-            majorRelease = await ReleaseNotes.GetMajorRelease(client, releaseUrl);
-        }   
-        else
-        {
-            matrix = await ReleaseNotes.GetSupportedOSes(File.OpenRead(supportMatrixUrl));
-            majorRelease = await ReleaseNotes.GetMajorRelease(File.OpenRead(releaseUrl));
-        }
-
-        DateOnly initialRelease = majorRelease?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{majorVersion}.0.0"))?.ReleaseDate ?? DateOnly.MaxValue;
+        DateOnly initialRelease = majorRelease?.Releases.FirstOrDefault(r => r.ReleaseVersion.Equals($"{version}.0"))?.ReleaseDate ?? DateOnly.MaxValue;
         DateOnly eolDate = majorRelease?.EolDate ?? DateOnly.MaxValue;
+        ReportOverview report = new(DateTime.UtcNow, version, []);
 
         foreach (SupportFamily family in matrix?.Families ?? throw new Exception())
         {
