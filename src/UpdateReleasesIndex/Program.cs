@@ -1,8 +1,4 @@
-﻿using System.ComponentModel.Design;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices.Marshalling;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json;
 using DotnetRelease;
 
 const string majorReleaseFile = "releases.json";
