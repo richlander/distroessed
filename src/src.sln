@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateReleasesIndex", "Upda
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReleaseReport", "ReleaseReport\ReleaseReport.csproj", "{0A34777F-E4DC-4E37-A2CF-4B2110B60B47}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DistroessedExceptional", "DistroessedExceptional\DistroessedExceptional.csproj", "{BC144CAE-80E0-4748-A7DC-B286380121D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,10 @@ Global
 		{0A34777F-E4DC-4E37-A2CF-4B2110B60B47}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A34777F-E4DC-4E37-A2CF-4B2110B60B47}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A34777F-E4DC-4E37-A2CF-4B2110B60B47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC144CAE-80E0-4748-A7DC-B286380121D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC144CAE-80E0-4748-A7DC-B286380121D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC144CAE-80E0-4748-A7DC-B286380121D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC144CAE-80E0-4748-A7DC-B286380121D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
