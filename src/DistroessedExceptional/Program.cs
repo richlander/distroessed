@@ -43,7 +43,7 @@ ExceptionsPerFamily exceptions = new()
         ["Debian"] = new()
         {
             ["6.0"] = [ "11" ],
-            ["8.0"] = [ "11" ]
+            ["8.0"] = [ "11", "12" ]
         },
         ["Red Hat Enterprise Linux"] = new()
         {
