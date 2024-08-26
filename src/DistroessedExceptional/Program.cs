@@ -36,10 +36,6 @@ ExceptionsPerFamily exceptions = new()
     },
     ["Linux"] = new()
     {
-        ["Alpine"] = new()
-        {
-            ["7.0"] = [ "3.14" ]
-        },
         ["CentOS Stream"] = new()
         {
             ["8.0"] = [ "8" ]
@@ -47,10 +43,6 @@ ExceptionsPerFamily exceptions = new()
         ["Red Hat Enterprise Linux"] = new()
         {
             ["8.0"] = [ "7" ]
-        },
-        ["SUSE Enterprise Linux"] = new()
-        {
-            ["7.0"] = [ "15.6" ]
         }
     }
 };
@@ -80,6 +72,11 @@ var report = await ReleaseReportGenerator.GetReportOverviewAsync(matrix, majorRe
 
 var reportVersion = report.Version;
 Console.WriteLine($"* .NET {reportVersion}");
+if (majorRelease?.SupportPhase == SupportPhase.Eol)
+{
+    Console.WriteLine("** This version is EOL and therefore checks can not be performed as the documents should show the state as of EOL instead of today.");
+    return;
+}
 foreach (var family in report.Families)
 {
     exceptions.TryGetValue(family.Name, out var familyExceptions);
