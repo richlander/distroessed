@@ -1,5 +1,3 @@
-using System.Collections.Specialized;
-
 namespace MarkdownHelpers;
 
 public class Link(int startingIndex = 0)
