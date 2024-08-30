@@ -11,7 +11,7 @@ List<ModelInfo> models = [
     new (typeof(PatchReleasesIndex), "dotnet-patch-releases-index.json"),
     new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
     new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
-    new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
+    new (typeof(SupportedOSMatrix), "dotnet-supported-os.json"),
     // new (typeof(ReportOverview), "dotnet-support-report.json"),
 ];
 

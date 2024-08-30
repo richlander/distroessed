@@ -6,7 +6,7 @@ namespace DotnetRelease;
 // For os-packages.json file
 // List of packages required by product
 // Example: https://github.com/dotnet/core/blob/main/release-notes/9.0/supported-os.json
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Skip)]
 [Description("The set of packages required by a given product version for a set of distros.")]
 public record OSPackagesOverview(
     [property: Description("Major (or major.minor) version of product.")]
