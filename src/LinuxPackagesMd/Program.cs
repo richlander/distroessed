@@ -2,16 +2,10 @@
 using DotnetRelease;
 using MarkdownHelpers;
 
-// if (args.Length is 0 || !int.TryParse(args[0], out int ver))
-// {
-//     ReportInvalidArgs();
-//     return;
-// }
-
 int ver = 9;
 
 string version = $"{ver}.0";
-string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/linux-packages/release-notes/";
+string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/main/release-notes";
 string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
 bool preferWeb = baseUrl.StartsWith("https");
 string packageJson = baseUrl;
@@ -28,6 +22,8 @@ HttpClient client = new();
 FileStream stream = File.Open(file, FileMode.Create);
 StreamWriter writer = new(stream);
 OSPackagesOverview? packageOverview = null;
+
+Console.WriteLine($"Querying {packageJson}");
 
 if (preferWeb)
 {

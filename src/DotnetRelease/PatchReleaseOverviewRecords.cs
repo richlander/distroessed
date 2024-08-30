@@ -21,7 +21,7 @@ public record PatchReleaseOverview(
     [property: Description("A patch release with detailed release information.")]
     PatchRelease Release);
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+// [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Detailed information for the patch release.")]
 public record PatchRelease(
     [property: Description("The date of the patch release.")]
@@ -65,7 +65,7 @@ public record Cve(
     [property: Description("The URL tracking the CVE at the authoritative site.")]
     string CveUrl);
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+// [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Runtime component of a release.")]
 public record RuntimeComponent(
     [property: Description("The version of the component.")]
@@ -85,7 +85,7 @@ public record RuntimeComponent(
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? VSSupport = null);
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+// [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("SDK component of the release.")]
 public record SdkComponent(
     [property: Description("The version of the component.")]
