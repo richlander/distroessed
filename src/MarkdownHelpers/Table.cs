@@ -1,15 +1,9 @@
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Data.Common;
-using System.IO.Compression;
-using System.Text;
-using Microsoft.VisualBasic.FileIO;
-
 namespace MarkdownHelpers;
 
 public class Table(IWriter writer, int[] columns)
 {
     private readonly IWriter _writer = writer;
-    private int[] _columns = columns;
+    private readonly int[] _columns = columns;
     private readonly int _columnMax = columns.Length - 1;
     private int _column = 0;
     private int _realLength = 0;
