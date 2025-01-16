@@ -16,7 +16,7 @@ foreach (var versionDir in ReleaseNotes.GetReleaseNoteDirectories(new DirectoryI
     string releasesJsonPath = Path.Combine(versionDir.FullName, majorReleaseFile);
     Stream releasesJson = File.OpenRead(releasesJsonPath);
     var major = await ReleaseNotes.GetMajorRelease(releasesJson) ?? throw new();
-    string releasesJsonUri = $"{ReleaseNotes.OfficialBaseUri}{major.ChannelVersion}/{majorReleaseFile}";
+    string releasesJsonUri = $"{ReleaseNotes.GitHubBaseUri}{major.ChannelVersion}/{majorReleaseFile}";
 
     var majorReleaseItem = new MajorReleaseIndexItem(
         major.ChannelVersion,
@@ -63,7 +63,7 @@ static void ProcessMajorRelease(MajorReleaseOverview majorReleaseOverview, strin
         {
             continue;
         }
-        var releaseJsonUrl = $"{ReleaseNotes.OfficialBaseUri}{channelVersion}/{folder}/{patchReleaseFile}";
+        var releaseJsonUrl = $"{ReleaseNotes.GitHubBaseUri}{channelVersion}/{folder}/{patchReleaseFile}";
         string patchReleaseJson = Path.Combine(dir, folder, "release.json");
 
         var patchReleaseOverview = new PatchReleaseOverview(

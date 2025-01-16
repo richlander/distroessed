@@ -11,7 +11,7 @@ string version = $"{majorVersion}.0";
 string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
 string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
 bool preferWeb = baseUrl.StartsWith("https");
-HttpClient client= new();
+HttpClient client= new();   
 DateOnly threeMonthsDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3));
 string supportMatrixUrl, releaseUrl;
 SupportedOSMatrix? matrix = null;

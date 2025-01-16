@@ -1,120 +1,29 @@
 # distroessed
 
-Managing distro versions is distressing.
+> Managing distro versions is distressing.
 
-We can join [.NET support information](https://github.com/dotnet/core/pull/9294) with [endOflife.date](https://endoflife.date/) to help us find head and tail releases that we should consider acting on.
+This repo contains several tools (listed first) and libraries that are used for managing distro lifecycle, packages, and other topics. Some of the tool outputs are documented at [dotnet/core](https://github.com/dotnet/core/blob/main/release-notes/README.md).
 
-This is what the tool produces as output.
+## Distroessed
 
-```bash
-$ dotnet run
-**Android**
- Android
-  Releases active : 4
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+[Distroessed](./src/Distroessed/README.md) produces a JSON document that joins the current state of distro support for a given .NET release, per its `supported-os.json` file and the [endoflife.date](https://endoflife.date) service. It is a useful tool for determining if a `supported-os.json` is inaccurate and needs to be updated.
 
-**Apple**
- iOS
-  Releases active : 3
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+## GenerateJsonShemas
 
- iPadOS
-  Releases active : 3
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+[GenerateJsonShemas](./src/GenerateJsonSchemas/README.md) produces [JSON schemas](https://github.com/dotnet/core/blob/main/release-notes/schemas/README.md) for a variety of [object models](./src/DotnetRelease/README.md) defined in this repository. It relies on [JsonSchemaExporter](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-9/libraries#jsonschemaexporter).
 
- macOS
-  Releases active : 3
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+## LinuxPackagesMD
 
- tvOS
-  No data found at endoflife.date
+[LinuxPackagesMD](./src/LinuxPackagesMd/README.md) produces a markdown document with the set of required (baseline) distro packages for a .NET apps, for a given .NET release, per its `os-packages.md`.
 
-**Linux**
- Alpine
-  Releases active : 4
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+## SupportedOSMD
 
- Debian
-  Releases active : 2
-  Unsupported active releases: 1
-  Releases EOL soon: 1
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  11
-  Releases that are EOL within 2 months:
-  11
+[SupportedOSMD](./src/SupportedOsMd/README.md) produces a markdown document with the current status of distro support for a given .NET release, per its `supported-os.json` file.
 
- Fedora
-  Releases active : 2
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+## Libraries
 
- openSUSE Leap
-  Releases active : 2
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+There are multiple libraries in the repo, which are used by the tools.
 
- Red Hat Enterprise Linux
-  Releases active : 3
-  Unsupported active releases: 1
-  Releases EOL soon: 1
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  7
-  Releases that are EOL within 2 months:
-  7
-
- SUSE Enterprise Linux
-  Releases active : 2
-  Unsupported active releases: 2
-  Releases EOL soon: 0
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  15.5
-  12.5
-
- Ubuntu
-  Releases active : 4
-  Unsupported active releases: 1
-  Releases EOL soon: 1
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  23.10
-  Releases that are EOL within 2 months:
-  23.10
-
-**Windows**
- Nano Server
-  No data found at endoflife.date
-
- Windows
-  Releases active : 11
-  Unsupported active releases: 3
-  Releases EOL soon: 0
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  10-21h2-iot-lts
-  11-21h2-e
-  10-1507-e-lts
-
- Windows Server
-  Releases active : 4
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
-
- Windows Server Core
-  No data found at endoflife.date
-```
+- [DotnetRelease](./src/DotnetRelease/README.md) -- Defines multiple object models and JSON APIs based on [JSON source generation](https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/source-generation).
+- [EndofLifeDate](./src/EndOfLifeDate/README.md) -- Defines an object model for [endoflife.data](https://endoflife.date) and a JSON API based on [JSON source generation](https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/source-generation).
+- [MetadataHelpers](./src/MarkdownHelpers/README.md) -- Provides some simple classes for generating markdown.
