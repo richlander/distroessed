@@ -78,12 +78,12 @@ public record RuntimeComponent(
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string VSVersion,
 
-    [property: Description("The files that are available for this component.")]
-    IList<ComponentFile> Files,
+    [property: Description("The version of Visual Studio for Mac that includes this component version."),
+    JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string VSMacVersion, 
 
-    [property: Description("The minimum version of Visual Studio that supports this component version."),
-        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? VSSupport = null);
+    [property: Description("The files that are available for this component.")]
+    IList<ComponentFile> Files);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("SDK component of the release.")]
@@ -100,8 +100,15 @@ public record SdkComponent(
     [property: Description("The version of Visual Studio that includes this component version.")]
     string VSVersion,
 
+    [property: Description("The version of Visual Studio for Mac that includes this component version."),
+    JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string VSMacVersion,
+
     [property: Description("The minimum version of Visual Studio that supports this component version.")]
     string VSSupport,
+
+    [property: Description("The minimum version of Visual Studio for Mac that supports this component version.")]
+    string VSMacSupport,
 
     [property: Description("The version of C# included in the component."),
         JsonPropertyName("csharp-version")]
