@@ -4,7 +4,7 @@ namespace MarkdownHelpers;
 
 public class BreakBuffer(StringBuilder builder, int index = 0)
 {
-    StringBuilder _builder = builder;
+    readonly StringBuilder _builder = builder;
     int _index = index;
 
     public void Append(string value)

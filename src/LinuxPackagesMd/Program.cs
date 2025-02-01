@@ -18,9 +18,7 @@ string packageJson = baseUrl;
 
 if (!packageJson.EndsWith(".json"))
 {
-    packageJson = preferWeb ?
-        $"{baseUrl}/{version}/os-packages.json" :
-        Path.Combine(baseUrl, version,"os-packages.json");
+    packageJson = ReleaseNotes.GetUri(ReleaseNotes.OSPackages, version, baseUrl);
 }
 
 string file = "os-packages.md";

@@ -1,8 +1,4 @@
-﻿using System.ComponentModel.Design;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices.Marshalling;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json;
 using DotnetRelease;
 
 const string majorReleaseFile = "releases.json";
@@ -64,7 +60,7 @@ static void ProcessMajorRelease(MajorReleaseOverview majorReleaseOverview, strin
             continue;
         }
         var releaseJsonUrl = $"{ReleaseNotes.OfficialBaseUri}{channelVersion}/{folder}/{patchReleaseFile}";
-        string patchReleaseJson = Path.Combine(dir, folder, "release.json");
+        string patchReleaseJson = Path.Combine(dir, folder, ReleaseNotes.PatchRelease);
 
         var patchReleaseOverview = new PatchReleaseOverview(
             channelVersion,
@@ -95,7 +91,7 @@ static void ProcessMajorRelease(MajorReleaseOverview majorReleaseOverview, strin
         majorReleaseOverview.OsPackagesInfoUri,
         patchReleases);
 
-    string patchReleasesIndexJson = Path.Combine(dir, "patch-releases-index.json");
+    string patchReleasesIndexJson = Path.Combine(dir, ReleaseNotes.PatchReleasesIndex);
     WritePatchReleasesIndex(index, patchReleasesIndexJson);
 }
 

@@ -19,6 +19,8 @@ public class ReleaseNotes
 
     public static string Releases { get; private set; } = "releases.json";
 
+    public static string PatchRelease { get; private set; } = "release.json";
+
     public static string SupportedOS { get; private set; } = "supported-os.json";
 
     public static string PreviewDirectory { get; private set; } = "preview";
@@ -76,6 +78,14 @@ public class ReleaseNotes
         {
             return new(name, "preview", true);
         }
+    }
+
+    public static string GetUri(string fileName, string version, string? baseUri = null)
+    {
+        baseUri ??= GitHubBaseUri;
+        return baseUri.StartsWith("https")
+            ? $"{baseUri}/{version}/{fileName}"
+            : Path.Combine(baseUri, version, fileName);
     }
 }
 
