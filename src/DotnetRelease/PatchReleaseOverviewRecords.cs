@@ -78,10 +78,6 @@ public record RuntimeComponent(
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string VSVersion,
 
-    [property: Description("The version of Visual Studio on MacOS that includes this component version."),
-        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string VSMacVersion,
-
     [property: Description("The files that are available for this component.")]
     IList<ComponentFile> Files,
 
@@ -104,14 +100,8 @@ public record SdkComponent(
     [property: Description("The version of Visual Studio that includes this component version.")]
     string VSVersion,
 
-    [property: Description("The version of Visual Studio on MacOS that includes this component version.")]
-    string VSMacVersion,
-
     [property: Description("The minimum version of Visual Studio that supports this component version.")]
     string VSSupport,
-
-    [property: Description("The minimum version of Visual Studio on MacOS that supports this component version.")]
-    string VSMacSupport,
 
     [property: Description("The version of C# included in the component."),
         JsonPropertyName("csharp-version")]
