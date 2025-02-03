@@ -9,7 +9,7 @@ public class Table(IWriter writer, int[] columns)
     private int _realLength = 0;
     private int _specLength = 0;
     
-    public bool UseOuterPipes { get; set; } = false;
+    public bool UseOuterPipes { get; set; } = true;
 
     public void EndRow()
     {
