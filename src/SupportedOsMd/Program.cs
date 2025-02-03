@@ -133,6 +133,7 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
         Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
         writer.WriteLine();
+        table.WriteHeader(labels);
         List<string> notes = [];
 
         for (int i = 0; i < family.Distributions.Count; i++)
