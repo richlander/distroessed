@@ -1,7 +1,6 @@
 # .NET {ID-VERSION} - Supported OS versions
 
-Last Updated: {ID-LASTUPDATED}
-Support phase: {ID-SUPPORT-PHASE}
+Last Updated: {ID-LASTUPDATED}; Support phase: {ID-SUPPORT-PHASE}
 
 [.NET {ID-VERSION}](README.md) is an [{ID-RELEASE-TYPE}](../../release-policies.md) release and [is supported](../../support.md) on multiple operating systems per their lifecycle policy.
 
