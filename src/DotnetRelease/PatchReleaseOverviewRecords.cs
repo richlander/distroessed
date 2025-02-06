@@ -82,6 +82,9 @@ public record RuntimeComponent(
     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string VSMacVersion, 
 
+    [property: Description("The minimum version of Visual Studio that supports this component version.")]
+    string VSSupport,
+
     [property: Description("The files that are available for this component.")]
     IList<ComponentFile> Files);
 

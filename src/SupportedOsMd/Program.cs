@@ -1,6 +1,14 @@
-﻿using DotnetRelease;
+﻿using System.Reflection;
+using System.Text.RegularExpressions;
+using DotnetRelease;
+using DotnetRelease.Helper;
 using EndOfLifeDate;
 using MarkdownHelpers;
+
+// Invocation forms:
+// SupportedOsMd 8.0
+// SupportedOsMd 8.0 ~/git/core/release-notes
+// SupportedOsMd 8.0 https://builds.dotnet.microsoft.com/dotnet/release-metadata/
 
 if (args.Length is 0 || !int.TryParse(args[0], out int ver))
 {
@@ -8,61 +16,78 @@ if (args.Length is 0 || !int.TryParse(args[0], out int ver))
     return;
 }
 
+const string placeholder = "SECTION-";
+const string id = "{ID-";
+string templateFile = $"supported-os-template.md";
+string targetFile = $"supported-os.md";
+string targetDirectory = args.Length > 2 ? args[2] : "";
+string targetPath = Path.Combine(targetDirectory, targetFile);
+string exeLocation = Assembly.GetExecutingAssembly().Location;
+string directory = Path.GetDirectoryName(exeLocation) ?? throw new();
+string template = Path.Combine(directory, templateFile);
+
 string version = $"{ver}.0";
-string? baseUrl = args.Length > 1 ? args[1] : null;
-string supportJson = baseUrl ?? string.Empty;
+string baseUrl = args.Length > 1 ? args[1] : ReleaseNotes.GitHubBaseUri;
 
-if (!supportJson.EndsWith(".json"))
-{
-    supportJson = ReleaseNotes.GetUri(ReleaseNotes.SupportedOS, version, baseUrl);
-}
-
-string template = $"supported-os-template{ver}.md";
-string file = $"supported-os{ver}.md";
-string placeholder = "PLACEHOLDER-";
+// Acquire JSON data, locally or from the web
 HttpClient client = new();
-FileStream stream = File.Open(file, FileMode.Create);
-StreamWriter writer = new(stream);
-SupportedOSMatrix? matrix = null;
-Link pageLinks = new();
-bool preferWeb = supportJson.StartsWith("https");
+AdaptiveLayout layout = new(baseUrl, client);
+string supportJson = layout.GetLocation(version, ReleaseNotes.SupportedOS);
+using Stream supportStream = await layout.GetStreamAsync(supportJson);
+SupportedOSMatrix matrix = await ReleaseNotes.GetSupportedOSes(supportStream) ?? throw new();
+string releaseIndexJson = layout.GetLocation(ReleaseNotes.MajorReleasesIndex);
+using Stream releaseIndexStream = await layout.GetStreamAsync(releaseIndexJson);
+MajorReleasesIndex index = await ReleaseNotes.GetMajorReleasesIndex(releaseIndexStream) ?? throw new();
 
-if (preferWeb)
-{
-    matrix = await ReleaseNotes.GetSupportedOSes(client, supportJson) ?? throw new();
-}
-else
-{
-    matrix = await ReleaseNotes.GetSupportedOSes(File.OpenRead(supportJson)) ?? throw new();
-}
+FileStream stream = File.Open(targetPath, FileMode.Create);
+StreamWriter writer = new(stream);
+Link pageLinks = new();
+Dictionary<string, string> replacements = [];
+bool replacementsFound = GetReplacementsForVersion(index, matrix, version, replacements);
 
 foreach (string line in File.ReadLines(template))
 {
-    if (!line.StartsWith(placeholder))
+    if (replacementsFound && line.Contains(id))
+    {
+        string text = line;
+        while (text.Contains(id))
+        {
+            int start = text.IndexOf(id);
+            int end = text.IndexOf('}', start);
+            int count = end - start;
+            string term = text.Substring(start, count + 1);
+            string replacement = replacements[term];
+            text = text.Replace(term, replacement);
+        }
+
+        writer.WriteLine(text);
+        continue;
+    }
+    else if (!line.StartsWith(placeholder))
     {
         writer.WriteLine(line);
         continue;
     }
 
-    if (line.StartsWith("PLACEHOLDER-LASTUPDATED"))
+    if (line.StartsWith("SECTION-LASTUPDATED"))
     {
-        WriteLastUpdatedSection(writer, matrix.LastUpdated);
+        WriteLastUpdatedSection(writer, matrix?.LastUpdated ?? throw new());
     }
-    else if (line.StartsWith("PLACEHOLDER-FAMILIES"))
+    else if (line.StartsWith("SECTION-FAMILIES"))
     {
-        WriteFamiliesSection(writer, matrix.Families, pageLinks);
+        WriteFamiliesSection(writer, matrix?.Families ?? throw new(), pageLinks);
     }
-    else if (line.StartsWith("PLACEHOLDER-LIBC") && matrix.Libc is {})
+    else if (line.StartsWith("SECTION-LIBC") && matrix?.Libc is { })
     {
         WriteLibcSection(writer, matrix.Libc);
     }
-    else if (line.StartsWith("PLACEHOLDER-NOTES") && matrix.Notes is {})
+    else if (line.StartsWith("SECTION-NOTES") && matrix?.Notes is { })
     {
         WriteNotesSection(writer, matrix.Notes);
     }
-    else if (line.StartsWith("PLACEHOLDER-UNSUPPORTED"))
+    else if (line.StartsWith("SECTION-UNSUPPORTED"))
     {
-        await WriteUnSupportedSection(writer, matrix.Families, client);
+        await WriteUnSupportedSection(writer, matrix?.Families ?? throw new(), client);
     }
 }
 
@@ -77,7 +102,7 @@ if (pageLinks.Count > 0)
 }
 
 writer.Close();
-var writtenFile = File.OpenRead(file);
+var writtenFile = File.OpenRead(targetPath);
 long length = writtenFile.Length;
 string path = writtenFile.Name;
 writtenFile.Close();
@@ -98,36 +123,23 @@ static void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
 
 static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
 {
-    string[] labels = [ "OS", "Versions", "Architectures", "Lifecycle" ];
+    string[] labels = ["OS", "Versions", "Architectures", "Lifecycle"];
     int[] lengths = [32, 30, 24, 24];
-    Table defaultTable = new(Writer.GetWriter(writer), lengths);
     int linkCount = 0;
 
     foreach (SupportFamily family in families)
     {
-        Table table = defaultTable;
+        Table table = new(Writer.GetWriter(writer), lengths);
         Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
         writer.WriteLine();
-
-        if (family.Name is "Apple")
-        {
-            int[] appleLengths = [32, 30, 24];
-            table = new(Writer.GetWriter(writer), appleLengths);
-            table.WriteHeader(labels.AsSpan(0, 3));
-        }
-        else
-        {
-            table.WriteHeader(labels);
-        }
-
+        table.WriteHeader(labels);
         List<string> notes = [];
 
         for (int i = 0; i < family.Distributions.Count; i++)
         {
             SupportDistribution distro = family.Distributions[i];
             IList<string> distroVersions = distro.SupportedVersions;
-            bool hasLifecycle = distro.Lifecycle is not null;
 
             if (distro.Name is "Windows")
             {
@@ -149,17 +161,14 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             table.WriteColumn(distroLink);
             table.WriteColumn(versions);
             table.WriteColumn(Join(distro.Architectures));
+            var lifecycleLink = distro.Lifecycle is null ? "None" :
+                familyLinks.AddIndexReferenceLink("Lifecycle", distro.Lifecycle);
 
-            if (distro.Lifecycle is not null)
-            {
-                var lifecycleLink = familyLinks.AddIndexReferenceLink("Lifecycle", distro.Lifecycle);
-                table.WriteColumn(lifecycleLink);
-            }
-
+            table.WriteColumn(lifecycleLink);
             table.EndRow();
             linkCount = familyLinks.Index;
 
-            if (distro.Notes is {Count: > 0})
+            if (distro.Notes is { Count: > 0 })
             {
                 foreach (string note in distro.Notes)
                 {
@@ -193,8 +202,8 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
 
 static void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
 {
-    string[] columnLabels = [ "Libc", "Version", "Architectures", "Source"];
-    int[] columnLengths = [16, 10, 24, 16 ];
+    string[] columnLabels = ["Libc", "Version", "Architectures", "Source"];
+    int[] columnLengths = [16, 10, 24, 16];
     Table table = new(Writer.GetWriter(writer), columnLengths);
     table.WriteHeader(columnLabels);
 
@@ -240,11 +249,11 @@ static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFami
         writer.WriteLine("None currently.");
         return;
     }
-    
-    string[] labels = [ "OS", "Version", "Date" ];
+
+    string[] labels = ["OS", "Version", "Date"];
     int[] lengths = [24, 16, 24];
     Table table = new(Writer.GetWriter(writer), lengths);
-    
+
     table.WriteHeader(labels);
 
     foreach (var entry in orderedEolCycles)
@@ -298,3 +307,25 @@ static DateOnly GetEolDateForCycle(SupportCycle? supportCycle)
 }
 
 static string Join(IEnumerable<string>? strings) => strings is null ? "" : string.Join(", ", strings);
+
+// Replacements:
+// ID-VERSION
+// ID-LASTUPDATED
+// ID-SUPPORT-PHASE
+// ID-RELEASE-TYPE
+static bool GetReplacementsForVersion(MajorReleasesIndex index, SupportedOSMatrix matrix, string version, Dictionary<string, string> replacements)
+{
+    MajorReleaseIndexItem? release = index.ReleasesIndex.Where(r => r.ChannelVersion == version).FirstOrDefault();
+
+    if (release is null)
+    {
+        return false;
+    }
+
+    replacements.Add("{ID-VERSION}", release.ChannelVersion);
+    replacements.Add("{ID-SUPPORT-PHASE}", release.SupportPhase.ToString());
+    replacements.Add("{ID-RELEASE-TYPE}", release.ReleaseType.ToString());
+    replacements.Add("{ID-LASTUPDATED}", matrix.LastUpdated.ToString("yyyy/MM/dd"));
+
+    return true;
+}

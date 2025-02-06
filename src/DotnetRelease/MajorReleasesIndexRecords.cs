@@ -6,7 +6,7 @@ namespace DotnetRelease;
 // For release-index.json file
 // Index of major releases for a product
 // Example: https://github.com/dotnet/core/blob/main/release-notes/releases-index.json
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Skip)]
 [Description("A set of major product releases with high-level information, like latest patch version.")]
 public record MajorReleasesIndex(
     [property: Description("Set of major releases.")]
@@ -20,28 +20,28 @@ public record MajorReleaseIndexItem(
 
     [property: Description("The version of the most recent patch release.")]
     string LatestRelease,
-    
+
     [property: Description("The date of the most recent patch release.")]
     DateOnly LatestReleaseDate,
-    
+
     [property: Description("Whether the most recent patch release contains security fixes.")]
     bool Security,
-    
+
     [property: Description("The runtime version of the most recent patch release.")]
     string LatestRuntime,
 
     [property: Description("The SDK version of the most recent patch release.")]
     string LatestSdk,
-    
+
     [property: Description("The product marketing name.")]
     string Product,
-    
+
     [property: Description("The support phase of the major release.")]
     SupportPhase SupportPhase,
 
     [property: Description("End of life date of the major release.")]
     DateOnly EolDate,
-    
+
     [property: Description("The release type for of the makor release.")]
     ReleaseType ReleaseType,
 
