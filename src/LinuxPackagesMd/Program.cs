@@ -91,11 +91,13 @@ static void WritePackageOverview(StreamWriter writer, OSPackagesOverview package
 
         buffer.LinkFormat = true;
         buffer.AppendRange(package.References ?? []);
+        buffer.LinkFormat = false;
+
 
         var pkgLink = links.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
         packageTable.WriteColumn(pkgLink);
         packageTable.WriteColumn(package.Name);
-        packageTable.WriteColumn(string.Join("<br>", package.RequiredScenarios ?? []));
+        packageTable.WriteColumn(string.Join(" ; ", package.RequiredScenarios ?? []));
         packageTable.WriteColumn(buffer.ToString());
         packageTable.EndRow();
     }

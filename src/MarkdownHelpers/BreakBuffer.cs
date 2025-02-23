@@ -26,7 +26,6 @@ public class BreakBuffer(StringBuilder builder, int index = 0)
         {
             _builder.Append(value);
         }
-        _builder.Append(value);
         _index++;
     }
 
