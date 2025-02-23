@@ -5,6 +5,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../FileHelpers/FileHelpers.csproj" />
+    <ProjectReference Include="../MarkdownTemplate/MarkdownTemplate.csproj" />
     <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
     <ProjectReference Include="..\EndOfLifeDate\EndOfLifeDate.csproj" />
     <ProjectReference Include="..\MarkdownHelpers\MarkdownHelpers.csproj" />
