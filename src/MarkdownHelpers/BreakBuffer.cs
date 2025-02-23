@@ -7,13 +7,25 @@ public class BreakBuffer(StringBuilder builder, int index = 0)
     readonly StringBuilder _builder = builder;
     int _index = index;
 
+    public bool LinkFormat { get; set; } = false;
+
+    public string BreakSequence { get; set; } = " ; ";
+
     public void Append(string value)
     {
         if (_index > 0)
         {
-            _builder.Append("<br>");
+            _builder.Append(BreakSequence);
         }
 
+        if (LinkFormat)
+        {
+            _builder.Append($"<{value}>");
+        }
+        else
+        {
+            _builder.Append(value);
+        }
         _builder.Append(value);
         _index++;
     }

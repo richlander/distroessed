@@ -89,6 +89,7 @@ static void WritePackageOverview(StreamWriter writer, OSPackagesOverview package
             buffer.Append($"Minimum required version {package.MinVersion}");
         }
 
+        buffer.LinkFormat = true;
         buffer.AppendRange(package.References ?? []);
 
         var pkgLink = links.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
