@@ -17,18 +17,18 @@ const string templates = "templates";
 const string templateFile = $"supported-os-template.md";
 const string targetFile = $"supported-os.md";
 
-if (args.Length is 0 || !int.TryParse(args[0], out int ver))
+if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
     ReportInvalidArgs();
     return;
 }
 
 // Version strings
-string version = $"{ver}.0";
+string version = $"{majorVersion}.0";
 
 // Get path adaptor
 string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
-HttpClient client = new();
+using HttpClient client = new();
 IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
 
 // Paths
@@ -54,26 +54,30 @@ if (matrix.LastUpdated < today)
 bool releaseFound = index.ReleasesIndex.Any(r => r.ChannelVersion == version);
 
 // Open template
-Stream templateStream = await path.GetStreamAsync(templatePath);
-StreamReader templateReader = new(templateStream);
+using Stream templateStream = await path.GetStreamAsync(templatePath);
+using StreamReader templateReader = new(templateStream);
 
 // Open target file
-FileStream targetStream = File.Open(targetPath, FileMode.Create);
-StreamWriter targetWriter = new(targetStream);
+using FileStream targetStream = File.Open(targetPath, FileMode.Create);
+using StreamWriter targetWriter = new(targetStream);
 
 // Process template and write output
 Link pageLinks = new();
 Dictionary<string, string> replacements = [];
+replacements.Add("LASTUPDATED", matrix.LastUpdated.ToString("yyyy/MM/dd"));
+replacements.Add("VERSION", version);
 if (releaseFound)
 {
-    GetReplacementsForVersion(index, matrix, version, replacements);
+    MajorReleaseIndexItem release = index.ReleasesIndex.Where(r => r.ChannelVersion == version).FirstOrDefault() ?? 
+        throw new Exception($"No release found for version {version}");
+
+    replacements.Add("SUPPORT-PHASE", release.SupportPhase.ToString());
+    replacements.Add("RELEASE-TYPE", release.ReleaseType.ToString());
 }
 else // should only be relevant for pre-Preview 1 timeframe
 {
-    replacements.Add("VERSION", version);
     replacements.Add("SUPPORT-PHASE", "Preview");
     replacements.Add("RELEASE-TYPE", "Unknown");
-    replacements.Add("LASTUPDATED", matrix.LastUpdated.ToString("yyyy/MM/dd"));
 }
 
 MarkdownTemplate notes = new();
@@ -140,12 +144,22 @@ static void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
 
 static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
 {
-    string[] labels = ["OS", "Versions", "Architectures", "Lifecycle"];
+    ReadOnlySpan<string> labels = ["OS", "Versions", "Architectures", "Lifecycle"];
     int[] lengths = [32, 30, 24, 24];
     int linkCount = 0;
+    bool first = true;
 
     foreach (SupportFamily family in families)
     {
+        if (first)
+        {
+            first = false;
+        }
+        else
+        {
+            writer.WriteLine();
+        }
+
         Table table = new(Writer.GetWriter(writer), lengths);
         Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
@@ -212,8 +226,6 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
         {
             writer.WriteLine(refLink);
         }
-
-        writer.WriteLine();
     }
 }
 
@@ -325,14 +337,3 @@ static DateOnly GetEolDateForCycle(SupportCycle? supportCycle)
 }
 
 static string Join(IEnumerable<string>? strings) => strings is null ? "" : string.Join(", ", strings);
-
-static void GetReplacementsForVersion(MajorReleasesIndex index, SupportedOSMatrix matrix, string version, Dictionary<string, string> replacements)
-{
-    MajorReleaseIndexItem release = index.ReleasesIndex.Where(r => r.ChannelVersion == version).FirstOrDefault() ?? 
-        throw new Exception($"No release found for version {version}");
-
-    replacements.Add("VERSION", release.ChannelVersion);
-    replacements.Add("SUPPORT-PHASE", release.SupportPhase.ToString());
-    replacements.Add("RELEASE-TYPE", release.ReleaseType.ToString());
-    replacements.Add("LASTUPDATED", matrix.LastUpdated.ToString("yyyy/MM/dd"));
-}

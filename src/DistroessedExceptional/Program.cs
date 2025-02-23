@@ -15,9 +15,8 @@ string version = $"{majorVersion}.0";
 
 // Get path adaptor
 string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
-HttpClient client = new();
+using HttpClient client = new();
 IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
-
 
 ExceptionsPerFamily exceptions = new()
 {
@@ -69,7 +68,6 @@ SupportedOSMatrix matrix = await ReleaseNotes.GetSupportedOSes(supportStream) ??
 string releasesJson = path.Combine(version, ReleaseNotes.Releases);
 using Stream releasesJsonStream = await path.GetStreamAsync(releasesJson);
 MajorReleaseOverview majorRelease = await ReleaseNotes.GetMajorRelease(releasesJsonStream) ?? throw new();
-
 
 var report = await ReleaseReportGenerator.GetReportOverviewAsync(matrix, majorRelease);
 

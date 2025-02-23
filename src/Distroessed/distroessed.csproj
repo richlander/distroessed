@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="../FileHelpers/FileHelpers.csproj" />
     <ProjectReference Include="..\ReleaseReport\ReleaseReport.csproj" />
   </ItemGroup>
 
@@ -9,6 +10,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>13.0</LangVersion>
   </PropertyGroup>
 
 </Project>
