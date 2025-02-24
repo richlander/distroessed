@@ -8,9 +8,9 @@ using System.Collections;
 using System.ComponentModel;
 
 // Invocation forms:
-// SupportedOsMd 8.0
-// SupportedOsMd 8.0 ~/git/core/release-notes
-// SupportedOsMd 8.0 https://builds.dotnet.microsoft.com/dotnet/release-metadata/
+// SupportedOsMd 8
+// SupportedOsMd 8 ~/git/core/release-notes
+// SupportedOsMd 8 https://builds.dotnet.microsoft.com/dotnet/release-metadata/
 
 // Static strings
 const string templates = "templates";
