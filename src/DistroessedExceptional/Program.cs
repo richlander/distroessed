@@ -2,12 +2,21 @@
 using ExceptionalVersions = System.Collections.Generic.List<string>;
 using ExceptionsPerVersion = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>;
 using ExceptionsPerFamily = System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>>>;
+using FileHelpers;
 
 if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
     ReportInvalidArgs();
     return;
 }
+
+// Version strings
+string version = $"{majorVersion}.0";
+
+// Get path adaptor
+string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
+using HttpClient client = new();
+IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
 
 ExceptionsPerFamily exceptions = new()
 {
@@ -52,26 +61,13 @@ ExceptionsPerFamily exceptions = new()
     }
 };
 
-string? baseUrl = args.Length > 1 ? args[1] : null;
-
-string version = $"{majorVersion}.0";
-string supportMatrixUrl = ReleaseNotes.GetUri(ReleaseNotes.SupportedOS, version, baseUrl);
-string releaseUrl = ReleaseNotes.GetUri(ReleaseNotes.Releases, version, baseUrl);
-bool preferWeb = supportMatrixUrl.StartsWith("https");
-SupportedOSMatrix? matrix = null;
-MajorReleaseOverview? majorRelease = null;
-
-if (preferWeb)
-{
-    HttpClient client = new();
-    matrix = await ReleaseNotes.GetSupportedOSes(client, supportMatrixUrl);
-    majorRelease = await ReleaseNotes.GetMajorRelease(client, releaseUrl);
-}   
-else
-{
-    matrix = await ReleaseNotes.GetSupportedOSes(File.OpenRead(supportMatrixUrl));
-    majorRelease = await ReleaseNotes.GetMajorRelease(File.OpenRead(releaseUrl));
-}
+// Acquire JSON data, locally or from the web
+string supportJson = path.Combine(version, ReleaseNotes.SupportedOS);
+using Stream supportStream = await path.GetStreamAsync(supportJson);
+SupportedOSMatrix matrix = await ReleaseNotes.GetSupportedOSes(supportStream) ?? throw new();
+string releasesJson = path.Combine(version, ReleaseNotes.Releases);
+using Stream releasesJsonStream = await path.GetStreamAsync(releasesJson);
+MajorReleaseOverview majorRelease = await ReleaseNotes.GetMajorRelease(releasesJsonStream) ?? throw new();
 
 var report = await ReleaseReportGenerator.GetReportOverviewAsync(matrix, majorRelease);
 

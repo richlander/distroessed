@@ -1,141 +1,174 @@
 ﻿using System.Text;
 using DotnetRelease;
+using FileHelpers;
 using MarkdownHelpers;
 
-// if (args.Length is 0 || !int.TryParse(args[0], out int ver))
-// {
-//     ReportInvalidArgs();
-//     return;
-// }
-
-int ver = 9;
-
-string version = $"{ver}.0";
-string baseDefaultURL = "https://raw.githubusercontent.com/dotnet/core/linux-packages/release-notes/";
-string baseUrl = args.Length > 1 ? args[1] : baseDefaultURL;
-bool preferWeb = baseUrl.StartsWith("https");
-string packageJson = baseUrl;
-
-if (!packageJson.EndsWith(".json"))
+if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
-    packageJson = ReleaseNotes.GetUri(ReleaseNotes.OSPackages, version, baseUrl);
+    ReportInvalidArgs();
+    return;
 }
 
-string file = "os-packages.md";
-HttpClient client = new();
-FileStream stream = File.Open(file, FileMode.Create);
-StreamWriter writer = new(stream);
-OSPackagesOverview? packageOverview = null;
+// Version strings
+string version = $"{majorVersion}.0";
 
-if (preferWeb)
+// Get path adaptor
+string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
+using HttpClient client = new();
+IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
+
+// Paths
+string packageJson = path.Combine(version, ReleaseNotes.OSPackages);
+string packageTemplate = path.Combine("templates", "os-packages-template.md");
+string targetFile = ReleaseNotes.OSPackages.Replace(".json", ".md");
+string targetPath = path.SupportsLocalPaths ? path.Combine(version, targetFile) : targetFile;
+
+// Acquire JSON data, locally or from the web
+using Stream packageStream = await path.GetStreamAsync(packageJson);
+OSPackagesOverview packageOverview = await ReleaseNotes.GetOSPackages(packageStream) ?? throw new();
+
+// Open streams
+using FileStream targetStream = File.Open(targetPath, FileMode.Create);
+using StreamWriter targetWriter = new(targetStream);
+using Stream templateStream = await path.GetStreamAsync(packageTemplate);
+using StreamReader templateReader = new(templateStream);
+
+// Replacement strings
+Dictionary<string, string> replacements = [];
+replacements.Add("VERSION", version);
+
+Link pageLinks = new();
+
+MarkdownTemplate notes = new();
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+await notes.Process(templateReader, targetWriter, async (id, writer) =>
 {
-    packageOverview = await ReleaseNotes.GetOSPackages(client, packageJson) ?? throw new();
-}
-else
-{
-    packageOverview = await ReleaseNotes.GetOSPackages(File.OpenRead(packageJson)) ?? throw new();
-}
-
-writer.WriteLine("# .NET 9 Required Packages");
-writer.WriteLine();
-writer.WriteLine("Various packages must be installed to run .NET apps and the .NET SDK. This is handled automatically if .NET is [installed through archive packages](../../linux.md).");
-writer.WriteLine();
-writer.WriteLine("This file is generated from [os-packages.json](os-packages.json).");
-writer.WriteLine();
-
-writer.WriteLine("## Package Overview");
-writer.WriteLine();
-writer.WriteLine("The following table lists required packages, including the scenarios by which they are needed.");
-writer.WriteLine();
-
-string[] packageLabels = ["Id", "Name", "Required scenarios", "Notes"];
-int[] packageColumns = [16, 12, 16, 32];
-Table packageTable = new(Writer.GetWriter(writer), packageColumns);
-Link link = new();
-packageTable.WriteHeader(packageLabels);
-
-foreach (var package in packageOverview.Packages)
-{
-    BreakBuffer buffer = new(new());
-    if (package.MinVersion is {})
+    Console.WriteLine($"Processing token: {id}");
+    if (replacements.TryGetValue(id, out string? value))
     {
-        buffer.Append($"Minimum required version {package.MinVersion}");
+        writer.Write(value);
+        return;
     }
 
-    buffer.AppendRange(package.References ?? []);
-
-    var pkgLink = link.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
-    packageTable.WriteColumn(pkgLink);
-    packageTable.WriteColumn(package.Name);
-    packageTable.WriteColumn(string.Join("<br>", package.RequiredScenarios ?? []));
-    packageTable.WriteColumn(buffer.ToString());
-    packageTable.EndRow();
-}
-
-writer.WriteLine();
-
-foreach (var refLink in link.GetReferenceLinkAnchors())
-{
-    writer.WriteLine(refLink);
-}
-
-foreach (var distro in packageOverview.Distributions)
-{
-    writer.WriteLine();
-    writer.WriteLine($"## {distro.Name}");
-
-    Guard guard = new(Writer.GetWriter(writer));
-
-    foreach (var release in distro.Releases)
+    switch (id)
     {
-        writer.WriteLine();
-        writer.WriteLine($"### {release.Name}");
-        writer.WriteLine();
+        case "OVERVIEW":
+            WritePackageOverview(writer, packageOverview, pageLinks);
+            break;
+        case "FAMILIES":
+            WritePackageFamilies(writer, packageOverview);
+            break;
+        default:
+            throw new($"Unknown token: {id}");
+    }
+});
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 
-        guard.StartRegion("bash");
+templateReader.Close();
+templateStream.Close();
+targetWriter.Close();
+targetStream.Close();
+var writtenFile = File.OpenRead(targetPath);
+Console.WriteLine($"Generated {writtenFile.Length} bytes");
+Console.WriteLine(writtenFile.Name);
+writtenFile.Close();
 
-        int commandCount = distro?.InstallCommands?.Count is null ? 0 : distro.InstallCommands.Count;
-        for(int i = 0; i < commandCount; i++)
+static void WritePackageOverview(StreamWriter writer, OSPackagesOverview packageOverview, Link links)
+{
+    ReadOnlySpan<string> packageLabels = ["Id", "Name", "Required scenarios", "Notes"];
+    int[] packageColumns = [16, 12, 16, 32];
+    Table packageTable = new(Writer.GetWriter(writer), packageColumns);
+  
+    packageTable.WriteHeader(packageLabels);
+
+    foreach (var package in packageOverview.Packages)
+    {
+        BreakBuffer buffer = new(new());
+        if (package.MinVersion is {})
         {
-            var command = distro!.InstallCommands![i];
-            var commandString = GetCommandString(command);
-            guard.Write(commandString);
-
-            if (i + 1 < commandCount)
-            {
-                guard.Write(" &&");
-            }
-
-            guard.WriteLine($" \\");
+            buffer.Append($"Minimum required version {package.MinVersion}");
         }
 
-        guard.UpdateIndent(4);
+        buffer.LinkFormat = true;
+        buffer.AppendRange(package.References ?? []);
+        buffer.LinkFormat = false;
 
-        int count = release.Packages.Count;
-        var packages = release.Packages.OrderBy(p => p.Name).ToList();
-        for (int i = 0; i < count; i++)
-        {
-            string endChar = "";
-            if (i + 1 < count)
-            {
-                endChar = " \\";
-            }
 
-            guard.WriteLine($"{packages[i].Name}{endChar}");
-        }
+        var pkgLink = links.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
+        packageTable.WriteColumn(pkgLink);
+        packageTable.WriteColumn(package.Name);
+        packageTable.WriteColumn(string.Join(" ; ", package.RequiredScenarios ?? []));
+        packageTable.WriteColumn(buffer.ToString());
+        packageTable.EndRow();
+    }
 
-        guard.EndRegion();  
+    foreach (var refLink in links.GetReferenceLinkAnchors())
+    {
+        writer.WriteLine(refLink);
     }
 }
 
-writer.Close();
+static void WritePackageFamilies(StreamWriter writer, OSPackagesOverview packageOverview)
+{
+    bool first = true;
 
-// static void ReportInvalidArgs()
-// {
-//     Console.WriteLine("Invalid args.");
-//     Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
-// }
+    foreach (var distro in packageOverview.Distributions)
+    {
+        if (first)
+        {
+            first = false;
+        }
+        else
+        {
+            writer.WriteLine();
+        }
 
+        writer.WriteLine($"## {distro.Name}");
+
+        Guard guard = new(Writer.GetWriter(writer));
+
+        foreach (var release in distro.Releases)
+        {
+            writer.WriteLine();
+            writer.WriteLine($"### {release.Name}");
+            writer.WriteLine();
+
+            guard.StartRegion("bash");
+
+            int commandCount = distro?.InstallCommands?.Count is null ? 0 : distro.InstallCommands.Count;
+            for(int i = 0; i < commandCount; i++)
+            {
+                var command = distro!.InstallCommands![i];
+                var commandString = GetCommandString(command);
+                guard.Write(commandString);
+
+                if (i + 1 < commandCount)
+                {
+                    guard.Write(" &&");
+                }
+
+                guard.WriteLine($" \\");
+            }
+
+            guard.UpdateIndent(4);
+
+            int count = release.Packages.Count;
+            var packages = release.Packages.OrderBy(p => p.Name).ToList();
+            for (int i = 0; i < count; i++)
+            {
+                string endChar = "";
+                if (i + 1 < count)
+                {
+                    endChar = " \\";
+                }
+
+                guard.WriteLine($"{packages[i].Name}{endChar}");
+            }
+
+            guard.EndRegion();  
+        }
+    }
+}
 
 static string GetCommandString(Command command)
 {
@@ -159,4 +192,10 @@ static string GetCommandString(Command command)
     }
 
     return builder.ToString();
+}
+
+static void ReportInvalidArgs()
+{
+    Console.WriteLine("Invalid args.");
+    Console.WriteLine("Expected: version [URL or Path, absolute or root location]");
 }

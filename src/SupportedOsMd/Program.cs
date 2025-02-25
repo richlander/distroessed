@@ -1,114 +1,135 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using DotnetRelease;
-using DotnetRelease.Helper;
+using FileHelpers;
 using EndOfLifeDate;
 using MarkdownHelpers;
+using System.Collections;
+using System.ComponentModel;
 
 // Invocation forms:
-// SupportedOsMd 8.0
-// SupportedOsMd 8.0 ~/git/core/release-notes
-// SupportedOsMd 8.0 https://builds.dotnet.microsoft.com/dotnet/release-metadata/
+// SupportedOsMd 8
+// SupportedOsMd 8 ~/git/core/release-notes
+// SupportedOsMd 8 https://builds.dotnet.microsoft.com/dotnet/release-metadata/
 
-if (args.Length is 0 || !int.TryParse(args[0], out int ver))
+// Static strings
+const string templates = "templates";
+const string templateFile = $"supported-os-template.md";
+const string targetFile = $"supported-os.md";
+
+if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
     ReportInvalidArgs();
     return;
 }
 
-const string placeholder = "SECTION-";
-const string id = "{ID-";
-string templateFile = $"supported-os-template.md";
-string targetFile = $"supported-os.md";
-string targetDirectory = args.Length > 2 ? args[2] : "";
-string targetPath = Path.Combine(targetDirectory, targetFile);
-string exeLocation = Assembly.GetExecutingAssembly().Location;
-string directory = Path.GetDirectoryName(exeLocation) ?? throw new();
-string template = Path.Combine(directory, templateFile);
+// Version strings
+string version = $"{majorVersion}.0";
 
-string version = $"{ver}.0";
-string baseUrl = args.Length > 1 ? args[1] : ReleaseNotes.GitHubBaseUri;
+// Get path adaptor
+string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
+using HttpClient client = new();
+IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
+
+// Paths
+string templatePath = path.Combine(templates, templateFile);
+string targetPath = path.SupportsLocalPaths ? path.Combine(version, targetFile) : targetFile;
 
 // Acquire JSON data, locally or from the web
-HttpClient client = new();
-AdaptiveLayout layout = new(baseUrl, client);
-string supportJson = layout.GetLocation(version, ReleaseNotes.SupportedOS);
-using Stream supportStream = await layout.GetStreamAsync(supportJson);
+string supportJson = path.Combine(version, ReleaseNotes.SupportedOS);
+using Stream supportStream = await path.GetStreamAsync(supportJson);
 SupportedOSMatrix matrix = await ReleaseNotes.GetSupportedOSes(supportStream) ?? throw new();
-string releaseIndexJson = layout.GetLocation(ReleaseNotes.MajorReleasesIndex);
-using Stream releaseIndexStream = await layout.GetStreamAsync(releaseIndexJson);
+string releaseIndexJson = path.Combine(ReleaseNotes.MajorReleasesIndex);
+using Stream releaseIndexStream = await path.GetStreamAsync(releaseIndexJson);
 MajorReleasesIndex index = await ReleaseNotes.GetMajorReleasesIndex(releaseIndexStream) ?? throw new();
 
-FileStream stream = File.Open(targetPath, FileMode.Create);
-StreamWriter writer = new(stream);
+DateTime now = DateTime.Now;
+DateOnly today = DateOnly.FromDateTime(now);
+
+if (matrix.LastUpdated < today)
+{
+    Console.WriteLine($"Warning: Last updated date {matrix.LastUpdated} is older than today.");
+}
+
+bool releaseFound = index.ReleasesIndex.Any(r => r.ChannelVersion == version);
+
+// Open template
+using Stream templateStream = await path.GetStreamAsync(templatePath);
+using StreamReader templateReader = new(templateStream);
+
+// Open target file
+using FileStream targetStream = File.Open(targetPath, FileMode.Create);
+using StreamWriter targetWriter = new(targetStream);
+
+// Process template and write output
 Link pageLinks = new();
 Dictionary<string, string> replacements = [];
-bool replacementsFound = GetReplacementsForVersion(index, matrix, version, replacements);
-
-foreach (string line in File.ReadLines(template))
+replacements.Add("LASTUPDATED", matrix.LastUpdated.ToString("yyyy/MM/dd"));
+replacements.Add("VERSION", version);
+if (releaseFound)
 {
-    if (replacementsFound && line.Contains(id))
-    {
-        string text = line;
-        while (text.Contains(id))
-        {
-            int start = text.IndexOf(id);
-            int end = text.IndexOf('}', start);
-            int count = end - start;
-            string term = text.Substring(start, count + 1);
-            string replacement = replacements[term];
-            text = text.Replace(term, replacement);
-        }
+    MajorReleaseIndexItem release = index.ReleasesIndex.Where(r => r.ChannelVersion == version).FirstOrDefault() ?? 
+        throw new Exception($"No release found for version {version}");
 
-        writer.WriteLine(text);
-        continue;
-    }
-    else if (!line.StartsWith(placeholder))
-    {
-        writer.WriteLine(line);
-        continue;
-    }
-
-    if (line.StartsWith("SECTION-LASTUPDATED"))
-    {
-        WriteLastUpdatedSection(writer, matrix?.LastUpdated ?? throw new());
-    }
-    else if (line.StartsWith("SECTION-FAMILIES"))
-    {
-        WriteFamiliesSection(writer, matrix?.Families ?? throw new(), pageLinks);
-    }
-    else if (line.StartsWith("SECTION-LIBC") && matrix?.Libc is { })
-    {
-        WriteLibcSection(writer, matrix.Libc);
-    }
-    else if (line.StartsWith("SECTION-NOTES") && matrix?.Notes is { })
-    {
-        WriteNotesSection(writer, matrix.Notes);
-    }
-    else if (line.StartsWith("SECTION-UNSUPPORTED"))
-    {
-        await WriteUnSupportedSection(writer, matrix?.Families ?? throw new(), client);
-    }
+    replacements.Add("SUPPORT-PHASE", release.SupportPhase.ToString());
+    replacements.Add("RELEASE-TYPE", release.ReleaseType.ToString());
 }
+else // should only be relevant for pre-Preview 1 timeframe
+{
+    replacements.Add("SUPPORT-PHASE", "Preview");
+    replacements.Add("RELEASE-TYPE", "Unknown");
+}
+
+MarkdownTemplate notes = new();
+await notes.Process(templateReader, targetWriter, async (id, writer) =>
+{
+    if (replacements.TryGetValue(id, out string? value))
+    {
+        writer.Write(value);
+        return;
+    }
+
+    switch (id)
+    {
+        case "LASTUPDATED":
+            WriteLastUpdatedSection(writer, matrix?.LastUpdated ?? throw new());
+            break;
+        case "FAMILIES":
+            WriteFamiliesSection(writer, matrix?.Families ?? throw new(), pageLinks);
+            break;
+        case "LIBC":
+            WriteLibcSection(writer, matrix?.Libc ?? throw new("Libc section not found"));
+            break;
+        case "NOTES":
+            WriteNotesSection(writer, matrix?.Notes ?? throw new("Notes section not found"));
+            break;
+        case "UNSUPPORTED":
+            await WriteUnSupportedSection(writer, matrix?.Families ?? throw new("EOL data not found"), client);
+            break;
+        default:
+            throw new($"Unknown token: {id}");
+    }
+});
+
 
 if (pageLinks.Count > 0)
 {
-    writer.WriteLine();
+    targetWriter.WriteLine();
 
     foreach (string link in pageLinks.GetReferenceLinkAnchors())
     {
-        writer.WriteLine(link);
+        targetWriter.WriteLine(link);
     }
 }
 
-writer.Close();
+templateReader.Close();
+templateStream.Close();
+targetWriter.Close();
+targetStream.Close();
 var writtenFile = File.OpenRead(targetPath);
-long length = writtenFile.Length;
-string path = writtenFile.Name;
+Console.WriteLine($"Generated {writtenFile.Length} bytes");
+Console.WriteLine(writtenFile.Name);
 writtenFile.Close();
-
-Console.WriteLine($"Generated {length} bytes");
-Console.WriteLine(path);
 
 static void ReportInvalidArgs()
 {
@@ -123,12 +144,22 @@ static void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
 
 static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
 {
-    string[] labels = ["OS", "Versions", "Architectures", "Lifecycle"];
+    ReadOnlySpan<string> labels = ["OS", "Versions", "Architectures", "Lifecycle"];
     int[] lengths = [32, 30, 24, 24];
     int linkCount = 0;
+    bool first = true;
 
     foreach (SupportFamily family in families)
     {
+        if (first)
+        {
+            first = false;
+        }
+        else
+        {
+            writer.WriteLine();
+        }
+
         Table table = new(Writer.GetWriter(writer), lengths);
         Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
@@ -195,8 +226,6 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
         {
             writer.WriteLine(refLink);
         }
-
-        writer.WriteLine();
     }
 }
 
@@ -227,6 +256,7 @@ static void WriteNotesSection(StreamWriter writer, IList<string> notes)
 
 static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFamily> families, HttpClient client)
 {
+    Console.WriteLine("Getting EoL data...");
     // Get all unsupported cycles in parallel.
     var eolCycles = await Task.WhenAll(families
         .SelectMany(f => f.Distributions
@@ -307,25 +337,3 @@ static DateOnly GetEolDateForCycle(SupportCycle? supportCycle)
 }
 
 static string Join(IEnumerable<string>? strings) => strings is null ? "" : string.Join(", ", strings);
-
-// Replacements:
-// ID-VERSION
-// ID-LASTUPDATED
-// ID-SUPPORT-PHASE
-// ID-RELEASE-TYPE
-static bool GetReplacementsForVersion(MajorReleasesIndex index, SupportedOSMatrix matrix, string version, Dictionary<string, string> replacements)
-{
-    MajorReleaseIndexItem? release = index.ReleasesIndex.Where(r => r.ChannelVersion == version).FirstOrDefault();
-
-    if (release is null)
-    {
-        return false;
-    }
-
-    replacements.Add("{ID-VERSION}", release.ChannelVersion);
-    replacements.Add("{ID-SUPPORT-PHASE}", release.SupportPhase.ToString());
-    replacements.Add("{ID-RELEASE-TYPE}", release.ReleaseType.ToString());
-    replacements.Add("{ID-LASTUPDATED}", matrix.LastUpdated.ToString("yyyy/MM/dd"));
-
-    return true;
-}
