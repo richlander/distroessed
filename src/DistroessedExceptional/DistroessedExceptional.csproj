@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="../FileHelpers/FileHelpers.csproj" />
+    <ProjectReference Include="..\FileHelpers\FileHelpers.csproj" />
     <ProjectReference Include="..\ReleaseReport\ReleaseReport.csproj" />
   </ItemGroup>
 
