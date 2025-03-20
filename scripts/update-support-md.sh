@@ -12,7 +12,11 @@ if [ ! -d "$SOURCE_DIRECTORY" ]; then
     exit 1
 fi
 
-dotnet publish ../src/SupportedOsMd/SupportedOsMd.csproj -o SupportedOsMd
-SupportedOsMd/SupportedOsMd 8 "$SOURCE_DIRECTORY"
-SupportedOsMd/SupportedOsMd 9 "$SOURCE_DIRECTORY"
-SupportedOsMd/SupportedOsMd 10 "$SOURCE_DIRECTORY"
+run_supported_os_md() {
+    echo "$SOURCE_DIRECTORY"
+    ../tools/SupportedOsMd "$1" "$SOURCE_DIRECTORY"
+}
+
+run_supported_os_md 8
+run_supported_os_md 9
+run_supported_os_md 10
