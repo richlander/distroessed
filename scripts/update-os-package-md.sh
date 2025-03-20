@@ -12,5 +12,4 @@ if [ ! -d "$SOURCE_DIRECTORY" ]; then
     exit 1
 fi
 
-dotnet publish ../src/LinuxPackagesMd -o LinuxPackagesMd
-LinuxPackagesMd/LinuxPackagesMd 9 "$SOURCE_DIRECTORY"
+../tools/LinuxPackagesMd 9 "$SOURCE_DIRECTORY"
