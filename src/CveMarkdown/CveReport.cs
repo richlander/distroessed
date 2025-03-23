@@ -1,101 +1,136 @@
-using System.Buffers;
-using System.Text;
 using CveInfo;
+using MarkdownHelpers;
+using ReportHelpers;
 
-namespace CveReport;
-
-public class Report
+public static class CveReport
 {
-    private static readonly string[] UrlTemplateStrings = ["{org}", "{repo}", "{branch}", "{commit}"];
-    private static readonly SearchValues<string> UrlTemplateSearch =
-        SearchValues.Create(UrlTemplateStrings, StringComparison.OrdinalIgnoreCase);
-
-    public static string MakeUrlFromSourceScheme(Commit commit, string urlScheme)
+    public static MarkdownTemplate CreateTemplate(CveSet cves)
     {
-        ReadOnlySpan<char> scheme = urlScheme;
-        int index = 0;
-        StringBuilder link = new();
-        ReadOnlySpan<string> replacements = [commit.Org, commit.Repo, commit.Branch, commit.Hash];
-
-        while (scheme.Length > 0 && (index = scheme.IndexOfAny(UrlTemplateSearch)) > -1)
+        MarkdownTemplate notes = new()
         {
-            if (index is -1)
+            Processor = (id, writer) =>
             {
-                link.Append(scheme);
-                break;
-            }
-            else if (index > 0)
+                Action<CveSet, StreamWriter> action = CveReport.SwitchOnId(id);
+                action(cves, writer);
+            },
+            SectionProcessor = (id) =>
             {
-                link.Append(scheme[..index]);
-                scheme = scheme[index..];
-            }
-
-            for (int i = 0; i < UrlTemplateStrings.Length; i++)
-            {
-                if (scheme.StartsWith(UrlTemplateStrings[i]))
+                if (id.StartsWith("commit-section"))
                 {
-                    link.Append(replacements[i]);
-                    scheme = scheme[UrlTemplateStrings[i].Length..];
-                    break;
+                    return cves?.Commits is {};
                 }
+
+                return false;
             }
-        }
+        };
 
-        return link.ToString();
+        return notes;
     }
 
-    public static string MakeLinkFromBestSource(Commit commit, string? display, string? urlScheme, string? fallbackUrl)
+    public static Action<CveSet, StreamWriter> SwitchOnId(string id) => id switch
     {
-        var url = "";
-        if (urlScheme is { })
+        "date" => WriteDate,
+        "vuln-table" => WriteCveTable,
+        "package-table" => WritePackageTable,
+        "commit-table" => WriteCommitTable,
+        _ => throw new()
+    };
+
+    public static void WriteDate(CveSet cves, StreamWriter writer) 
+    {
+        string date = cves.Date;
+        if (DateOnly.TryParse(cves.Date, out DateOnly dateOnly))
         {
-            url = MakeUrlFromSourceScheme(commit, urlScheme);
-        }
-        else if (fallbackUrl is { })
-        {
-            url = fallbackUrl;
+            date = dateOnly.ToString("yyyy-MM-dd");
         }
 
-        return $"[{display ?? url}]({url})";
+        writer.Write(date);
     }
 
-    public static string MakeCveLink(Cve cve) => $"https://www.cve.org/CVERecord?id={cve.Id}";
-
-    public static string MakeNuGetLink(string package) => $"https://www.nuget.org/packages/{package}";
-
-    public static string MakeMarkdownSafe(string value) => value.Replace('-', '‑').Replace("*", @"\*");
-
-    public static string MakePackagesString(IEnumerable<Package> packages)
+    public static void WriteCveTable(CveSet cves, StreamWriter writer)
     {
-        bool next = false;
-        StringBuilder builder = new();
+        // CVE table
+        string[] cveLabels = ["CVE", "Description", "Product", "Platforms", "CVSS"];
+        int[] cveLengths = [16, 20, 16, 16, 20];
+        Table cveTable = new(Writer.GetWriter(writer), cveLengths);
 
-        foreach (Package package in packages)
+        cveTable.WriteHeader(cveLabels);
+
+        foreach (Cve cve in cves.Cves)
+        {cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
+            cveTable.WriteColumn(cve.Description);
+            cveTable.WriteColumn(cve.Product);
+            cveTable.WriteColumn(Join(cve.Platforms));
+            cveTable.WriteColumn(cve?.Cvss ?? "");
+            cveTable.EndRow();
+        }
+    }
+
+    public static void WritePackageTable(CveSet cves, StreamWriter writer)
+    {
+        // Package version table
+        string[] packageLabels = ["CVE", "Package", "Min Version", "Max Version", "Fixed Version"];
+        int[] packageLengths = [16, 16, 12, 12, 16];
+        Table packageTable = new(Writer.GetWriter(writer), packageLengths);
+
+        packageTable.WriteHeader(packageLabels);
+
+        foreach (Cve cve in cves.Cves)
         {
-            if (next)
+            foreach (var package in cve.Packages)
             {
-                builder.Append("<br>");
+                packageTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
+                packageTable.WriteColumn(Report.MakePackageString(package.Name));
+                packageTable.WriteColumn($">={package.MinVulnerableVersion}");
+                packageTable.WriteColumn($"<={package.MaxVulnerableVersion}");
+                packageTable.WriteColumn(package.FixedVersion);
+                packageTable.EndRow();
             }
-
-            builder.Append(MakePackageString(package.Name));
-            next = true;
         }
-
-        return builder.ToString();
     }
 
-    public static string MakePackageString(string name)
+    public static void WriteCommitTable(CveSet cves, StreamWriter writer)
     {
-        if (IsFramework(name))
+        if (cves.Commits is null)
         {
-            return MakeMarkdownSafe(name);
+            return;
         }
-        else
+
+        // Commits table
+        string[] commitLabels = ["CVE", "Branch", "Commit"];
+        int[] commitLengths = [30, 20, 60];
+        Table commitTable = new(Writer.GetWriter(writer), commitLengths);
+
+        commitTable.WriteHeader(commitLabels);
+
+        foreach (Commit commit in cves.Commits)
         {
-            return $"[{name}][{name}]";
+            commitTable.WriteColumn($"[{commit.Cve}][{commit.Cve}]");
+            commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Branch, cves.Source.BranchUrl, null));
+            commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url));
+            commitTable.EndRow();
+        }
+
+        writer.WriteLine();
+
+        // Write second part of reference-style links
+        foreach (var cve in cves.Cves)
+        {writer.WriteLine($"[{cve.Id}]: {Report.MakeCveLink(cve)}");
+        }
+
+        foreach (var cve in cves.Cves)
+        {
+            foreach (var package in cve.Packages)
+            {
+                if (Report.IsFramework(package.Name))
+                {
+                    continue;
+                }
+
+                writer.WriteLine($"[{package.Name}]: {Report.MakeNuGetLink(package.Name)}");
+            }
         }
     }
 
-    public static bool IsFramework(string name) => name.StartsWith("Microsoft.") && name.Contains("Core.App.Runtime");
+    private static string Join(IEnumerable<string>? strings) => strings is null ? "" : string.Join(", ", strings);
 }
-

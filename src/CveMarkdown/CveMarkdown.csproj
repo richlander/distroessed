@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MarkdownTemplate\MarkdownTemplate.csproj" />
     <ProjectReference Include="..\CveInfo\CveInfo.csproj" />
     <ProjectReference Include="..\MarkdownHelpers\MarkdownHelpers.csproj" />
   </ItemGroup>

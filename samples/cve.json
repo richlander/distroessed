@@ -1,0 +1,62 @@
+{
+    "date": "2024-08-13",
+    "cves": [
+        {
+            "id": "CVE-2024-38167",
+            "description": ".NET Information disclosure vulnerability",
+            "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N/E:U/RL:O/RC:C",
+            "product": ".NET",
+            "packages": [
+                {
+                    "name": "Microsoft.NETCore.App.Runtime-*",
+                    "min-vulnerable-version": "8.0.0",
+                    "max-vulnerable-version": "8.0.7",
+                    "fixed-version": "8.0.8"
+                }
+            ],
+            "platforms": [
+                "all"
+            ]
+        },
+        {
+            "id": "CVE-2024-38168",
+            "description": ".NET Denial of Service Vulnerability",
+            "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:U/RL:O/RC:C",
+            "product": "ASP.NET Core",
+            "packages": [
+                {
+                    "name": "Microsoft.AspNetCore.App.Runtime-*",
+                    "min-vulnerable-version": "8.0.0",
+                    "max-vulnerable-version": "8.0.7",
+                    "fixed-version": "8.0.8"
+                }
+            ],
+            "platforms": [
+                "windows"
+            ]
+        }
+    ],
+    "commits": [
+        {
+            "cve": "CVE-2024-38167",
+            "hash": "56cf645f455120395e5b62366921b21694510982",
+            "org": "dotnet",
+            "repo": "runtime",
+            "branch": "release/8.0",
+            "url": "https://github.com/dotnet/runtime/commit/56cf645f455120395e5b62366921b21694510982"
+        },
+        {
+            "cve": "CVE-2024-38168",
+            "hash": "b77fef78f17bbbce69d5aeacf2fcdbb8cb408b98",
+            "org": "dotnet",
+            "repo": "aspnetcore",
+            "branch": "release/8.0",
+            "url": "https://github.com/dotnet/aspnetcore/commit/b77fef78f17bbbce69d5aeacf2fcdbb8cb408b98"
+        }
+    ],
+    "source": {
+        "name": "dotnet/upstream",
+        "commit-url": "https://github.com/{org}/{repo}/commit/{commit}",
+        "branch-url": "https://github.com/{org}/{repo}/tree/{branch}"
+    }
+ }
