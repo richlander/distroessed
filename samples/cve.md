@@ -23,7 +23,7 @@ The following table lists commits for affected packages.
 | CVE                         | Branch            | Commit                                                   |
 | --------------------------- | ----------------- | -------------------------------------------------------- |
 | [CVE-2024-38167][CVE-2024-38167] | [release/8.0](https://github.com/dotnet/runtime/tree/release/8.0) | [56cf645f455120395e5b62366921b21694510982](https://github.com/dotnet/runtime/commit/56cf645f455120395e5b62366921b21694510982) |
-| [CVE-2024-38168][CVE-2024-38168] | [release/8.0](https://github.com/dotnet/aspnetcore/tree/release/8.0) | [b77fef78f17bbbce69d5aeacf2fcdbb8cb408b98](https://github.com/dotnet/aspnetcore/commit/b77fef78f17bbbce69d5aeacf2fcdbb8cb408b98) |
+| [CVE-2024-38168][CVE-2024-38168] | [release/8.0](https://github.com/dotnet/aspnetcore/tree/release/8.0) | [ffa0a028464e13d46aaec0c5ad8de0725a4d5aa5](https://github.com/dotnet/aspnetcore/commit/ffa0a028464e13d46aaec0c5ad8de0725a4d5aa5) |
 
 [CVE-2024-38167]: https://www.cve.org/CVERecord?id=CVE-2024-38167
 [CVE-2024-38168]: https://www.cve.org/CVERecord?id=CVE-2024-38168
