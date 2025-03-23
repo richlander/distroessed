@@ -13,7 +13,7 @@ if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 string version = $"{majorVersion}.0";
 
 // Get path adaptor
-string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
+string basePath = args.Length > 1 ? args[1] : ReleaseNotes.GitHubBaseUri;
 using HttpClient client = new();
 IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
 
@@ -39,30 +39,31 @@ replacements.Add("VERSION", version);
 
 Link pageLinks = new();
 
-MarkdownTemplate notes = new();
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-await notes.Process(templateReader, targetWriter, async (id, writer) =>
+MarkdownTemplate notes = new()
 {
-    Console.WriteLine($"Processing token: {id}");
-    if (replacements.TryGetValue(id, out string? value))
+    Processor = (id, writer) =>
     {
-        writer.Write(value);
-        return;
-    }
+        Console.WriteLine($"Processing token: {id}");
+        if (replacements.TryGetValue(id, out string? value))
+        {
+            writer.Write(value);
+            return;
+        }
 
-    switch (id)
-    {
-        case "OVERVIEW":
-            WritePackageOverview(writer, packageOverview, pageLinks);
-            break;
-        case "FAMILIES":
-            WritePackageFamilies(writer, packageOverview);
-            break;
-        default:
-            throw new($"Unknown token: {id}");
+        switch (id)
+        {
+            case "OVERVIEW":
+                WritePackageOverview(writer, packageOverview, pageLinks);
+                break;
+            case "FAMILIES":
+                WritePackageFamilies(writer, packageOverview);
+                break;
+            default:
+                throw new($"Unknown token: {id}");
+        }
     }
-});
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+};
+notes.Process(templateReader, targetWriter);
 
 templateReader.Close();
 templateStream.Close();

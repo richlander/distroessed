@@ -27,7 +27,7 @@ if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 string version = $"{majorVersion}.0";
 
 // Get path adaptor
-string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
+string basePath = args.Length > 1 ? args[1] : ReleaseNotes.GitHubBaseUri;
 using HttpClient client = new();
 IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
 
@@ -80,37 +80,42 @@ else // should only be relevant for pre-Preview 1 timeframe
     replacements.Add("RELEASE-TYPE", "Unknown");
 }
 
-MarkdownTemplate notes = new();
-await notes.Process(templateReader, targetWriter, async (id, writer) =>
+MarkdownTemplate notes = new()
 {
-    if (replacements.TryGetValue(id, out string? value))
+    Processor = (id, writer) =>
     {
-        writer.Write(value);
-        return;
-    }
-
-    switch (id)
+        if (replacements.TryGetValue(id, out string? value))
+        {
+            writer.Write(value);
+            return;
+        }
+    },
+    AsyncProcessor = async (id, writer) =>
     {
-        case "LASTUPDATED":
-            WriteLastUpdatedSection(writer, matrix?.LastUpdated ?? throw new());
-            break;
-        case "FAMILIES":
-            WriteFamiliesSection(writer, matrix?.Families ?? throw new(), pageLinks);
-            break;
-        case "LIBC":
-            WriteLibcSection(writer, matrix?.Libc ?? throw new("Libc section not found"));
-            break;
-        case "NOTES":
-            WriteNotesSection(writer, matrix?.Notes ?? throw new("Notes section not found"));
-            break;
-        case "UNSUPPORTED":
-            await WriteUnSupportedSection(writer, matrix?.Families ?? throw new("EOL data not found"), client);
-            break;
-        default:
-            throw new($"Unknown token: {id}");
+        switch (id)
+        {
+            case "LASTUPDATED":
+                WriteLastUpdatedSection(writer, matrix?.LastUpdated ?? throw new());
+                break;
+            case "FAMILIES":
+                WriteFamiliesSection(writer, matrix?.Families ?? throw new(), pageLinks);
+                break;
+            case "LIBC":
+                WriteLibcSection(writer, matrix?.Libc ?? throw new("Libc section not found"));
+                break;
+            case "NOTES":
+                WriteNotesSection(writer, matrix?.Notes ?? throw new("Notes section not found"));
+                break;
+            case "UNSUPPORTED":
+                await WriteUnSupportedSection(writer, matrix?.Families ?? throw new("EOL data not found"), client);
+                break;
+            default:
+                throw new($"Unknown token: {id}");
+        }
     }
-});
+};
 
+await notes.ProcessAsync(templateReader, targetWriter);
 
 if (pageLinks.Count > 0)
 {
