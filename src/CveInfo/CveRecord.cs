@@ -1,16 +1,18 @@
 namespace CveInfo;
 
-public record CveSet(string Date, IList<Cve> Cves, IList<Commit>? Commits, Source Source);
+public record CveSet(string Date, IReadOnlyList<Cve> Cves, IReadOnlyList<Commit>? Commits, Source Source);
 
-public record Cve(string Id, string Description, string Product, IList<Package> Packages, IList<string> Platforms)
+public record Cve(string Id, string Description, string Product, IReadOnlyList<Package> Packages, IReadOnlyList<string> Platforms)
 {
     public string? Cvss { get; set; }
 
-    public IList<string>? References { get; set; }
+    public IReadOnlyList<string>? References { get; set; }
 }
 
-public record Package(string Name, string MinVulnerableVersion, string MaxVulnerableVersion, string FixedVersion);
+public record Package(string Name, IReadOnlyList<VersionRange> Versions);
 
-public record Commit(string Cve, string Org, string Repo, string Branch, string Hash, string? Url);
+public record VersionRange(string MinVulnerable, string MaxVulnerable, string Fixed, string? MajorVersion);
+
+public record Commit(string Cve, string Org, string Repo, string Branch, string Hash, string? Url, string? MajorVersion);
 
 public record Source(string Name, string CommitUrl, string BranchUrl);
