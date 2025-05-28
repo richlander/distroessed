@@ -8,11 +8,19 @@ public class Table(IWriter writer, int[] columns)
     private int _column = 0;
     private int _realLength = 0;
     private int _specLength = 0;
-    
+
     public bool UseOuterPipes { get; set; } = true;
 
     public void EndRow()
     {
+        if (_column < _columnMax)
+        {
+            for (int i = _column; i < _columnMax; i++)
+            {
+                _writer.Write("| ");
+            }
+        }
+
         _column = 0;
         _realLength = 0;
         _specLength = 0;
@@ -70,7 +78,7 @@ public class Table(IWriter writer, int[] columns)
             postSpace = 0;
         }
 
-        _realLength +=  preSpace + text.Length + postSpace;
+        _realLength += preSpace + text.Length + postSpace;
         _specLength += _columns[_column];
         _column++;
 

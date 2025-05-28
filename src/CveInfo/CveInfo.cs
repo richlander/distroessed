@@ -3,14 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace CveInfo;
 
-public class Cves
+public class CveSerializer
 {
-    public static ValueTask<CveSet?> GetCves(Stream json) => JsonSerializer.DeserializeAsync(json, CveSerializerContext.Default.CveSet);
+    public static ValueTask<CveRecords?> GetCveRecords(Stream json) => JsonSerializer.DeserializeAsync(json, CveSerializerContext.Default.CveRecords);
 }
 
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
-[JsonSerializable(typeof(CveSet))]
+[JsonSerializable(typeof(CveRecords))]
 internal partial class CveSerializerContext : JsonSerializerContext
 {
 }

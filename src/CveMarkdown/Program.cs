@@ -1,5 +1,4 @@
 ﻿using CveInfo;
-using ReportHelpers;
 using MarkdownHelpers;
 
 // Format is inspired by https://security.alpinelinux.org/vuln/CVE-2024-5535
@@ -33,16 +32,18 @@ using var targetStream = File.Open(target, FileMode.Create);
 using var targetWriter = new StreamWriter(targetStream);
 
 using var jsonStream = File.OpenRead(source);
-var cves = await Cves.GetCves(jsonStream);
+var cves = await CveSerializer.GetCveRecords(jsonStream);
 
-if (cves?.Cves is null)
+if (cves?.Records is null)
 {
     Console.WriteLine("JSON deserialization failed");
     return;
 }
 
-MarkdownTemplate notes = CveReport.CreateTemplate(cves);
+CveReport cveReport = new();
+MarkdownTemplate notes = cveReport.CreateTemplate(cves);
 notes.Process(templateReader, targetWriter);
+cveReport.MakeMarkdownLinks(targetWriter);
 
 Console.WriteLine($"Source: {source}");
 Console.WriteLine($"Destination: {target}");

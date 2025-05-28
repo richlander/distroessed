@@ -20,3 +20,4 @@ create_symlink SupportedOsMd
 create_symlink LinuxPackagesMd
 create_symlink DistroessedExceptional
 create_symlink distroessed
+create_symlink CveMarkdown
