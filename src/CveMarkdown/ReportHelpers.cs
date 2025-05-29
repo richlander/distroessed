@@ -14,7 +14,17 @@ public class Report
 
     public static string MakeCveLink(Cve cve) => $"https://www.cve.org/CVERecord?id={cve.Id}";
 
-    public static string MakeNuGetLink(string package) => $"https://www.nuget.org/packages/{package}";
+    public static string MakeNuGetLink(string package, string? version = null)
+    {
+        if (string.IsNullOrEmpty(version))
+        {
+            return $"https://www.nuget.org/packages/{package}";
+        }
+        else
+        {
+            return $"https://www.nuget.org/packages/{package}/{version}";
+        }
+    }
 
     public static string MakeMarkdownSafe(string value) => value.Replace('-', '‑').Replace("*", @"\*");
 
@@ -34,6 +44,14 @@ public class Report
         }
     }
 
-    public static bool IsFramework(string name) => name.StartsWith("Microsoft.") && name.Contains("Core.App.Runtime");
+    public static bool IsFramework(string name) => name.StartsWith("Microsoft.") && name.Contains("App.Runtime");
+
+    public static string MakeReleaseNotesLink(string version)
+    {
+        // expects a version like "8.0.1"
+        string twoPart = version[..3]; // "8.0"
+        string url = $"https://github.com/dotnet/core/blob/main/release-notes/{twoPart}/{version}/{version}.md";
+        return url;
+    }
 }
 

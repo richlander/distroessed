@@ -5,8 +5,9 @@ public record CveRecords(string Date, IReadOnlyList<Cve> Records, IReadOnlyList<
     public IReadOnlyList<Commit>? Commits { get; set; }
 }
 
-public record Cve(string Id, IReadOnlyList<string> Description)
+public record Cve(string Id, string Title)
 {
+    public IReadOnlyList<string>? Description { get; set; }
     public string? Cvss { get; set; }
     public string? Product { get; set; }
     // This is the list of platforms affected by the CVE
