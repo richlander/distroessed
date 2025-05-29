@@ -47,8 +47,8 @@ public class CveReport
     public void WriteCveTable(CveRecords cves, StreamWriter writer)
     {
         // CVE table
-        string[] cveLabels = ["ID", "Title", "Product", "Platforms", "CVSS"];
-        int[] cveLengths = [20, 20, 16, 16, 32];
+        string[] cveLabels = ["ID", "Title", "Severity", "Product", "Platforms", "CVSS"];
+        int[] cveLengths = [20, 20, 16, 16, 16, 32];
         Table cveTable = new(Writer.GetWriter(writer), cveLengths);
         string[] all = ["All"];
 
@@ -61,6 +61,7 @@ public class CveReport
 
             cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
             cveTable.WriteColumn(cve.Title);
+            cveTable.WriteColumn(cve?.Severity ?? "");
             cveTable.WriteColumn(cve?.Product ?? "");
             cveTable.WriteColumn(Join(cve?.Platforms ?? all));
             cveTable.WriteColumn(cve?.Cvss ?? "");
