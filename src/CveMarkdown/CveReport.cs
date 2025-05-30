@@ -149,9 +149,9 @@ public class CveReport
                 var repoUrl = Report.MakeRepoUrl(commit.Org, commit.Repo);
                 var repo = $"{commit.Org}/{commit.Repo}";
 
-                _links.Add(repo, repoUrl);
-                _links.Add(commit.Branch, branchUrl);
-                _links.Add(abbrevHash, commitUrl);
+                _links.TryAdd(repo, repoUrl);
+                _links.TryAdd(commit.Branch, branchUrl);
+                _links.TryAdd(abbrevHash, commitUrl);
 
                 repoLink = $"[{repo}][{repo}]";
                 branchLink = $"[{commit.Branch}][{commit.Branch}]";
