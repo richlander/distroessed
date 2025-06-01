@@ -10,6 +10,7 @@ public record Cve(string Id, string Title)
     public string? Severity { get; set; }
     public string? Cvss { get; set; }
     public IReadOnlyList<string>? Description { get; set; }
+    public IReadOnlyList<string>? Mitigation { get; set; }
     public string? Product { get; set; }
     // This is the list of platforms affected by the CVE
     // Unset is assumed to be all platforms
@@ -18,9 +19,10 @@ public record Cve(string Id, string Title)
 }
 
 public record Package(string Name, IReadOnlyList<Affected> Affected);
-
 public record Affected(string CveId, string MinVulnerable, string MaxVulnerable, string Fixed)
 {
+    // May be important to specify the binaries affected by the CVE
+    public IReadOnlyList<string>? Binaries { get; set; }
     // This is the version family affected
     // Might be "8.0", "8.0.100x", a codename or whatever is appropriate
     public string? Family { get; set; }
