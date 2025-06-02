@@ -1,5 +1,6 @@
 ﻿using CveInfo;
 using MarkdownHelpers;
+using ReportHelpers;
 
 // Format is inspired by https://security.alpinelinux.org/vuln/CVE-2024-5535
 // Usage:
@@ -14,8 +15,7 @@ const string templateFilename = "cve-template.md";
 Console.WriteLine("CveMarkdown");
 
 if (args.Length is < 2 ||
-   !(File.Exists(args[0]) && args[0].EndsWith(jsonFilename) &&
-     File.Exists(args[1]) && args[1].EndsWith(templateFilename)))
+   !File.Exists(args[1]) && args[1].EndsWith(templateFilename))
 {
     ReportInvalidArgs();
     return;
@@ -23,44 +23,22 @@ if (args.Length is < 2 ||
 
 string source = args[0];
 string template = args[1];
-string directory = Path.GetDirectoryName(source)!;
-string target = Path.Combine(directory, targetFilename);
 
-using var templateStream = File.OpenRead(template);
-using var templateReader = new StreamReader(templateStream);
-using var targetStream = File.Open(target, FileMode.Create);
-using var targetWriter = new StreamWriter(targetStream);
-
-using var jsonStream = File.OpenRead(source);
-var cves = await CveSerializer.GetCveRecords(jsonStream);
-
-if (cves?.Records is null)
+if (source.EndsWith(jsonFilename))
 {
-    Console.WriteLine("JSON deserialization failed");
+    var report = await CveReport.MakeReport(source, targetFilename, template);
     return;
 }
-
-CveReport cveReport = new();
-MarkdownTemplate notes = cveReport.CreateTemplate(cves);
-notes.Process(templateReader, targetWriter);
-cveReport.MakeMarkdownLinks(targetWriter);
-
-Console.WriteLine($"Source: {source}");
-Console.WriteLine($"Destination: {target}");
-
-// Close file
-Close(targetWriter, target);
-
-static void Close(StreamWriter writer, string file)
+else if (Directory.Exists(source))
 {
-    writer.Close();
-    var writtenFile = File.OpenRead(file);
-    long length = writtenFile.Length;
-    string path = writtenFile.Name;
-    writtenFile.Close();
-
-    Console.WriteLine($"Generated {length} bytes");
-    Console.WriteLine(path);
+    var report = await CveReport.MakeReportForDirectory(source, jsonFilename, targetFilename, template);
+    return;
+}
+else
+{
+    Console.WriteLine($"Source '{source}' is not a valid file or directory.");
+    ReportInvalidArgs();
+    return;
 }
 
 static void ReportInvalidArgs()

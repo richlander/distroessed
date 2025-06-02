@@ -175,5 +175,94 @@ public class CveReport
         }
     }
 
+    public static async Task<bool> MakeReportForDirectory(string directory, string sourceFilename, string targetFilename, string template)
+    {
+        if (!Directory.Exists(directory))
+        {
+            Console.WriteLine($"Directory '{directory}' does not exist.");
+            return false;
+        }
+
+        int count = 0;
+
+        foreach (string file in Directory.GetFiles(directory, sourceFilename, SearchOption.AllDirectories))
+        {
+            var success = await MakeReport(template, file, targetFilename);
+            if (!success)
+            {
+                Console.WriteLine($"Failed to generate report for '{file}'.");
+                return false;
+            }
+            count++;
+        }
+
+        if (count == 0)
+        {
+            Console.WriteLine($"No files matching '{sourceFilename}' found in '{directory}'.");
+            return false;
+        }
+
+        Console.WriteLine($"Generated {count} reports in '{directory}'.");
+        return true;
+    }
+
+
+    public static async Task<bool> MakeReport(string source, string targetFilename, string template)
+    {
+        if (!File.Exists(template))
+        {
+            Console.WriteLine($"Template file '{template}' does not exist.");
+            return false;
+        }
+
+        if (!File.Exists(source))
+        {
+            Console.WriteLine($"Source file '{source}' does not exist.");
+            return false;
+        }
+
+        string directory = Path.GetDirectoryName(source)!;
+        string target = Path.Combine(directory, targetFilename);
+        using var templateStream = File.OpenRead(template);
+        using var templateReader = new StreamReader(templateStream);
+        using var targetStream = File.Open(target, FileMode.Create);
+        using var targetWriter = new StreamWriter(targetStream);
+
+        using var jsonStream = File.OpenRead(source);
+        var cves = await CveSerializer.GetCveRecords(jsonStream);
+
+        if (cves?.Records is null)
+        {
+            Console.WriteLine("JSON deserialization failed");
+            return false;
+        }
+
+        CveReport cveReport = new();
+        MarkdownTemplate notes = cveReport.CreateTemplate(cves);
+        notes.Process(templateReader, targetWriter);
+        cveReport.MakeMarkdownLinks(targetWriter);
+
+        Console.WriteLine("Report generated successfully.");
+        Console.WriteLine($"Source: {source}");
+        Console.WriteLine($"Destination: {target}");
+
+        // Close file
+        Close(targetWriter, target);
+
+        return true;
+
+        static void Close(StreamWriter writer, string file)
+        {
+            writer.Close();
+            var writtenFile = File.OpenRead(file);
+            long length = writtenFile.Length;
+            string path = writtenFile.Name;
+            writtenFile.Close();
+
+            Console.WriteLine($"Generated {length} bytes");
+            Console.WriteLine(path);
+        }
+    }
+
     private static string Join(IEnumerable<string>? strings, string separator = ", ") => strings is null ? "" : string.Join(separator, strings);
 }
