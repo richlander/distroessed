@@ -1,3 +1,4 @@
+using System.Data.Common;
 using CveInfo;
 using MarkdownHelpers;
 using ReportHelpers;
@@ -28,6 +29,7 @@ public class CveReport
     {
         "date" => WriteDate,
         "vuln-table" => WriteCveTable,
+        "platform-table" => WritePlatformTable,
         "package-table" => WritePackageTable,
         "commit-table" => WriteCommitTable,
         _ => throw new()
@@ -69,25 +71,47 @@ public class CveReport
         }
     }
 
+    public void WritePlatformTable(CveRecords cves, StreamWriter writer)
+    {
+        const string none = "No platform components with vulnerabilities reported.";
+        var platformPackages = cves.Packages.Where(p => Report.IsFramework(p.Name));
+        WritePackageTableForType(platformPackages, writer, "Component", none);
+    }
+
     public void WritePackageTable(CveRecords cves, StreamWriter writer)
     {
+        const string none = "No packages with vulnerabilities reported.";
+        var platformPackages = cves.Packages.Where(p => !Report.IsFramework(p.Name));
+
+        WritePackageTableForType(platformPackages, writer, "Package", none);
+    }
+
+    public void WritePackageTableForType(IEnumerable<Package> packages, StreamWriter writer, string type, string noneFound)
+    {
         // Package version table
-        string[] packageLabels = ["Package", "Min Version", "Max Version", "Fixed Version", "CVE", "Source fix"];
+        string[] packageLabels = [type, "Min Version", "Max Version", "Fixed Version", "CVE", "Source fix"];
         int[] packageLengths = [16, 16, 12, 12, 16, 12];
         Table packageTable = new(Writer.GetWriter(writer), packageLengths);
         string[] none = ["Unknown"];
 
+
+        if (packages.Count() == 0)
+        {
+            writer.Write(noneFound);
+            return;
+        }
+
         packageTable.WriteHeader(packageLabels);
 
-        foreach (var package in cves.Packages.OrderBy(p => p.Name))
+        foreach (var package in packages.OrderBy(p => p.Name))
         {
             int count = package.Affected.Count;
             int index = 0;
             string packageString = "";
 
-            if (Report.IsFramework(package.Name))
+            if (Report.TryGetPlatformName(package.Name, out var platformName))
             {
-                packageString = package.Name;
+                packageString = platformName.Name;
             }
             else
             {
@@ -95,7 +119,7 @@ public class CveReport
                 _links.Add(package.Name, Report.MakeNuGetLink(package.Name));
             }
 
-            foreach (var affected in package.Affected)
+            foreach (var affected in package.Affected.OrderBy(a => a.Family).ThenBy(a => a.CveId))
             {
                 if (index == 0)
                 {
@@ -122,11 +146,22 @@ public class CveReport
                     fixedString = $"[{affected.Fixed}]({Report.MakeNuGetLink(package.Name, affected.Fixed)})";
                 }
 
+                string commitString = "";
+                if (affected.Commits is not null && affected.Commits.Count > 0)
+                {
+                    foreach (var commit in affected.Commits)
+                    {
+                        var abbrevHash = Report.GetAbbreviatedCommitHash(commit);
+                        commitString += $"[{abbrevHash}][{abbrevHash}] ";
+
+                    }
+                }
+
                 packageTable.WriteColumn($">={affected.MinVulnerable}");
                 packageTable.WriteColumn($"<={affected.MaxVulnerable}");
                 packageTable.WriteColumn(fixedString);
                 packageTable.WriteColumn(affected.CveId);
-                packageTable.WriteColumn(Join(Report.GetAbbreviatedCommitHashes(affected.Commits ?? none), " "));
+                packageTable.WriteColumn(commitString);
                 packageTable.EndRow();
             }
         }
@@ -180,6 +215,8 @@ public class CveReport
 
     public void MakeMarkdownLinks(StreamWriter writer)
     {
+        writer.WriteLine();
+
         foreach (var link in _links)
         {
             writer.WriteLine($"[{link.Key}]: {link.Value}");
@@ -201,7 +238,7 @@ public class CveReport
             var success = await MakeReport(file, targetFilename, template);
             if (!success)
             {
-                Console.WriteLine($"Failed to generate report for '{file}'.");
+                Console.WriteLine($"Failed to generate report for {file}.");
                 return false;
             }
             count++;
@@ -209,11 +246,11 @@ public class CveReport
 
         if (count == 0)
         {
-            Console.WriteLine($"No files matching '{sourceFilename}' found in '{directory}'.");
+            Console.WriteLine($"No files matching {sourceFilename} found in {directory}.");
             return false;
         }
 
-        Console.WriteLine($"Generated {count} reports in '{directory}'.");
+        Console.WriteLine($"Generated {count} reports in {directory}.");
         return true;
     }
 
@@ -222,17 +259,17 @@ public class CveReport
     {
         if (!File.Exists(template))
         {
-            Console.WriteLine($"Template file '{template}' does not exist.");
+            Console.WriteLine($"Template file {template} does not exist.");
             return false;
         }
 
         if (!File.Exists(source))
         {
-            Console.WriteLine($"Source file '{source}' does not exist.");
+            Console.WriteLine($"Source file {source} does not exist.");
             return false;
         }
 
-        Console.WriteLine($"Generating report from '{source}' ...");
+        Console.WriteLine($"Generating report from {source} ...");
         string directory = Path.GetDirectoryName(source)!;
         string target = Path.Combine(directory, targetFilename);
         using var templateStream = File.OpenRead(template);
