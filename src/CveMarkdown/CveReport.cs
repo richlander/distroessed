@@ -107,15 +107,26 @@ public class CveReport
                     packageTable.WriteColumn("");
                 }
 
-                string fixedString = Report.IsFramework(package.Name) ?
-                    $"[{affected.Fixed}]({Report.MakeReleaseNotesLink(affected.Fixed)})" :
-                    $"[{affected.Fixed}]({Report.MakeNuGetLink(package.Name, affected.Fixed)})";
+                string fixedString = "";
+
+                if (string.IsNullOrEmpty(affected.Fixed))
+                {
+                    fixedString = "Unknown";
+                }
+                else if (Report.IsFramework(package.Name))
+                {
+                    fixedString = $"[{affected.Fixed}]({Report.MakeReleaseNotesLink(affected.Fixed)})";
+                }
+                else
+                {
+                    fixedString = $"[{affected.Fixed}]({Report.MakeNuGetLink(package.Name, affected.Fixed)})";
+                }
 
                 packageTable.WriteColumn($">={affected.MinVulnerable}");
                 packageTable.WriteColumn($"<={affected.MaxVulnerable}");
                 packageTable.WriteColumn(fixedString);
                 packageTable.WriteColumn(affected.CveId);
-                packageTable.WriteColumn(Join(Report.GetAbberviatedCommitHashes(affected.Commits ?? none), " "));
+                packageTable.WriteColumn(Join(Report.GetAbbreviatedCommitHashes(affected.Commits ?? none), " "));
                 packageTable.EndRow();
             }
         }
@@ -187,7 +198,7 @@ public class CveReport
 
         foreach (string file in Directory.GetFiles(directory, sourceFilename, SearchOption.AllDirectories))
         {
-            var success = await MakeReport(template, file, targetFilename);
+            var success = await MakeReport(file, targetFilename, template);
             if (!success)
             {
                 Console.WriteLine($"Failed to generate report for '{file}'.");
@@ -221,6 +232,7 @@ public class CveReport
             return false;
         }
 
+        Console.WriteLine($"Generating report from '{source}' ...");
         string directory = Path.GetDirectoryName(source)!;
         string target = Path.Combine(directory, targetFilename);
         using var templateStream = File.OpenRead(template);

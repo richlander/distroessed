@@ -36,7 +36,7 @@ public class Report
         return hash[..7];
     }
 
-    public static IEnumerable<string> GetAbberviatedCommitHashes(IEnumerable<string> commits)
+    public static IEnumerable<string> GetAbbreviatedCommitHashes(IEnumerable<string> commits)
     {
         foreach (var commit in commits)
         {
