@@ -1,5 +1,6 @@
 ﻿
 using System.Text.Json;
+using CveInfo;
 using DotnetRelease;
 
 if (args.Length != 1)
@@ -24,7 +25,7 @@ if (!File.Exists(releaseIndex))
 }
 
 DateOnly firstDate = DateOnly.Parse("2023-11-14");
-string calendarDirectory = Path.Combine(inputDir, "monthly");
+string historyDir = Path.Combine(inputDir, "monthly");
 Stream releaseIndexStream = File.OpenRead(releaseIndex);
 var majorReleasesIndex = await ReleaseNotes.GetMajorReleasesIndex(releaseIndexStream) ?? throw new InvalidOperationException("Failed to load major releases index.");
 Dictionary<string, List<Release>> releasesByDate = [];
@@ -56,16 +57,36 @@ foreach (var kvp in releasesByDate)
 
     if (!releaseCalendars.ContainsKey(year))
     {
-        releaseCalendars[year] = new ReleaseCalendar(year, new List<ReleaseDays>());
+        releaseCalendars[year] = new ReleaseCalendar(year, new List<ReleaseDay>());
     }
 
     var relativePath = Path.Combine(year, month.ToString("D2"), "cve.json");
-    var releaseEntry = new ReleaseDays(DateOnly.FromDateTime(DateTime.Parse(kvp.Key)), month, day, kvp.Value);
-    releaseCalendars[year].ReleaseDays.Add(releaseEntry);
-    var cveJson = Path.Combine(calendarDirectory, relativePath);
+    var releaseDays = new ReleaseDay(DateOnly.FromDateTime(DateTime.Parse(kvp.Key)), month, day, kvp.Value);
+    releaseCalendars[year].ReleaseDays.Add(releaseDays);
+    var cveJson = Path.Combine(historyDir, relativePath);
     if (File.Exists(cveJson))
     {
-        releaseEntry.CveJson = relativePath;
+        releaseDays.CveJson = relativePath;
+
+        foreach (var release in kvp.Value)
+        {
+            CveRecords? cveRecords = null;
+            if (!string.IsNullOrEmpty(releaseDays.CveJson))
+            {
+                var cveFilePath = Path.Combine(historyDir, releaseDays.CveJson);
+                if (File.Exists(cveFilePath))
+                {
+                    using Stream cveStream = File.OpenRead(cveFilePath);
+                    cveRecords = JsonSerializer.Deserialize<CveRecords>(cveStream, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
+                    });
+                }
+
+                AddSeverity(release, cveRecords);
+            }
+        }
+
     }
 }
 
@@ -79,7 +100,7 @@ foreach (var calendar in releaseCalendars.Values)
 {
     calendar.ReleaseDays.Sort((a, b) => a.Date.CompareTo(b.Date));
     var json = JsonSerializer.Serialize(calendar, options);
-    File.WriteAllText(Path.Combine(calendarDirectory, calendar.Year, "index.json"), $"{json}\n");
+    File.WriteAllText(Path.Combine(historyDir, calendar.Year, "index.json"), $"{json}\n");
     Console.WriteLine($"Created calendar for {calendar.Year} with {calendar.ReleaseDays.Count} months.");
 }
 
@@ -113,11 +134,52 @@ async Task ProcessVersionAsync(string version, string baseDirectory, DateOnly fi
     }
 }
 
-record ReleaseCalendar(string Year, List<ReleaseDays> ReleaseDays);
+void AddSeverity(Release release, CveRecords? cveRecords)
+{
+    if (!release.Security || cveRecords is null)
+        return;
 
-record ReleaseDays(DateOnly Date, int Month, int Day, List<Release> Releases)
+    string twoPart = release.Version[..3];
+    string[] severities = ["Critical", "High", "Medium", "Low"];
+    List<int> severityList = [];
+
+    // Build severity counts and format as "Severity: count"
+    var sevCount = cveRecords.Packages
+        .SelectMany(p => p.Affected)
+        .Where(a => a.Family == twoPart)
+        .Join(
+            cveRecords.Records,
+            a => a.CveId,
+            r => r.Id,
+            (_, r) => r.Severity
+        )
+        .GroupBy(sev => sev)
+        .Select(g => new SevCount(g.Key ?? throw new Exception($"Missing severity: {release.Version}; Date: {cveRecords?.Date}"), g.Count()))
+        .ToDictionary(s => s.Severity, s => s.Count);
+
+
+    foreach (var severity in severities)
+    {
+        severityList.Add(sevCount.TryGetValue(severity, out var count) ? count : 0);
+    }
+
+    if (severityList.Count > 0)
+    {
+        release.Severity = severityList;
+    }
+}
+
+record ReleaseCalendar(string Year, List<ReleaseDay> ReleaseDays);
+
+record ReleaseDay(DateOnly Date, int Month, int Day, List<Release> Releases)
 {
     public string? CveJson { get; set; }
 };
 
-record Release(string Version, bool Security);
+record Release(string Version, bool Security)
+{
+    public IReadOnlyList<int>? Severity { get; set; }
+};
+
+public record SevCount(string Severity, int Count);
+

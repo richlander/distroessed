@@ -60,51 +60,31 @@ foreach (var file in Directory.GetFiles(historyDir, "index.json", SearchOption.A
 
         foreach (var release in releaseDays.Releases)
         {
-            CveRecords? cveRecords = null;
-            if (!string.IsNullOrEmpty(releaseDays.CveJson))
-            {
-                var cveFilePath = Path.Combine(historyDir, releaseDays.CveJson);
-                if (File.Exists(cveFilePath))
-                {
-                    using Stream cveStream = File.OpenRead(cveFilePath);
-                    cveRecords = JsonSerializer.Deserialize<CveRecords>(cveStream, new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
-                    });
-                }
-
-            }
-
-            writer.WriteLine($"- **{release.Version}**  {GetSecurityLabel(release, cveRecords)}");
+            writer.WriteLine($"- **{release.Version}**  {GetSecurityLabel(release)}");
         }
 
     }
 
 }
 
-string GetSecurityLabel(Release release, CveRecords? cveRecords)
+string GetSecurityLabel(Release release)
 {
-    if (!release.Security || cveRecords == null)
+    if (!release.Security)
         return string.Empty;
 
-    string twoPart = release.Version[..3];
+    // Map counts to severity labels
+    string[] severities = ["Critical", "High", "Medium", "Low"];
 
-    // Build severity counts and format as "Severity: count"
-    var parts = cveRecords.Packages
-        .SelectMany(p => p.Affected)
-        .Where(a => a.Family == twoPart)
-        .Join(
-            cveRecords.Records,
-            a => a.CveId,
-            r => r.Id,
-            (_, r) => r.Severity
-        )
-        .GroupBy(sev => sev)
-        .Select(g => $"{g.Key}: {g.Count()}")
+    // Return empty when no severity data
+    if (release.Severity == null || release.Severity.Length == 0)
+        return string.Empty;
+
+    // Build formatted parts
+    var parts = release.Severity
+        .Select((count, index) => $"{severities[index]}: {count}")
         .ToList();
 
-    // Join with semicolon separator; return empty if no matches
-    return parts.Count > 0
+    return parts.Any()
         ? string.Join("; ", parts)
         : string.Empty;
 }
@@ -116,4 +96,7 @@ record ReleaseDays(DateOnly Date, int Month, int Day, List<Release> Releases)
     public string? CveJson { get; set; }
 };
 
-record Release(string Version, bool Security);
+record Release(string Version, bool Security)
+{
+    public int[]? Severity { get; set; }
+};
