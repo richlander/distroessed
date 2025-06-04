@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
 using DotnetRelease;
+using System.Runtime.InteropServices;
 
 namespace DotnetInfo;
 
@@ -94,6 +95,42 @@ public class DotnetReleaseInfo(HttpClient httpClient)
             .Select(c => c.CveId)            // pull out the ID
             .Distinct()                      // optional: remove duplicates
             .ToList();
+    }
+
+    public async Task<string> GetInstallerUrlForVersion(string major)
+    {
+        var index = _majorReleasesIndex ?? await GetMajorReleasesIndexAsync();
+        var release = index.ReleasesIndex.FirstOrDefault(i => i.LatestRelease == major);
+        var releaseUri = index.ReleasesIndex
+            .FirstOrDefault(i => i.ChannelVersion == major)
+            ?.ReleasesJson;
+
+        if (releaseUri == null)
+        {
+            throw new InvalidOperationException($"No release found for version {major}.");
+        }
+
+        var majorRelease = await ReleaseNotes.GetMajorRelease(
+            await _httpClient.GetStreamAsync(releaseUri))
+            ?? throw new InvalidOperationException("Failed to retrieve major release.");
+
+        string os = Environment.OSVersion.Platform switch
+        {
+            PlatformID.Win32NT => "win",
+            PlatformID.Unix => "linux",
+            PlatformID.MacOSX => "osx",
+            _ => throw new NotSupportedException("Unsupported OS platform.")
+        };
+
+        string architecture = RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant();
+
+        string rid = $"{os}-{architecture}";
+
+        var installer = majorRelease.Releases[0].Runtime.Files
+        .Where(f => f.Rid == rid)
+        .FirstOrDefault();
+
+        return installer?.Url ?? throw new InvalidOperationException("Installer URI is not available.");
     }
 
 }

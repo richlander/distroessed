@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using DotnetInfo;
 
 HttpClient httpClient = new();
@@ -32,4 +33,21 @@ foreach (var cve in cves)
 {
     Console.WriteLine($" - {cve}");
 }
+
+string os = Environment.OSVersion.Platform switch
+{
+    PlatformID.Win32NT => "win",
+    PlatformID.Unix => "linux",
+    PlatformID.MacOSX => "osx",
+    _ => throw new NotSupportedException("Unsupported OS platform.")
+};
+
+Console.WriteLine("Fetching Installer URL for .NET 8...");
+Console.WriteLine("This will return the URL for the latest patch release installer.");
+Console.WriteLine($"For {RuntimeInformation.OSDescription} on {RuntimeInformation.OSArchitecture} -- {os}-{RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()}.");
+var installerUrl = await dotnetReleaseInfo.GetInstallerUrlForVersion("8.0");
+Console.WriteLine($"Installer URL: {installerUrl}");
+
 Console.WriteLine("Done.");
+
+
