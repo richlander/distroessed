@@ -11,7 +11,7 @@ foreach (var item in await dotnetReleaseInfo.GetActiveMajorReleaseIndexItemsAsyn
     Console.WriteLine($"Major Version: {item.ChannelVersion}");
     Console.WriteLine($"Latest Release: {item.LatestRelease}");
     Console.WriteLine($"Support Phase: {item.SupportPhase}");
-    Console.WriteLine($"Patch Releases Info URI: {item.PatchReleasesInfoUri}");
+    Console.WriteLine($"Patch Releases Info URI: {item.ReleasesJson}");
     Console.WriteLine();
 }
 
