@@ -22,7 +22,7 @@ public class MarkdownTemplate
 
     public async Task ProcessAsync(StreamReader reader, StreamWriter writer)
     {
-        String? line = "";    
+        String? line = "";
         // per line
         while ((line = reader.ReadLine()) != null)
         {
@@ -36,7 +36,7 @@ public class MarkdownTemplate
                     SetConditions(key, inSection, out inSection);
                     continue;
                 }
-                
+
                 if (AsyncProcessor is null)
                 {
                     throw new($"{nameof(AsyncProcessor)}  is null.");
@@ -58,7 +58,7 @@ public class MarkdownTemplate
 
     public void Process(StreamReader reader, StreamWriter writer)
     {
-        String? line = "";    
+        String? line = "";
         bool inSection = false;
         // per line
         while ((line = reader.ReadLine()) != null)
@@ -72,7 +72,7 @@ public class MarkdownTemplate
                     SetConditions(key, inSection, out inSection);
                     continue;
                 }
-                
+
                 if (Processor is null)
                 {
                     throw new($"{nameof(Processor)}  is null.");
@@ -95,9 +95,10 @@ public class MarkdownTemplate
         while (line.Length > 0)
         {
             // look for next replacement text
-            if (FindNextReplacement(line, out int openIndex, out int afterIndex, out string key))
+            Replacement replacement = Replacement.FindNext(line);
+            if (replacement.Found)
             {
-                writer.Write(line[..openIndex]);
+                writer.Write(line[..replacement.StartIndex]);
             }
             else
             {
@@ -105,17 +106,17 @@ public class MarkdownTemplate
                 break;
             }
 
-            if (Processor is {})
+            if (Processor is { })
             {
-                Processor(key, writer);
+                Processor(replacement.Key, writer);
             }
 
-            if (afterIndex is -1)
+            if (replacement.AfterIndex is -1)
             {
                 break;
             }
 
-            line = line[afterIndex..];
+            line = line[replacement.AfterIndex..];
         }
 
         writer.WriteLine();
@@ -125,7 +126,7 @@ public class MarkdownTemplate
     {
         if (key.EndsWith(_startSection))
         {
-            isConditional = SectionProcessor is {} && !SectionProcessor(key);
+            isConditional = SectionProcessor is { } && !SectionProcessor(key);
         }
         else if (key.EndsWith(_endSection))
         {

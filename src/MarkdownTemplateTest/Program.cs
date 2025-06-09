@@ -1,6 +1,6 @@
 ﻿using MarkdownHelpers;
 
-string templatePath = args[0];
+string templatePath = "/home/rich/git/distroessed/src/MarkdownTemplateTest/template.md"; //args[0];
 string outputPath = "output.md";
 
 using var reader = new StreamReader(templatePath);
@@ -10,14 +10,14 @@ MarkdownTemplate template = new MarkdownTemplate
 {
     Processor = (key, writer) =>
     {
-        // writer.WriteLine($"Processed sync: {key}");
+        Console.WriteLine($"Processing sync: {key}");
         if (key == "date")
         {
             writer.Write($"{DateTime.Now:yyyy-MM-dd}");
         }
         else if (key == "some-section")
         {
-            foreach(var i in Enumerable.Range(1, 3))
+            foreach (var i in Enumerable.Range(1, 3))
             {
                 writer.WriteLine($"- Item {i}");
             }
@@ -26,3 +26,5 @@ MarkdownTemplate template = new MarkdownTemplate
 };
 
 template.Process(reader, writer);
+writer.Close();
+Console.WriteLine(File.ReadAllText(outputPath));
