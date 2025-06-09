@@ -1,6 +1,6 @@
 ﻿using MarkdownHelpers;
 
-string templatePath = "/home/rich/git/distroessed/src/MarkdownTemplateTest/template.md"; //args[0];
+string templatePath = "C:\\Users\\rlander\\git\\distroessed\\src\\MarkdownTemplateTest\\template.md"; //args[0];
 string outputPath = "output.md";
 
 using var reader = new StreamReader(templatePath);

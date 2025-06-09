@@ -19,7 +19,9 @@ public ref struct Replacement
         // Assuming: "{{key}} stuff"
         // Index at "{{"
         int replacementStart = line.IndexOf(_openSymbol);
-        int replacementCloseCount = line[replacementStart..].IndexOf(_closeSymbol);
+        int replacementCloseCount = replacementStart == -1
+            ? -1
+            : line[replacementStart..].IndexOf(_closeSymbol);
 
         if (replacementStart == -1 || replacementCloseCount == -1)
         {
