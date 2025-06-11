@@ -11,6 +11,7 @@ This is a template.
 {{insert-content}}
 
 {{important-section-start}}
+
 ## Important content
 
 {{important-section-end}}

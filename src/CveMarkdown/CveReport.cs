@@ -14,7 +14,7 @@ public class CveReport
             Action<CveRecords, StreamWriter> action = SwitchOnId(id);
             action(cves, writer);
         },
-        SectionProcessor = (id) =>
+        ShouldIncludeSection = (id) =>
         {
             if (id.StartsWith("commit-section"))
             {
