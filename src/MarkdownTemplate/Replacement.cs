@@ -4,12 +4,12 @@ public struct Replacement
 {
     public const string OpenSymbol = "{{";
     public const string CloseSymbol = "}}";
-    public const string StartSectionSuffix = "-start}}";
-    public const string EndSectionSuffix = "-end}}";
-
+    
     public bool Found { get; init; }
 
     public string Key { get; init; }
+
+    public string[]? Commands { get; init; }
 
     public int StartIndex { get; init; }
 
@@ -36,18 +36,26 @@ public struct Replacement
         // index after "}}"
         int postIndex = keyEndCount + CloseSymbol.Length;
         int afterIndex = postIndex == line.Length ? line.Length : postIndex;
-        string key = line[keyStartIndex..keyEndCount].ToString();
-        return new Replacement { Found = true, Key = key, StartIndex = replacementStart, AfterIndex = afterIndex };
+        var inner = line[keyStartIndex..keyEndCount];
+        int index = inner.IndexOf(':');
+        string key = index == -1
+            ? inner.ToString()
+            : inner[..index].ToString();
+
+        string[]? commands = index > -1
+            ? inner[(index + 1)..].ToString().Split(' ')
+            : null;
+
+        return new Replacement {
+            Found = true,
+            Key = key,
+            StartIndex = replacementStart,
+            AfterIndex = afterIndex,
+            Commands = commands };
     }
 
     public static bool IsSymbolLine(ReadOnlySpan<char> line)
     {
         return line.StartsWith(OpenSymbol) && line.EndsWith(CloseSymbol);
-    }
-
-    public static string GetShortKey(string line)
-    {
-        int index = line.LastIndexOf('-');
-        return index == -1 ? line : line[..index];
     }
 }

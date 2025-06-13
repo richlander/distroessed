@@ -1,6 +1,6 @@
 ﻿using MarkdownHelpers;
 
-string templatePath = "C:\\Users\\rlander\\git\\distroessed\\src\\MarkdownTemplateTest\\template.md"; //args[0];
+string templatePath = "/Users/rich/git/distroessed/src/MarkdownTemplateTest/template.md";//args[0];
 string outputPath = "output.md";
 
 using var reader = new StreamReader(templatePath);
@@ -10,7 +10,7 @@ MarkdownTemplate template = new MarkdownTemplate
 {
     Processor = (key, writer) =>
     {
-        Console.WriteLine($"Processing sync: {key}");
+        Console.WriteLine($"Lambda processing key: {key}");
         if (key == "date")
         {
             writer.Write($"{DateTime.Now:yyyy-MM-dd}");
@@ -22,6 +22,15 @@ MarkdownTemplate template = new MarkdownTemplate
                 writer.WriteLine($"- Item {i}");
             }
         }
+        else if (key == "section-content")
+        {
+            writer.WriteLine("This is some section content.");
+        }
+        else
+        {
+            writer.WriteLine($"Unknown key: {key}");
+        }
+        Console.WriteLine($"Finished processing key: {key}");
     }
 };
 

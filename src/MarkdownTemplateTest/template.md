@@ -8,10 +8,8 @@ This is a template.
 
 ## Another section
 
-{{insert-content}}
-
-{{important-section-start}}
-
+{{section-content}}
+{{important-section:start}}
 ## Important content
-
-{{important-section-end}}
+{{important-section:end}}
+Hi!
