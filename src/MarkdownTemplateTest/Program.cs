@@ -22,15 +22,42 @@ MarkdownTemplate template = new MarkdownTemplate
                 writer.WriteLine($"- Item {i}");
             }
         }
-        else if (key == "section-content")
+        else if (key == "another-section")
         {
-            writer.WriteLine("This is some section content.");
+            writer.WriteLine("This is another section content.");
+        }
+        else if (key == "high-pri-section")
+        {
+            writer.WriteLine("This is some high-priority content.");
+        }
+        else if (key == "low-pri-content")
+        {
+            // This section will be skipped
+            writer.WriteLine("Very low-priority content.");
+        }
+        else if (key == "async-key")
+        {
+            // Simulate async processing
+            Task.Run(() => Console.WriteLine("Async processing for key: async-key")).Wait();
         }
         else
         {
-            writer.WriteLine($"Unknown key: {key}");
+            Console.WriteLine($"Unknown key: {key}");
         }
         Console.WriteLine($"Finished processing key: {key}");
+    },
+    ShouldIncludeSection = (section) =>
+    {
+        Console.WriteLine($"Checking if section '{section}' should be included.");
+        if (section == "high-pri-section")
+        {
+            return true; // Always include this section
+        }
+        else if (section == "low-pri-section")
+        {
+            return false; // Skip this section
+        }
+        return false;
     }
 };
 

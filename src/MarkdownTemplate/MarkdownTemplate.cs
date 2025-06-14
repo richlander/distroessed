@@ -71,10 +71,13 @@ public class MarkdownTemplate
                 {
                     Console.WriteLine($"Processing symbol line A: {replacement.Key} with commands: {string.Join(", ", replacement.Commands)}");
                     Console.WriteLine($"Processing symbol line B: {replacement.Key}; skipSection: {skipSection}, afterSkipSection: {afterSkipSection}");
-                    skipSection = replacement.Commands.Contains("start");
-                    afterSkipSection = replacement.Commands.Contains("end");
-                    // false if afterSkipSection is true and skipSection is false
-                    // skipSection = afterSkipSection ? false : skipSection;
+
+                    afterSkipSection = replacement.Commands.Contains("start");
+                    skipSection =
+                        afterSkipSection &&
+                        ShouldIncludeSection is { } &&
+                        ShouldIncludeSection(replacement.Key);
+                    afterSkipSection = afterSkipSection || replacement.Commands.Contains("end");
                     Console.WriteLine($"Processing symbol line C: {replacement.Key}; skipSection: {skipSection}, afterSkipSection: {afterSkipSection}");
                     line = "";
                 }
@@ -98,6 +101,7 @@ public class MarkdownTemplate
                 }
                 else
                 {
+                    Console.WriteLine("WriteLine");
                     writer.Write(line);
                 }
 
@@ -110,7 +114,17 @@ public class MarkdownTemplate
             {
                 writer.WriteLine();
             }
-            
+
         }
+    }
+
+    public Replacement GetNextReplacementForLine(StreamWriter writer, string line, int startIndex)
+    {
+
+        bool isSymbolLine = Replacement.IsSymbolLine(line);
+
+        Replacement replacement = Replacement.FindNext(line);
+
+        return replacement;
     }
 }

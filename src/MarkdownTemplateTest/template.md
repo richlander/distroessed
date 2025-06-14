@@ -8,8 +8,16 @@ This is a template.
 
 ## Another section
 
-{{section-content}}
-{{important-section:start}}
+{{another-section}}
+{{high-pri-section:start}}
 ## Important content
-{{important-section:end}}
+
+{{high-pri-content}}
+{{high-pri:end}}
+{{low-pri-section:start}}
+## Low-pri content
+
+{{low-pri-content}}
+{{low-pri-section:end}}
+
 Hi!
