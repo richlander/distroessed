@@ -15,10 +15,25 @@ public struct Replacement
 
     public int AfterIndex { get; init; }
 
+    public static Replacement None { get; } = new Replacement
+    {
+        Found = false,
+        Key = string.Empty,
+        StartIndex = 0,
+        AfterIndex = 0,
+        Commands = null
+    };
+
     public static Replacement FindNext(ReadOnlySpan<char> line)
     {
         // Assuming: "{{key}} stuff"
         // Index at "{{"
+
+        if (line.Length is 0)
+        {
+            return Replacement.None;
+        }
+
         int replacementStart = line.IndexOf(OpenSymbol);
         int replacementCloseCount = replacementStart == -1
             ? -1
@@ -46,15 +61,17 @@ public struct Replacement
             ? inner[(index + 1)..].ToString().Split(' ')
             : null;
 
-        return new Replacement {
+        return new Replacement
+        {
             Found = true,
             Key = key,
             StartIndex = replacementStart,
             AfterIndex = afterIndex,
-            Commands = commands };
+            Commands = commands
+        };
     }
 
-    public static bool IsSymbolLine(ReadOnlySpan<char> line)
+    public static bool IsReplacementLine(ReadOnlySpan<char> line)
     {
         return line.StartsWith(OpenSymbol) && line.EndsWith(CloseSymbol);
     }

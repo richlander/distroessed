@@ -1,4 +1,5 @@
-﻿using MarkdownHelpers;
+﻿using System.Runtime.InteropServices;
+using MarkdownHelpers;
 
 string templatePath = "/Users/rich/git/distroessed/src/MarkdownTemplateTest/template.md";//args[0];
 string outputPath = "output.md";
@@ -15,6 +16,14 @@ MarkdownTemplate template = new MarkdownTemplate
         {
             writer.Write($"{DateTime.Now:yyyy-MM-dd}");
         }
+        else if (key == "os")
+        {
+            writer.Write(RuntimeInformation.OSDescription);
+        }
+        else if (key == "arch")
+        {
+            writer.Write(RuntimeInformation.OSArchitecture);
+        }
         else if (key == "some-section")
         {
             foreach (var i in Enumerable.Range(1, 3))
@@ -26,7 +35,7 @@ MarkdownTemplate template = new MarkdownTemplate
         {
             writer.WriteLine("This is another section content.");
         }
-        else if (key == "high-pri-section")
+        else if (key == "high-pri-content")
         {
             writer.WriteLine("This is some high-priority content.");
         }
@@ -34,11 +43,6 @@ MarkdownTemplate template = new MarkdownTemplate
         {
             // This section will be skipped
             writer.WriteLine("Very low-priority content.");
-        }
-        else if (key == "async-key")
-        {
-            // Simulate async processing
-            Task.Run(() => Console.WriteLine("Async processing for key: async-key")).Wait();
         }
         else
         {
