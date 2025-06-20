@@ -9,7 +9,6 @@ It's a good one.
 ## Some section
 
 {{some-section}}
-
 ## Another section
 
 {{another-section}}
@@ -23,5 +22,4 @@ It's a good one.
 
 {{low-pri-content}}
 {{low-pri-section:end}}
-
 Hi!

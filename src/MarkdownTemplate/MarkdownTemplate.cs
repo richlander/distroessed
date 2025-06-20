@@ -73,114 +73,87 @@ public class MarkdownTemplate
     */
     public (Replacement, string) ProcessLines(StreamReader reader, StreamWriter writer, string? line, Replacement lastReplacement)
     {
+        // expectation is that line is initially null
+        line ??= reader.ReadLine();
+        // sections can be conditional; need a model to skip lines
         bool skipSection = false;
-        int index = lastReplacement.AfterIndex;
-
-        // Signal that a line ended, requiring a newline
-        if (line == string.Empty)
-        {
-            writer.WriteLine();
-        }
-
-        // Cases where a new source line is needed.
-        if (line == null || line == string.Empty)
-        {
-            line = reader.ReadLine();
-        }
-
-        int startIndex = lastReplacement.StartIndex;
-        if (startIndex > 0 && line?.Length > startIndex)
-        {
-            line = line[lastReplacement.AfterIndex..];
-        }
-
         while (true)
         {
+            // if line is null, that means EOF
             if (line == null)
             {
-                Console.WriteLine("No line to process.");
                 return (Replacement.None, string.Empty);
             }
 
-            if (line.Length is 0)
+            // various forms of empty lines
+            if (line is "" or "\n")
             {
-                writer.WriteLine();
+                // signal to emit newline
+                if (line is "\n")
+                {
+                    writer.WriteLine();
+                }
+
                 line = reader.ReadLine(); // Read the next line
+                line = !skipSection && line is "" ? writer.NewLine : line;
                 continue;
             }
+            
+            // Look for replacement content
+            Replacement replacement = Replacement.FindNext(line);
+            bool hasCommands = replacement.Commands is {};
 
-            bool isReplacementLine = Replacement.IsReplacementLine(line);
-
-            if (skipSection && !isReplacementLine)
+            if (skipSection && !hasCommands)
             {
-                Console.WriteLine($"Skipping line: {line.ToString()}; line length: {line.Length}; (skipSection: {skipSection})");
                 line = "";
                 continue;
             }
 
-            Console.WriteLine($"Processing line: {line.ToString()}; line length: {line.Length}; (skipSection: {skipSection}");
-            Replacement replacement = Replacement.FindNext(line);
-            Console.WriteLine($"Replacement found: {replacement.Found}, Key: {replacement.Key}, StartIndex: {replacement.StartIndex}, AfterIndex: {replacement.AfterIndex}");
-            Console.WriteLine("Replacement Commands: " + (replacement.Commands != null ? string.Join(", ", replacement.Commands) : "null") + $"; Count: {replacement.Commands?.Length ?? 0}");
-
-            if (isReplacementLine && replacement.Commands != null)
+            // start or end of section found
+            if (hasCommands)
             {
-                Console.WriteLine($"Processing symbol line A: {replacement.Key} with commands: {string.Join(", ", replacement.Commands)}");
-                Console.WriteLine($"Processing symbol line B: {replacement.Key}; skipSection: {skipSection}");
+                var commands = replacement.Commands ?? [];
+                bool start = commands.Contains("start");
+                bool end = commands.Contains("end");
 
-                bool start = replacement.Commands.Contains("start");
-                bool end = replacement.Commands.Contains("end");
                 if (start)
                 {
-                    skipSection = !(ShouldIncludeSection is { } &&
-                    ShouldIncludeSection(replacement.Key));
+                    // ask if this section is conditional
+                    // default is yes
+                    skipSection = !(
+                        ShouldIncludeSection is { } &&
+                        ShouldIncludeSection(replacement.Key));
                 }
                 else if (skipSection && end)
                 {
                     skipSection = false;
                 }
-                // skipSection =
-                //     !(start &&
-                //     ShouldIncludeSection is { } &&
-                //     ShouldIncludeSection(replacement.Key)) || !(skipSection && end);
-                line = "";
-                Console.WriteLine($"Processing symbol line C: {replacement.Key}; skipSection: {skipSection}");
-                continue;
-                // if (start || end)
-                // {
-                //     Console.WriteLine("Breaking out of loop for start/end commands");
-                //     continue;
-                // }
-            }
-            else if (isReplacementLine && skipSection)
-            {
-                line = "";
-                continue;
-            }
 
-            Console.WriteLine($"Processing segment: {line};  (skipSection: {skipSection})");
+                line = "";
+                continue;
+            }
 
             if (replacement.Found)
             {
                 writer.Write(line[..replacement.StartIndex]);
                 if (replacement.AfterIndex >= line.Length)
                 {
-                    Console.WriteLine("Replacement AfterIndex is beyond line length, returning empty string.");
-                    line = string.Empty;
+                    line = writer.NewLine;
                 }
+                else
+                {
+                    line = line[replacement.AfterIndex..];
+                }
+                // return to get replacement
                 return (replacement, line);
 
             }
             else
             {
-                writer.Write(line);
-                line = string.Empty;
+                // continue to read file
+                writer.WriteLine(line);
+                line = "";
             }
-
-            // Console.WriteLine($"After processing segment: {line};  (skipSection: {skipSection})");
-            // line = line[replacement.AfterIndex..];
         }
-
-        return (Replacement.None, string.Empty);
     }
 }

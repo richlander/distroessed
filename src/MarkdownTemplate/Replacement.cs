@@ -7,6 +7,8 @@ public struct Replacement
     
     public bool Found { get; init; }
 
+    public bool Eol { get; init; }
+
     public string Key { get; init; }
 
     public string[]? Commands { get; init; }
@@ -18,6 +20,7 @@ public struct Replacement
     public static Replacement None { get; } = new Replacement
     {
         Found = false,
+        Eol = true,
         Key = string.Empty,
         StartIndex = 0,
         AfterIndex = 0,
@@ -52,6 +55,9 @@ public struct Replacement
         int postIndex = keyEndCount + CloseSymbol.Length;
         int afterIndex = postIndex == line.Length ? line.Length : postIndex;
         var inner = line[keyStartIndex..keyEndCount];
+        // check for commands, like {{mysection:start}}
+        // this is format for conditional sections
+        // no support for embedded conditional sections
         int index = inner.IndexOf(':');
         string key = index == -1
             ? inner.ToString()
@@ -64,15 +70,11 @@ public struct Replacement
         return new Replacement
         {
             Found = true,
+            Eol = afterIndex == line.Length,
             Key = key,
             StartIndex = replacementStart,
             AfterIndex = afterIndex,
             Commands = commands
         };
-    }
-
-    public static bool IsReplacementLine(ReadOnlySpan<char> line)
-    {
-        return line.StartsWith(OpenSymbol) && line.EndsWith(CloseSymbol);
     }
 }
