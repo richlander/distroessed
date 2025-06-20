@@ -3,23 +3,18 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using DotnetRelease;
 
 List<ModelInfo> models = [
-    new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),
-    new (typeof(MajorReleaseOverview), "dotnet-releases.json"),
-    new (typeof(PatchReleasesIndex), "dotnet-patch-releases-index.json"),
-    new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
-    new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
-    new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
-    // new (typeof(ReportOverview), "dotnet-support-report.json"),
+    new (typeof(MajorReleasesIndex), JsonSchemaContext.Default.MajorReleasesIndex, "dotnet-releases-index.json"),
+    new (typeof(MajorReleaseOverview), JsonSchemaContext.Default.MajorReleaseOverview, "dotnet-releases.json"),
+    new (typeof(PatchReleasesIndex), JsonSchemaContext.Default.PatchReleasesIndex, "dotnet-patch-releases-index.json"),
+    new (typeof(PatchReleaseOverview), JsonSchemaContext.Default.PatchReleaseOverview, "dotnet-patch-release.json"),
+    new (typeof(OSPackagesOverview), JsonSchemaContext.Default.OSPackagesOverview, "dotnet-os-packages.json"),
+    new (typeof(SupportedOSMatrix), JsonSchemaContext.Default.SupportedOSMatrix, "dotnet-supported-os-matrix.json"),
 ];
-
-
-var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions.Default)
-{
-    PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
-};
 
 var exporterOptions = new JsonSchemaExporterOptions()
     {
@@ -53,12 +48,24 @@ foreach (var model in models)
 
 void WriteSchema(ModelInfo modelInfo)
 {
-    var (type, targetFile) = modelInfo;
-    var schema = JsonSchemaExporter.GetJsonSchemaAsNode(serializerOptions, type, exporterOptions);
+    var (type, typeInfo, targetFile) = modelInfo;
+    var schema = JsonSchemaExporter.GetJsonSchemaAsNode(typeInfo, exporterOptions);
     File.WriteAllText(targetFile, schema.ToString());
 }
 
 static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? provider, bool inherit = false) where TAttribute : Attribute
     => provider?.GetCustomAttributes(typeof(TAttribute), inherit).FirstOrDefault() as TAttribute;
 
-record ModelInfo(Type Type, string TargetFile);
+record ModelInfo(Type Type, JsonTypeInfo TypeInfo, string TargetFile);
+
+
+[JsonSerializable(typeof(MajorReleasesIndex))]
+[JsonSerializable(typeof(MajorReleaseOverview))]
+[JsonSerializable(typeof(PatchReleasesIndex))]
+[JsonSerializable(typeof(PatchReleaseOverview))]
+[JsonSerializable(typeof(OSPackagesOverview))]
+[JsonSerializable(typeof(SupportedOSMatrix))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, WriteIndented = true)]
+public partial class JsonSchemaContext : JsonSerializerContext
+{
+}

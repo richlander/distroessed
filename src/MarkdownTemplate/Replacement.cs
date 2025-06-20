@@ -7,8 +7,6 @@ public struct Replacement
     
     public bool Found { get; init; }
 
-    public bool Eol { get; init; }
-
     public string Key { get; init; }
 
     public string[]? Commands { get; init; }
@@ -20,7 +18,6 @@ public struct Replacement
     public static Replacement None { get; } = new Replacement
     {
         Found = false,
-        Eol = true,
         Key = string.Empty,
         StartIndex = 0,
         AfterIndex = 0,
@@ -70,7 +67,6 @@ public struct Replacement
         return new Replacement
         {
             Found = true,
-            Eol = afterIndex == line.Length,
             Key = key,
             StartIndex = replacementStart,
             AfterIndex = afterIndex,

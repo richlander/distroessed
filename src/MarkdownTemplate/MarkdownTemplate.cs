@@ -70,6 +70,13 @@ public class MarkdownTemplate
         - Text with embedded replacements
         - Replacement line
         - Replacement line with commands
+
+        Other notes:
+        - Algorithm is re-entrant (if that's the correct term).
+        - The idea is that most of the logic should be in this method, leaving
+          calling a sync or async lambda and very little duplicated code
+          or complexity in the calling method.
+        - Makes use of "" and "\n" to signal whether a newline is needed.
     */
     public (Replacement, string) ProcessLines(StreamReader reader, StreamWriter writer, string? line, Replacement lastReplacement)
     {
@@ -101,8 +108,11 @@ public class MarkdownTemplate
             
             // Look for replacement content
             Replacement replacement = Replacement.FindNext(line);
+            // Commands indicate where lines are conditional
+            // Could be extended to other scenarios
             bool hasCommands = replacement.Commands is {};
 
+            // Plain text that should be skipped
             if (skipSection && !hasCommands)
             {
                 line = "";
@@ -118,8 +128,9 @@ public class MarkdownTemplate
 
                 if (start)
                 {
-                    // ask if this section is conditional
+                    // ask if this section is conditional / skipable
                     // default is yes
+                    // ShouldIncludeSection only supports sync lambdas
                     skipSection = !(
                         ShouldIncludeSection is { } &&
                         ShouldIncludeSection(replacement.Key));
@@ -144,6 +155,7 @@ public class MarkdownTemplate
                 {
                     line = line[replacement.AfterIndex..];
                 }
+                
                 // return to get replacement
                 return (replacement, line);
 

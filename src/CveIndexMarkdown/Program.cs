@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using CveInfo;
 using System.Text;
+using CveIndexMarkdown;
 
 if (args.Length != 1)
 {
@@ -33,10 +34,7 @@ foreach (var file in Directory.GetFiles(historyDir, "index.json", SearchOption.A
     using var writer = new StreamWriter(targetStream);
     using var stream = File.OpenRead(file);
 
-    var releaseCalendar = JsonSerializer.Deserialize<ReleaseHistory>(stream, new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
-    });
+    var releaseCalendar = JsonSerializer.Deserialize(stream, CveIndexMarkdownSerializationContext.Default.ReleaseHistory);
 
     if (releaseCalendar == null)
     {
@@ -88,15 +86,3 @@ string GetSecurityLabel(Release release)
         ? string.Join("; ", parts)
         : string.Empty;
 }
-
-record ReleaseHistory(string Year, List<ReleaseDays> ReleaseDays);
-
-record ReleaseDays(DateOnly Date, int Month, int Day, List<Release> Releases)
-{
-    public string? CveJson { get; set; }
-};
-
-record Release(string Version, bool Security)
-{
-    public int[]? Severity { get; set; }
-};

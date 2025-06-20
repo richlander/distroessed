@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using MarkdownHelpers;
 
-string templatePath = "/Users/rich/git/distroessed/src/MarkdownTemplateTest/template.md";//args[0];
+string templatePath = args[0];
 string outputPath = "output.md";
 
 using var reader = new StreamReader(templatePath);

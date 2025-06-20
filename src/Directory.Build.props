@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+    <PublishArtifacts>true</PublishArtifacts>
+  </PropertyGroup>
+</Project>

@@ -5,12 +5,12 @@ namespace CveInfo;
 
 public class CveSerializer
 {
-    public static ValueTask<CveRecords?> GetCveRecords(Stream json) => JsonSerializer.DeserializeAsync(json, CveSerializerContext.Default.CveRecords);
+    public static ValueTask<CveRecords?> GetCveRecords(Stream json) => JsonSerializer.DeserializeAsync(json, CveInfoSerializerContext.Default.CveRecords);
 }
 
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
 [JsonSerializable(typeof(CveRecords))]
-internal partial class CveSerializerContext : JsonSerializerContext
+public partial class CveInfoSerializerContext : JsonSerializerContext
 {
 }

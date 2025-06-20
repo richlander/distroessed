@@ -1,5 +1,6 @@
 ﻿
 using System.Text.Json;
+using CveIndex;
 using CveInfo;
 using DotnetRelease;
 
@@ -57,7 +58,7 @@ foreach (var kvp in releasesByDate)
 
     if (!releaseCalendars.ContainsKey(year))
     {
-        releaseCalendars[year] = new ReleaseCalendar(year, new List<ReleaseDay>());
+        releaseCalendars[year] = new ReleaseCalendar(year, []);
     }
 
     var relativePath = Path.Combine(year, month.ToString("D2"), "cve.json");
@@ -77,10 +78,7 @@ foreach (var kvp in releasesByDate)
                 if (File.Exists(cveFilePath))
                 {
                     using Stream cveStream = File.OpenRead(cveFilePath);
-                    cveRecords = JsonSerializer.Deserialize<CveRecords>(cveStream, new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
-                    });
+                    cveRecords = JsonSerializer.Deserialize<CveRecords>(cveStream, CveInfoSerializerContext.Default.CveRecords);
                 }
 
                 AddSeverity(release, cveRecords);
@@ -90,16 +88,10 @@ foreach (var kvp in releasesByDate)
     }
 }
 
-JsonSerializerOptions options = new()
-{
-    WriteIndented = true,
-    PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
-};
-
 foreach (var calendar in releaseCalendars.Values)
 {
     calendar.ReleaseDays.Sort((a, b) => a.Date.CompareTo(b.Date));
-    var json = JsonSerializer.Serialize(calendar, options);
+    var json = JsonSerializer.Serialize(calendar, CveIndexSerializationContext.Default.ReleaseCalendar);
     File.WriteAllText(Path.Combine(historyDir, calendar.Year, "index.json"), $"{json}\n");
     Console.WriteLine($"Created calendar for {calendar.Year} with {calendar.ReleaseDays.Count} months.");
 }
@@ -168,18 +160,4 @@ void AddSeverity(Release release, CveRecords? cveRecords)
         release.Severity = severityList;
     }
 }
-
-record ReleaseCalendar(string Year, List<ReleaseDay> ReleaseDays);
-
-record ReleaseDay(DateOnly Date, int Month, int Day, List<Release> Releases)
-{
-    public string? CveJson { get; set; }
-};
-
-record Release(string Version, bool Security)
-{
-    public IReadOnlyList<int>? Severity { get; set; }
-};
-
-public record SevCount(string Severity, int Count);
 
