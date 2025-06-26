@@ -54,7 +54,12 @@ public record PatchRelease(
 
     [property: Description("Windows Desktop component of the release."),
         JsonPropertyName("windowsdesktop")]
-    Component? WindowsDesktop = null);
+    Component? WindowsDesktop = null,
+
+    [property: Description("Symbol files for the release."),
+        Obsolete("Property used only by legacy releases."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Component? Symbols = null);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A disclosed vulnerability (AKA CVE).")]

@@ -51,4 +51,26 @@ public record MajorReleaseOverview(
     string? OsPackagesInfoUri,
 
     [property: Description("A set of patch releases with detailed release information.")]
-    IList<PatchRelease> Releases);
+    IList<PatchRelease> Releases,
+
+
+    [property: Description("Intellisense files for the release."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Intellisense? Intellisense = null
+    );
+
+
+public record Intellisense(
+    string Version,
+    string VersionDisplay,
+    IList<IntellisenseFile> Files
+);
+
+
+public record IntellisenseFile(
+    string Lang,
+    string Name,
+    string Rid,
+    string Url,
+    string Hash
+);
