@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Skip)]
 [Description("A patch release for a major product version.")]
 public record PatchReleaseOverview(
     [property: Description("Major (or major.minor) version of product.")]
