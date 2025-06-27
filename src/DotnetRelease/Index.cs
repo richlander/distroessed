@@ -30,6 +30,8 @@ public record ReleaseIndexEntry
 public enum ReleaseKind
 {
     Index,
+    Manifest,
     Releases,
+    Release,
     Unknown
 }

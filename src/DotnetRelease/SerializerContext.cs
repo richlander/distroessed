@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace DotnetRelease;
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, 
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(MajorReleasesIndex))]
 public partial class MajorReleasesIndexSerializerContext : JsonSerializerContext
@@ -11,7 +11,7 @@ public partial class MajorReleasesIndexSerializerContext : JsonSerializerContext
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, 
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(MajorReleaseOverview))]
 public partial class MajorReleaseOverviewSerializerContext : JsonSerializerContext
@@ -19,7 +19,7 @@ public partial class MajorReleaseOverviewSerializerContext : JsonSerializerConte
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, 
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(PatchReleasesIndex))]
 public partial class PatchReleasesIndexSerializerContext : JsonSerializerContext
@@ -27,7 +27,7 @@ public partial class PatchReleasesIndexSerializerContext : JsonSerializerContext
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, 
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(PatchReleaseOverview))]
 public partial class PatchReleaseOverviewSerializerContext : JsonSerializerContext
@@ -36,7 +36,7 @@ public partial class PatchReleaseOverviewSerializerContext : JsonSerializerConte
 
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, 
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(OSPackagesOverview))]
 public partial class OSPackagesSerializerContext : JsonSerializerContext
@@ -44,9 +44,17 @@ public partial class OSPackagesSerializerContext : JsonSerializerContext
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, 
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(SupportedOSMatrix))]
 public partial class SupportedOSMatrixSerializerContext : JsonSerializerContext
+{
+}
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    WriteIndented = true)]
+[JsonSerializable(typeof(ReleaseIndex))]
+public partial class ReleaseIndexSerializerContext : JsonSerializerContext
 {
 }

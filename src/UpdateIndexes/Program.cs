@@ -1,8 +1,11 @@
 ﻿using System.Globalization;
+using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DotnetRelease;
 using UpdateIndexes;
+
+const string index = "index.json";
 
 if (args.Length == 0)
 {
@@ -17,82 +20,146 @@ if (!Directory.Exists(root))
     return 1;
 }
 
-var entries = new List<ResourceEntry>();
 
 var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
-List<string> versionFiles = ["index.json", "releases.json", "release-info.json"];
+// Files to probe for to include as links
+List<string> versionFiles = ["index.json", "releases.json", "manifest.json"];
 
+// List of major version entries
+List<ReleaseIndexEntry> majorEntries = [];
+
+// look at all the major version directories
 foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescending(numericStringComparer))
 {
     var releasesJson = Path.Combine(majorVersionDir, "releases.json");
     if (!File.Exists(releasesJson))
     {
+        Console.WriteLine($"Releases file not found: {releasesJson}");
         continue;
     }
 
-    var resources = IndexHelpers.GetResourcesForFiles(majorVersionDir, versionFiles);
+
+    Console.WriteLine($"Processing major version directory: {majorVersionDir}");
+    var patchLinks = IndexHelpers.GetIndexEntriesForFiles(majorVersionDir, "index.json", versionFiles);
+
     await using var stream = File.OpenRead(releasesJson);
     var major = await ReleaseNotes.GetMajorRelease(stream);
-    if (major?.ChannelVersion is null || resources.Count == 0) continue;
-    var majorVersion = major.ChannelVersion;
-    var primary = resources[0];
-    var majorEntry = new ResourceEntry(major.ChannelVersion, primary.Value, IndexHelpers.GetKindForSource(primary.Value));
-    if (resources.Count > 1)
-    {
-        resources.RemoveAt(0); // Remove the primary resource from the list
-        majorEntry.Resources = resources;
-    }
-    entries.Add(majorEntry);
+    if (major?.ChannelVersion is null || patchLinks.Count == 0) continue;
 
-    List<ResourceEntry> patchReleases = [];
+    var majorVersion = major.ChannelVersion;
+    var majorEntry = new ReleaseIndexEntry()
+    {
+        Version = majorVersion,
+        Kind = ReleaseKind.Index,
+        Links = patchLinks
+    };
+
+    /*
+    Example index.json, for root index
+    {
+      "_links": {
+        "self": {
+          "href": "https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json",
+          "relative": "releases-index.json",
+          "title": ".NET Release Index",
+          "type": "application/json"
+        }
+      },
+      "_embedded": {
+        "releases": [
+          {
+            "version": "10.0",
+            "kind": "releases",
+            "_links": {
+              "self": {
+                "href": "https://.../10.0/releases.json",
+                "relative": "10.0/releases.json",
+                "type": "application/json"
+              }
+            }
+          },
+        ]
+      }
+    }
+
+    */
+
+    majorEntries.Add(majorEntry);
+
+    // List of patch version entries
+    List<ReleaseIndexEntry> patchEntries = [];
 
     foreach (var patchDir in Directory.EnumerateDirectories(majorVersionDir).OrderDescending(numericStringComparer))
     {
         var patchJson = Path.Combine(patchDir, "release.json");
         if (!File.Exists(patchJson))
         {
-            // Console.WriteLine($"Patch releases file not found: {patchJson}");
+            Console.WriteLine($"Patch releases file not found: {patchJson}");
             continue;
         }
 
         await using var patchStream = File.OpenRead(patchJson);
         var patch = await ReleaseNotes.GetPatchRelease(patchStream);
         if (patch?.ChannelVersion is null) continue;
-        var entry = new ResourceEntry(patch.ChannelVersion, patchJson, IndexHelpers.GetKindForSource(patchJson));
-        patchReleases.Add(entry);
-        entry.Resources = resources;
 
+        var patchVersion = patch.ChannelVersion;
+
+        var patchEntry = new ReleaseIndexEntry()
+        {
+            Version = patchVersion,
+            Kind = ReleaseKind.Index,
+            Links = patchLinks
+        };
+
+        patchEntries.Add(patchEntry);
     }
 
     // Write patch index.json for this version directory if any patch releases found
-    if (patchReleases.Count > 0)
+    if (patchEntries.Count > 0)
     {
-        var patchIndexPath = Path.Combine(majorVersionDir, "index.json");
-        await WriteIndexJson(patchIndexPath, new Resources(new ResourceEntry("self", $".NET {majorVersion} Release Index", ResourceKind.Index), patchReleases));
+        var patchIndexPath = Path.Combine(majorVersionDir, index);
+        var patchIndex = new ReleaseIndex()
+        {
+            Links = patchLinks,
+            Embedded = new ReleaseIndexEmbedded()
+            {
+                Releases = patchEntries
+            }
+        };
+        await WriteIndexJson(patchIndexPath, patchIndex);
     }
 
-    // Console.WriteLine($"Wrote {patchReleases.Count} entries to {dir}");
+    // Console.WriteLine($"Wrote {patchEntries.Count} entries to {dir}");
 }
 
-var indexPath = Path.Combine(root, "index.json");
-await WriteIndexJson(indexPath, new Resources(new ResourceEntry("self", ".NET Release Index", ResourceKind.Index), entries));
+var (majorKey, majorEntry) = IndexHelpers.GetIndexEntriesForFiles(root, index, true, false);
+
+if (majorKey is null || majorEntry is null)
+{
+    Console.Error.WriteLine($"No valid major version entries found in {root}");
+    return 1;
+}
+
+var majorLinks = new Dictionary<string, HalLink>
+{
+    {majorKey,majorEntry}
+};
+
+var indexPath = Path.Combine(root, index);
+var majorIndex = new ReleaseIndex()
+{
+    Links = majorLinks,
+    Embedded = new ReleaseIndexEmbedded()
+    {
+        Releases = majorEntries
+    }
+};
+await WriteIndexJson(indexPath, majorIndex);
 return 0;
 
-static async Task WriteIndexJson(string path, Resources resources)
+static async Task WriteIndexJson(string path, ReleaseIndex index)
 {
-    // var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
-    // var sorted = entries.OrderByDescending(e => e.Version, numericStringComparer);
     await using var outStream = File.Create(path);
-    var options = new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
-        WriteIndented = true,
-        Converters =
-        {
-            new JsonStringEnumConverter(new LowerCaseNamingPolicy())
-        }
-    };
-
-    await JsonSerializer.SerializeAsync(outStream, resources, options);
-    Console.WriteLine($"Wrote {resources.Entries.Count} entries to {path}");
+    await JsonSerializer.SerializeAsync(outStream, index, ReleaseIndexSerializerContext.Default.ReleaseIndex);
+    Console.WriteLine($"Wrote {index.Embedded.Releases.Count} entries to {path}");
 }
