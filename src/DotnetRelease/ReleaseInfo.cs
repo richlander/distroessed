@@ -21,3 +21,5 @@ public enum ReleaseType
     LTS,
     STS,
 }
+
+public record Support(ReleaseType ReleaseType, SupportPhase phase, DateOnly EolDate);

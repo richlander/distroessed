@@ -1,7 +1,6 @@
-using System.Globalization;
-using System.Reflection.Metadata.Ecma335;
 using DotnetRelease;
-using UpdateIndexes;
+
+namespace UpdateIndexes;
 
 public class IndexHelpers
 {
@@ -15,13 +14,13 @@ public class IndexHelpers
         return ReleaseKind.Unknown;
     }
 
-    public static Dictionary<string, HalLink> GetIndexEntriesForFiles(string basePath, string self, IEnumerable<string> files)
+    public static Dictionary<string, HalLink> GetIndexEntriesForFiles(string basePath, string self, IEnumerable<string> files, string subtitle)
     {
         var dict = new Dictionary<string, HalLink>();
         foreach (var file in files)
         {
             var isSelf = file.EndsWith(self);
-            var (key, entry) = GetIndexEntriesForFiles(basePath, file, isSelf, !isSelf);
+            var (key, entry) = GetIndexEntriesForFile(basePath, file, isSelf, !isSelf, subtitle);
             if (key != null && entry != null)
             {
                 dict.Add(key, entry);
@@ -31,15 +30,13 @@ public class IndexHelpers
         return dict;
     }
 
-    public static (string?, HalLink?) GetIndexEntriesForFiles(string basePath, string file, bool isSelf, bool mustExist)
+    public static (string?, HalLink?) GetIndexEntriesForFile(string basePath, string file, bool isSelf, bool mustExist, string subtitle)
     {
         var path = Path.Combine(basePath, file);
         if (mustExist && !File.Exists(path))
         {
             return (null, null);
         }
-
-        Dictionary<string, HalLink> links = [];
 
         var filename = Path.GetFileNameWithoutExtension(file);
         var relativePath = Path.GetRelativePath(basePath, path);
@@ -58,13 +55,51 @@ public class IndexHelpers
         {
             Href = prodPath,
             Relative = relativePath,
-            Title = $"{kind} resource",
+            Title = $"{subtitle} {kind}",
             Type = fileType
         };
 
         var key = isSelf ? HalTerms.Self : filename;
 
         return (key, entry);
+    }
+
+    public static ReleaseIndexEntry GetReleaseIndexEntry(string basePath, string version, string subtitle, params IEnumerable<string> files)
+    {
+        var links = new Dictionary<string, HalLink>();
+        var qualifiedPaths = GetQualifiedPaths(basePath, files);
+        bool hasSelf = false;
+
+        foreach (var path in qualifiedPaths)
+        {
+            Console.WriteLine($"Processing path: {path}; hasSelf: {hasSelf}");
+            var (key, entry) = GetIndexEntriesForFile(basePath, path, !hasSelf, true, subtitle);
+            if (key != null && entry != null)
+            {
+                hasSelf = true;
+                links[key] = entry;
+            }
+        }
+
+        Console.WriteLine($"Links count: {links.Count}, hasSelf: {hasSelf}");
+        var selfEntry = links.FirstOrDefault(x => x.Key == HalTerms.Self).Value ?? throw new InvalidOperationException("Self link not found in index entries.");
+        var selfKind = GetKindForSource(selfEntry.Href);
+
+        return new ReleaseIndexEntry
+        {
+            Version = version,
+            Kind = selfKind,
+            Links = links
+        };
+    }
+
+    public static IEnumerable<string> GetQualifiedPaths(string basePath, IEnumerable<string> files)
+    {
+        foreach (var file in files)
+        {
+            var path = Path.Combine(basePath, file);
+            yield return path;
+        }
     }
 
     public static string GetProdPath(string relativePath)

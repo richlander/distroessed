@@ -4,6 +4,8 @@ namespace DotnetRelease;
 
 public record ReleaseIndex
 {
+    public ReleaseKind Kind { get; init; }
+
     [JsonPropertyName("_links")]
     public Dictionary<string, HalLink> Links { get; init; } = new();
 
@@ -22,11 +24,14 @@ public record ReleaseIndexEntry
 
     public ReleaseKind Kind { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Support? Support { get; set; }
+
     [JsonPropertyName("_links")]
     public Dictionary<string, HalLink> Links { get; init; } = new();
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]
 public enum ReleaseKind
 {
     Index,
@@ -35,3 +40,4 @@ public enum ReleaseKind
     Release,
     Unknown
 }
+

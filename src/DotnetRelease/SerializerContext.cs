@@ -58,3 +58,11 @@ public partial class SupportedOSMatrixSerializerContext : JsonSerializerContext
 public partial class ReleaseIndexSerializerContext : JsonSerializerContext
 {
 }
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    WriteIndented = true)]
+[JsonSerializable(typeof(ReleaseManifest))]
+public partial class ReleaseManifestSerializerContext : JsonSerializerContext
+{
+}

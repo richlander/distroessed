@@ -20,10 +20,10 @@ if (!Directory.Exists(root))
     return 1;
 }
 
+List<string> files = ["index.json", "releases.json", "release.json", "manifest.json"];
 
 var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
 // Files to probe for to include as links
-List<string> versionFiles = ["index.json", "releases.json", "manifest.json"];
 
 // List of major version entries
 List<ReleaseIndexEntry> majorEntries = [];
@@ -38,21 +38,16 @@ foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescen
         continue;
     }
 
+    List<string> versionFiles = [.. IndexHelpers.GetQualifiedPaths(majorVersionDir, files)];
 
     Console.WriteLine($"Processing major version directory: {majorVersionDir}");
-    var patchLinks = IndexHelpers.GetIndexEntriesForFiles(majorVersionDir, "index.json", versionFiles);
 
     await using var stream = File.OpenRead(releasesJson);
     var major = await ReleaseNotes.GetMajorRelease(stream);
-    if (major?.ChannelVersion is null || patchLinks.Count == 0) continue;
-
+    if (major?.ChannelVersion is null) continue;
     var majorVersion = major.ChannelVersion;
-    var majorEntry = new ReleaseIndexEntry()
-    {
-        Version = majorVersion,
-        Kind = ReleaseKind.Index,
-        Links = patchLinks
-    };
+    // var patchLinks = IndexHelpers.GetIndexEntriesForFiles(root, "index.json", versionFiles, majorVersion);
+    // if (patchLinks.Count == 0) continue;
 
     /*
     Example index.json, for root index
@@ -84,7 +79,12 @@ foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescen
 
     */
 
-    majorEntries.Add(majorEntry);
+    // var majorEntry = new ReleaseIndexEntry()
+    // {
+    //     Version = majorVersion,
+    //     Kind = patchLinks.GetAt(0).Value.Kind ?? ReleaseKind.Unknown,
+    //     Links = patchLinks
+    // };
 
     // List of patch version entries
     List<ReleaseIndexEntry> patchEntries = [];
@@ -94,7 +94,7 @@ foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescen
         var patchJson = Path.Combine(patchDir, "release.json");
         if (!File.Exists(patchJson))
         {
-            Console.WriteLine($"Patch releases file not found: {patchJson}");
+            // Console.WriteLine($"Patch releases file not found: {patchJson}");
             continue;
         }
 
@@ -104,15 +104,25 @@ foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescen
 
         var patchVersion = patch.ChannelVersion;
 
-        var patchEntry = new ReleaseIndexEntry()
-        {
-            Version = patchVersion,
-            Kind = ReleaseKind.Index,
-            Links = patchLinks
-        };
+        // var patchEntry = new ReleaseIndexEntry()
+        // {
+        //     Version = patchVersion,
+        //     Links = patchLinks
+        // };
 
+        var patchEntry = IndexHelpers.GetReleaseIndexEntry(
+            patchDir,
+            $"{patchVersion}",
+            "index.json",
+            files);
         patchEntries.Add(patchEntry);
     }
+
+    var patchLinks = IndexHelpers.GetIndexEntriesForFiles(
+        root,
+        "index.json",
+        versionFiles,
+        majorVersion);
 
     // Write patch index.json for this version directory if any patch releases found
     if (patchEntries.Count > 0)
@@ -120,6 +130,7 @@ foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescen
         var patchIndexPath = Path.Combine(majorVersionDir, index);
         var patchIndex = new ReleaseIndex()
         {
+            Kind = ReleaseKind.Index,
             Links = patchLinks,
             Embedded = new ReleaseIndexEmbedded()
             {
@@ -130,11 +141,27 @@ foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescen
     }
 
     // Console.WriteLine($"Wrote {patchEntries.Count} entries to {dir}");
+
+
+    var majorEntry = IndexHelpers.GetReleaseIndexEntry(
+        root,
+        majorVersion,
+        $".NET {majorVersion}",
+        files);
+    majorEntries.Add(majorEntry);
+    if (major.EolDate > DateOnly.ParseExact("2016-01-01", "yyyy-MM-dd"))
+    {
+        // If EOL date is not set, skip
+        majorEntry.Support = new Support(
+            major.ReleaseType,
+            major.SupportPhase,
+            major.EolDate);
+    }
 }
 
-var (majorKey, majorEntry) = IndexHelpers.GetIndexEntriesForFiles(root, index, true, false);
+var (majorIndexKey, majorIndexEntry) = IndexHelpers.GetIndexEntriesForFile(root, index, true, false, ".NET Releases");
 
-if (majorKey is null || majorEntry is null)
+if (majorIndexKey is null || majorIndexEntry is null)
 {
     Console.Error.WriteLine($"No valid major version entries found in {root}");
     return 1;
@@ -142,12 +169,13 @@ if (majorKey is null || majorEntry is null)
 
 var majorLinks = new Dictionary<string, HalLink>
 {
-    {majorKey,majorEntry}
+    {majorIndexKey,majorIndexEntry}
 };
 
 var indexPath = Path.Combine(root, index);
 var majorIndex = new ReleaseIndex()
 {
+    Kind = ReleaseKind.Index,
     Links = majorLinks,
     Embedded = new ReleaseIndexEmbedded()
     {
