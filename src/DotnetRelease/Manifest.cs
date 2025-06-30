@@ -21,3 +21,6 @@ public record ReleaseManifest
 
     public SupportPhase SupportPhase { get; init; }
 }
+
+
+// https://aka.ms/dotnet/8.0.1xx/stable/dotnet-sdk-win-x64.exe

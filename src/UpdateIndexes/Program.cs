@@ -1,7 +1,5 @@
 ﻿using System.Globalization;
-using System.Runtime.Versioning;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using DotnetRelease;
 using UpdateIndexes;
 
@@ -19,6 +17,7 @@ if (!Directory.Exists(root))
     Console.Error.WriteLine($"Directory not found: {root}");
     return 1;
 }
+
 
 List<string> files = ["index.json", "releases.json", "release.json", "manifest.json"];
 
@@ -44,6 +43,10 @@ foreach (var majorVersionDir in Directory.EnumerateDirectories(root).OrderDescen
 
     await using var stream = File.OpenRead(releasesJson);
     var major = await ReleaseNotes.GetMajorRelease(stream);
+
+    Summary summary = new(major);
+    summary.Process();
+
     if (major?.ChannelVersion is null) continue;
     var majorVersion = major.ChannelVersion;
     // var patchLinks = IndexHelpers.GetIndexEntriesForFiles(root, "index.json", versionFiles, majorVersion);
