@@ -1,38 +1,12 @@
-// using System.Text.Json;
-// using System.Text.Json.Serialization;
+using DotnetRelease;
 
-// namespace UpdateIndexes;
+public record ReleaseKindMapping(string Name, string Filename, ReleaseKind Kind, string FileType);
 
-// public record Resources(ResourceEntry Self, List<ResourceEntry> Entries);
+public record FileLink(string File, string Title, LinkStyle Style);
 
-// public record ResourceEntry(
-//     string Key,
-//     string Value,
-//     ResourceKind Kind)
-// {
-//     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-//     public List<Resource>? Resources { get; set; }
-// }
-
-// // Custom naming policy for lower case enum serialization
-// public class LowerCaseNamingPolicy : JsonNamingPolicy
-// {
-//     public override string ConvertName(string name) => name.ToLowerInvariant();
-// }
-
-// // NOTE: To serialize ResourceKind as lower-case strings, configure the converter globally:
-// // options.Converters.Add(new JsonStringEnumConverter(new LowerCaseNamingPolicy()));
-// public enum ResourceKind
-// {
-//     Unknown,
-//     Index,
-//     PatchReleasesIndex,
-//     Releases,
-//     PatchRelease,
-// }
-
-// public record Resource(string Value, ResourceKind Kind)
-// {
-//     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-//     public string? Name { get; set; }
-// };
+[Flags]
+public enum LinkStyle
+{
+    Prod = 1 << 0,
+    GitHub = 1 << 1,
+}

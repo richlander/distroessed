@@ -1,11 +1,11 @@
-namespace CveInfo;
+namespace DotnetRelease;
 
-public record CveRecords(string Date, IReadOnlyList<Cve> Records, IReadOnlyList<Package> Packages)
+public record CveRecords(string Date, IReadOnlyList<CveDescription> Records, IReadOnlyList<CvePackage> Packages)
 {
     public IReadOnlyList<Commit>? Commits { get; set; }
 }
 
-public record Cve(string Id, string Title)
+public record CveDescription(string Id, string Title)
 {
     public string? Severity { get; set; }
     public string? Cvss { get; set; }
@@ -18,7 +18,7 @@ public record Cve(string Id, string Title)
     public IReadOnlyList<string>? References { get; set; }
 }
 
-public record Package(string Name, IReadOnlyList<Affected> Affected);
+public record CvePackage(string Name, IReadOnlyList<Affected> Affected);
 public record Affected(string CveId, string MinVulnerable, string MaxVulnerable, string Fixed)
 {
     // May be important to specify the binaries affected by the CVE

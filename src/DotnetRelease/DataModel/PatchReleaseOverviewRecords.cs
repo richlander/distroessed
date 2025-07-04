@@ -6,17 +6,29 @@ namespace DotnetRelease;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Skip)]
 [Description("A patch release for a major product version.")]
 public record PatchReleaseOverview(
-    [property: Description("Major (or major.minor) version of product.")]
+    [property: Description("Major (or major.minor) version of the product.")]
     string ChannelVersion,
 
-    [property: Description("The date of the patch release.")]
-    DateOnly ReleaseDate,
+    [property: Description("The version of the most recent patch release.")]
+    string LatestRelease,
 
-    [property: Description("The version (branding) of the release")]
-    string ReleaseVersion,
+    [property: Description("The date of the most recent release.")]
+    DateOnly LatestReleaseDate,
 
-    [property: Description("Whether the release contains any CVE fixes.")]
-    bool Security,
+    [property: Description("The runtime version of the most recent patch release.")]
+    string LatestRuntime,
+
+    [property: Description("The SDK version of the most recent patch release.")]
+    string LatestSdk,
+
+    [property: Description("The current support phase of the major version.")]
+    SupportPhase SupportPhase,
+
+    [property: Description("The release type of the major version.")]
+    ReleaseType ReleaseType,
+
+    [property: Description("Link to lifecycle page for the product.")]
+    string LifecyclePolicy,
 
     [property: Description("A patch release with detailed release information.")]
     PatchRelease Release);
@@ -66,7 +78,7 @@ public record PatchRelease(
 public record Cve(
     [property: Description("The ID tracking the CVE.")]
     string CveId,
-    
+
     [property: Description("The URL tracking the CVE at the authoritative site.")]
     string CveUrl);
 
@@ -85,7 +97,7 @@ public record RuntimeComponent(
 
     [property: Description("The version of Visual Studio for Mac that includes this component version."),
     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string VSMacVersion, 
+    string VSMacVersion,
 
     [property: Description("The minimum version of Visual Studio that supports this component version.")]
     string VSSupport,
@@ -171,16 +183,16 @@ public record Component(
 public record ComponentFile(
     [property: Description("File name.")]
     string Name,
-    
+
     [property: Description("Runtime ID of file, describing OS and architecture applicability, like `linux-x64`.")]
     string Rid,
-    
+
     [property: Description("Fully-qualified URL of file.")]
     string Url,
 
     [property: Description("Content hash of file.")]
     string Hash,
-    
+
     [property: Description("Short-link URL to file."),
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? Akams = null);
