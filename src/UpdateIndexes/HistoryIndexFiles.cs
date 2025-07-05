@@ -66,36 +66,22 @@ public class HistoryIndexFiles
                     }
                 }
 
-                int cveCount = 0;
                 var cveJsonPath = Path.Combine(monthPath, "cve.json");
-                CveRecords? cveData = null;
+                CveRecords? cveRecords = null;
 
                 if (File.Exists(cveJsonPath))
                 {
                     using var cveStream = File.OpenRead(cveJsonPath);
-                    cveData = await JsonSerializer.DeserializeAsync<CveRecords>(cveStream, CveInfoSerializerContext.Default.CveRecords);
-                    if (cveData != null)
-                    {
-                        cveCount = cveData.Records.Count;
-                    }
+                    cveRecords = await JsonSerializer.DeserializeAsync<CveRecords>(cveStream, CveInfoSerializerContext.Default.CveRecords);
                 }
-
-
-                // Count unique CVEs per .NET version across all releases in the month
-                var cveCountsByVersion = month.Days.Values
-                    .SelectMany(d => d.Releases)
-                    .GroupBy(r => r.MajorVersion)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.SelectMany(r => r.CveList ?? [])
-                              .Distinct()
-                              .Count()
-                    );
 
                 // Add to month entries for the year index
                 var entry = new HistoryMonthEntry(month.Month, historyLinks, releases.ToList())
                 {
-                    // CveInfo = cveData ? ..Select(r => new HistoryCveInfo(r., r.CveCount)).ToList()
+                    CveRecords = cveRecords?.Records.Select(r => new CveRecordSummary(r.Id, r.Title)
+                    {
+                        Href = r.References?.FirstOrDefault()
+                    }).ToList()
                 };
                 monthEntries.Add(entry);
             }
@@ -115,6 +101,12 @@ public class HistoryIndexFiles
                 year.Year,
                 yearHalLinks);
             yearHistory.Embedded = new MonthIndexEmbedded(monthEntries);
+            yearHistory.ReleaseNotes = releasesForYear.Select(version => new ReleaseMetadata(
+                version,
+                $"https://github.com/dotnet/core/blob/main/release-notes/{version}/README.md",
+                $".NET {version} Release notes",
+                "text/html"
+            )).ToList();
 
             using Stream yearStream = File.Create(Path.Combine(yearPath, "index.json"));
             JsonSerializer.Serialize(

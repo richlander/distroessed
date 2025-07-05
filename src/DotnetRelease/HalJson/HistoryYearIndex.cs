@@ -16,6 +16,9 @@ public record HistoryMonthEntry(string Month, [property: JsonPropertyName("_link
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IList<HistoryCveInfo>? CveInfo { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
 };
 
 public record HistoryCveInfo(string Version, int CveCount);

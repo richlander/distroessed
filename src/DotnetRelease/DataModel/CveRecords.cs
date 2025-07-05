@@ -18,6 +18,13 @@ public record CveRecord(string Id, string Title)
     public IReadOnlyList<string>? References { get; set; }
 }
 
+public record CveRecordSummary(string Id, string Title)
+{
+    public string? Href { get; set; }
+};
+
+public record CveRecordsSummary(IReadOnlyList<CveRecordSummary> Records);
+
 public record CvePackage(string Name, IReadOnlyList<Affected> Affected);
 public record Affected(string CveId, string MinVulnerable, string MaxVulnerable, string Fixed)
 {

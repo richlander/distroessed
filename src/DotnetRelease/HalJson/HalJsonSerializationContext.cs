@@ -32,8 +32,9 @@ public partial class HistoryIndexSerializerContext : JsonSerializerContext
     PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(HistoryYearIndex))]
+[JsonSerializable(typeof(CveRecords))]
+[JsonSerializable(typeof(CveRecordsSummary))]
+[JsonSerializable(typeof(CveRecordSummary))]
 public partial class HistoryYearIndexSerializerContext : JsonSerializerContext
 {
 }
-
-
