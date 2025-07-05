@@ -1,7 +1,5 @@
-using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using CveInfo;
+using DotnetRelease;
 
 namespace ReportHelpers;
 
@@ -14,7 +12,7 @@ public class Report
 
     public static string MakeCommitUrl(string org, string repo, string commit) => $"https://github.com/{org}/{repo}/commit/{commit}";
 
-    public static string MakeCveLink(Cve cve) => $"https://www.cve.org/CVERecord?id={cve.Id}";
+    public static string MakeCveLink(CveRecord cve) => $"https://www.cve.org/CVERecord?id={cve.Id}";
 
     public static string MakeNuGetLink(string package, string? version = null)
     {

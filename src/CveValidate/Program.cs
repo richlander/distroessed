@@ -1,4 +1,4 @@
-﻿using CveInfo;
+﻿using DotnetRelease;
 
 if (args.Length is < 1 || !args[0].EndsWith("cve.json"))
 {

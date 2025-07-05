@@ -1,5 +1,4 @@
-using System.Data.Common;
-using CveInfo;
+using DotnetRelease;
 using MarkdownHelpers;
 using ReportHelpers;
 
@@ -56,7 +55,7 @@ public class CveReport
 
         cveTable.WriteHeader(cveLabels);
 
-        foreach (Cve cve in cves.Records.OrderBy(c => c.Id))
+        foreach (CveRecord cve in cves.Records.OrderBy(c => c.Id))
         {
             string link = cve.References is { Count: > 0 } ? cve.References[0] : Report.MakeCveLink(cve);
             _links.Add(cve.Id, link);
@@ -86,7 +85,7 @@ public class CveReport
         WritePackageTableForType(platformPackages, writer, "Package", none);
     }
 
-    public void WritePackageTableForType(IEnumerable<Package> packages, StreamWriter writer, string type, string noneFound)
+    public void WritePackageTableForType(IEnumerable<CvePackage> packages, StreamWriter writer, string type, string noneFound)
     {
         // Package version table
         string[] packageLabels = [type, "Min Version", "Max Version", "Fixed Version", "CVE", "Source fix"];

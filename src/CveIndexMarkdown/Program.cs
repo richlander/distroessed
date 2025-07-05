@@ -1,10 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
-using CveInfo;
-using System.Text;
+﻿using System.Text.Json;
 using CveIndexMarkdown;
 
 if (args.Length != 1)

@@ -1,11 +1,11 @@
 namespace DotnetRelease;
 
-public record CveRecords(string Date, IReadOnlyList<CveDescription> Records, IReadOnlyList<CvePackage> Packages)
+public record CveRecords(string Date, IReadOnlyList<CveRecord> Records, IReadOnlyList<CvePackage> Packages)
 {
     public IReadOnlyList<Commit>? Commits { get; set; }
 }
 
-public record CveDescription(string Id, string Title)
+public record CveRecord(string Id, string Title)
 {
     public string? Severity { get; set; }
     public string? Cvss { get; set; }

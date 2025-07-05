@@ -1,7 +1,4 @@
-﻿using CveInfo;
-using MarkdownHelpers;
-using ReportHelpers;
-
+﻿
 // Format is inspired by https://security.alpinelinux.org/vuln/CVE-2024-5535
 // Usage:
 // CveMarkdown cve.json cve-template.md

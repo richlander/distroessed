@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MarkdownTemplate\MarkdownTemplate.csproj" />
-    <ProjectReference Include="..\CveInfo\CveInfo.csproj" />
     <ProjectReference Include="..\MarkdownHelpers\MarkdownHelpers.csproj" />
+    <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
   </ItemGroup>
 
 </Project>

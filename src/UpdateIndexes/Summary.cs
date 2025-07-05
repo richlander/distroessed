@@ -76,6 +76,11 @@ public class Summary
                     components.Add(new ReleaseComponent("SDK", version, label));
                 }
 
+                if (release?.ReleaseVersion == null)
+                {
+                    throw new InvalidOperationException($"Release version is null in {patchJson}");
+                }
+
                 PatchReleaseSummary summary = new(major.ChannelVersion, release.ReleaseVersion, release.ReleaseDate, isSecurity, release.CveList, components)
                 {
                     ReleaseJsonPath = patchExists ? Path.GetRelativePath(rootDir, patchJson) : null
