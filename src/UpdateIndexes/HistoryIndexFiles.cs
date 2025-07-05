@@ -2,6 +2,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using DotnetRelease;
+using System.Linq;
+using System.Globalization;
 
 namespace UpdateIndexes;
 
@@ -22,8 +24,11 @@ public class HistoryIndexFiles
             throw new DirectoryNotFoundException($"Root directory does not exist: {rootPath}");
         }
 
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        
         List<HistoryYearEntry> yearEntries = [];
 
+        HashSet<string> allReleases = [];
 
         foreach (var year in releaseHistory.Years.Values)
         {
@@ -63,6 +68,7 @@ public class HistoryIndexFiles
                         // var r = new HistoryRelease(day.MajorVersion, dayCveCount, []);
                         releases.Add(day.MajorVersion);
                         releasesForYear.Add(day.MajorVersion);
+                        allReleases.Add(day.MajorVersion);
                     }
                 }
 
@@ -101,12 +107,14 @@ public class HistoryIndexFiles
                 year.Year,
                 yearHalLinks);
             yearHistory.Embedded = new MonthIndexEmbedded(monthEntries);
-            yearHistory.ReleaseNotes = releasesForYear.Select(version => new ReleaseMetadata(
-                version,
-                $"https://github.com/dotnet/core/blob/main/release-notes/{version}/README.md",
-                $".NET {version} Release notes",
-                "text/html"
-            )).ToList();
+            yearHistory.ReleaseNotes = releasesForYear
+                .OrderByDescending(version => version, numericStringComparer)
+                .Select(version => new ReleaseMetadata(
+                    version,
+                    $"https://github.com/dotnet/core/blob/main/release-notes/{version}/README.md",
+                    $".NET {version} Release notes",
+                    "text/html"
+                )).ToList();
 
             using Stream yearStream = File.Create(Path.Combine(yearPath, "index.json"));
             JsonSerializer.Serialize(
@@ -148,6 +156,15 @@ public class HistoryIndexFiles
         {
             Embedded = new YearIndexEmbedded([.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)])
         };
+
+        historyIndex.ReleaseNotes = allReleases
+            .OrderByDescending(version => version, numericStringComparer)
+            .Select(version => new ReleaseMetadata(
+                version,
+                $"https://github.com/dotnet/core/blob/main/release-notes/{version}/README.md",
+                $".NET {version} Release notes",
+                "text/html"
+            )).ToList();
 
         using var historyStream = File.Create(Path.Combine(rootPath, "index.json"));
         JsonSerializer.Serialize(

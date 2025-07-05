@@ -24,6 +24,7 @@ public partial class ReleaseManifestSerializerContext : JsonSerializerContext
     PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(HistoryIndex))]
+[JsonSerializable(typeof(ReleaseMetadata))]
 public partial class HistoryIndexSerializerContext : JsonSerializerContext
 {
 }

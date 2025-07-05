@@ -6,6 +6,8 @@ public record HistoryIndex(HistoryKind Kind, string Description, [property: Json
 {
     [JsonPropertyName("_embedded")]
     public YearIndexEmbedded? Embedded { get; set; }
+    
+    public IList<ReleaseMetadata>? ReleaseNotes { get; set; }
 }
 
 public record YearIndexEmbedded(List<HistoryYearEntry> Years);
