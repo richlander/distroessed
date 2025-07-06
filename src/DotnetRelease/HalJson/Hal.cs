@@ -5,8 +5,13 @@ namespace DotnetRelease;
 
 public record HalLink(string Href)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Relative { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Title { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Type { get; set; }
 }
 

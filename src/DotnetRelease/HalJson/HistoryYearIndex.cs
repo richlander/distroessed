@@ -5,9 +5,13 @@ namespace DotnetRelease;
 public record HistoryYearIndex(HistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded")]
-    public MonthIndexEmbedded? Embedded { get; set; }
+    public HistoryYearIndexEmbedded? Embedded { get; set; }
+}
 
-    public IList<ReleaseMetadata>? ReleaseNotes { get; set; }
+public record HistoryYearIndexEmbedded
+{
+    public List<HistoryMonthEntry>? Months { get; set; }
+    public List<HistoryReleaseIndexEntry>? Releases { get; set; }
 }
 
 public record MonthIndexEmbedded(List<HistoryMonthEntry> Months);

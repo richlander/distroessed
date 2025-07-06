@@ -5,10 +5,16 @@ namespace DotnetRelease;
 public record HistoryIndex(HistoryKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded")]
-    public YearIndexEmbedded? Embedded { get; set; }
-    
-    public IList<ReleaseMetadata>? ReleaseNotes { get; set; }
+    public HistoryIndexEmbedded? Embedded { get; set; }
 }
+
+public record HistoryIndexEmbedded
+{
+    public List<HistoryYearEntry>? Years { get; set; }
+    public List<HistoryReleaseIndexEntry>? Releases { get; set; }
+}
+
+public record HistoryReleaseIndexEntry(string Version, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
 
 public record YearIndexEmbedded(List<HistoryYearEntry> Years);
 
