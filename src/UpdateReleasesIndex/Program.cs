@@ -3,7 +3,7 @@ using DotnetRelease;
 
 const string majorReleaseFile = "releases.json";
 const string patchReleaseFile = "release.json";
-string baseDir = "/Users/rich/git/core/release-notes";
+string baseDir = args.Length > 0 ? args[0] : "release-notes";
 
 List<MajorReleaseIndexItem> majorReleases = [];
 
@@ -12,7 +12,10 @@ foreach (var versionDir in ReleaseNotes.GetReleaseNoteDirectories(new DirectoryI
     string releasesJsonPath = Path.Combine(versionDir.FullName, majorReleaseFile);
     Stream releasesJson = File.OpenRead(releasesJsonPath);
     var major = await ReleaseNotes.GetMajorRelease(releasesJson) ?? throw new();
-    string releasesJsonUri = $"{ReleaseNotes.OfficialBaseUri}{major.ChannelVersion}/{majorReleaseFile}";
+    
+    // Use relative path from release-notes directory to match URL format
+    string relativePath = Path.GetRelativePath(baseDir, versionDir.FullName);
+    string releasesJsonUri = $"{ReleaseNotes.OfficialBaseUri}{relativePath}/{majorReleaseFile}";
 
     var majorReleaseItem = new MajorReleaseIndexItem(
         major.ChannelVersion,
@@ -39,14 +42,14 @@ foreach (var versionDir in ReleaseNotes.GetReleaseNoteDirectories(new DirectoryI
         continue;
     }
 
-    ProcessMajorRelease(major, versionDir.FullName);
+    ProcessMajorRelease(major, versionDir.FullName, baseDir);
 }
 
 MajorReleasesIndex index = new(majorReleases);
 string majorReleasesIndexJson = Path.Combine(baseDir, "releases-index.json");
 WriteMajorReleasesIndex(index, majorReleasesIndexJson);
 
-static void ProcessMajorRelease(MajorReleaseOverview majorReleaseOverview, string dir)
+static void ProcessMajorRelease(MajorReleaseOverview majorReleaseOverview, string dir, string baseDir)
 {
     List<PatchReleaseIndexItem> patchReleases = [];
     string channelVersion = majorReleaseOverview.ChannelVersion;
@@ -59,8 +62,12 @@ static void ProcessMajorRelease(MajorReleaseOverview majorReleaseOverview, strin
         {
             continue;
         }
-        var releaseJsonUrl = $"{ReleaseNotes.OfficialBaseUri}{channelVersion}/{folder}/{patchReleaseFile}";
-        string patchReleaseJson = Path.Combine(dir, folder, ReleaseNotes.PatchRelease);
+        
+        // Use relative path from release-notes directory to match URL format
+        string patchReleaseDir = Path.Combine(dir, folder);
+        string relativePath = Path.GetRelativePath(baseDir, patchReleaseDir);
+        var releaseJsonUrl = $"{ReleaseNotes.OfficialBaseUri}{relativePath}/{patchReleaseFile}";
+        string patchReleaseJson = Path.Combine(patchReleaseDir, ReleaseNotes.PatchRelease);
 
         var patchReleaseOverview = new PatchReleaseOverview(
             channelVersion,
