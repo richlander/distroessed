@@ -6,6 +6,24 @@ namespace UpdateIndexes;
 
 public class ReleaseIndexFiles
 {
+    public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
+    {
+        {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
+        {"releases.json", new FileLink("releases.json", "Releases", LinkStyle.Prod) },
+        {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
+        {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
+        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"terminology.md", new FileLink("terminology.md", "Terminology", LinkStyle.Prod | LinkStyle.GitHub) }
+    };
+
+    public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
+    {
+        {"supported-os.json", new FileLink("supported-os.json", "Supported OSes", LinkStyle.Prod) },
+        {"supported-os.md", new FileLink("supported-os.md", "Supported OSes", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"linux-packages.json", new FileLink("linux-packages.json", "Linux Packages", LinkStyle.Prod) },
+        {"linux-packages.md", new FileLink("linux-packages.md", "Linux Packages", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"README.md", new FileLink("README.md", "Release Notes", LinkStyle.GitHub) }
+    };
 
     private readonly List<string> _leafFiles = ["releases.json", "release.json", "manifest.json"];
 
@@ -25,6 +43,10 @@ public class ReleaseIndexFiles
             s => s,
             StringComparer.OrdinalIgnoreCase);
 
+        var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
+            ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"
+            : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
+
         // Look at all the major version directories
         // The presence of a releases.json file indicates this is a major version directory
         foreach (var majorVersionDir in Directory.EnumerateDirectories(rootDir))
@@ -36,19 +58,24 @@ public class ReleaseIndexFiles
                 continue;
             }
 
-            List<HalTuple> majorVersionTuples = [.. IndexHelpers.GetHalLinksForPath(majorVersionDir, new(majorVersionDir, rootDir), summary.MajorVersionLabel)];
-            var majorVersionLinks = majorVersionTuples.ToDictionary(
-                t => t.Key,
-                t => t.Link);
+            var halLinkGenerator = new HalLinkGenerator(majorVersionDir);
+            var majorVersionLinks = halLinkGenerator.Generate(
+                MainFileMappings.Values,
+                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title,
+                urlGenerator);
 
             // Generate patch version index; release-notes/8.0/index.json
             var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new(majorVersionDir, rootDir));
 
-            var auxFiles = IndexHelpers.GetAuxHalLinksForPath(majorVersionDir, new(majorVersionDir, rootDir), IndexHelpers.AuxFileMappings.Values);
+            var auxLinks = halLinkGenerator.Generate(
+                AuxFileMappings.Values,
+                (fileLink, key) => fileLink.Title,
+                urlGenerator);
 
-            foreach (var auxFile in auxFiles)
+            // Merge aux links into major version links
+            foreach (var auxLink in auxLinks)
             {
-                majorVersionLinks[auxFile.Key] = auxFile.Link;
+                majorVersionLinks[auxLink.Key] = auxLink.Value;
             }
 
             var manifestPath = Path.Combine(majorVersionDir, "manifest.json");
@@ -69,7 +96,7 @@ public class ReleaseIndexFiles
             var majorIndexPath = Path.Combine(majorVersionDir, "index.json");
             var relativeMajorIndexPath = Path.GetRelativePath(rootDir, majorIndexPath);
             var patchVersionIndex = new ReleaseIndex(
-                majorVersionTuples[0].Kind,
+                ReleaseKind.Index,
                     $"Index for {summary.MajorVersionLabel} patch releases",
                     majorVersionLinks)
             {
@@ -85,15 +112,15 @@ public class ReleaseIndexFiles
                 ReleaseIndexSerializerContext.Default.ReleaseIndex);
 
             // Same links as the major version index, but with a different base directory (to force different pathing)
-            List<HalTuple> majorVersionWithinAllReleasesIndexTuples = [.. IndexHelpers.GetHalLinksForPath(majorVersionDir, new(majorVersionDir, rootDir), summary.MajorVersionLabel)];
-            var majorVersionWithinAllReleasesIndexLinks = majorVersionWithinAllReleasesIndexTuples.ToDictionary(
-                t => t.Key,
-                t => t.Link);
+            var majorVersionWithinAllReleasesIndexLinks = halLinkGenerator.Generate(
+                MainFileMappings.Values,
+                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title,
+                urlGenerator);
 
             // Add the major version entry to the list
             var majorEntry = new ReleaseIndexEntry(
                 majorVersionDirName,
-                majorVersionWithinAllReleasesIndexTuples[0].Kind,
+                ReleaseKind.Index,
                 majorVersionWithinAllReleasesIndexLinks
                 )
             { Support = support };
@@ -101,11 +128,13 @@ public class ReleaseIndexFiles
             majorEntries.Add(majorEntry);
         }
 
-        List<HalTuple> rootHalTuples = [.. IndexHelpers.GetHalLinksForPath(rootDir, new(rootDir), ".NET Release")];
-        Console.WriteLine($"Found {rootHalTuples.Count} root links in {rootDir}");
-        Dictionary<string, HalLink> rootLinks = rootHalTuples.ToDictionary(
-            t => t.Key,
-            t => t.Link);
+        var rootHalLinkGenerator = new HalLinkGenerator(rootDir);
+        var rootLinks = rootHalLinkGenerator.Generate(
+            MainFileMappings.Values,
+            (fileLink, key) => key == HalTerms.Self ? ".NET Release" : fileLink.Title,
+            urlGenerator);
+
+        Console.WriteLine($"Found {rootLinks.Count} root links in {rootDir}");
 
         // Create the major releases index; release-notes/index.json
         var rootIndexPath = Path.Combine(rootDir, "index.json");
