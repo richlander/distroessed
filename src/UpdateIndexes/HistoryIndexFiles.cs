@@ -77,7 +77,6 @@ public class HistoryIndexFiles
                 Console.WriteLine($"Processing month: {month.Month} in year: {year.Year}");
                 var monthPath = Path.Combine(yearPath, month.Month);
                 var monthHistoryLinks = halLinkGenerator.Generate(
-                    monthPath,
                     HistoryFileMappings.Values,
                     (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}-{month.Month}" : fileLink.Title,
                     urlGenerator);
@@ -115,7 +114,6 @@ public class HistoryIndexFiles
             }
 
             var yearHalLinks = halLinkGenerator.Generate(
-                yearPath,
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title,
                 urlGenerator);
@@ -147,7 +145,6 @@ public class HistoryIndexFiles
             // for the overall index
 
             var overallYearHalLinks = halLinkGenerator.Generate(
-                yearPath,
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title,
                 urlGenerator);
@@ -164,7 +161,6 @@ public class HistoryIndexFiles
         }
 
         var fullIndexLinks = halLinkGenerator.Generate(
-            rootPath,
             HistoryFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? "History of .NET releases" : fileLink.Title,
             urlGenerator);
