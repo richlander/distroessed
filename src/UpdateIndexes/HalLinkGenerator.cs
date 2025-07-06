@@ -2,25 +2,23 @@ using DotnetRelease;
 
 namespace UpdateIndexes;
 
-public class HalLinkGenerator(string rootPath)
+public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> urlGenerator)
 {
     private readonly string _rootPath = rootPath ?? throw new ArgumentNullException(nameof(rootPath));
+    private readonly Func<string, LinkStyle, string> _urlGenerator = urlGenerator ?? throw new ArgumentNullException(nameof(urlGenerator));
 
-    public Dictionary<string, HalLink> Generate(IEnumerable<FileLink> fileLinks, Func<FileLink, string, string> titleGenerator, Func<string, LinkStyle, string> urlGenerator)
+    public Dictionary<string, HalLink> Generate(string path,IEnumerable<FileLink> fileLinks, Func<FileLink, string, string> titleGenerator)
     {
-        if (fileLinks == null)
-            throw new ArgumentNullException(nameof(fileLinks));
-        if (titleGenerator == null)
-            throw new ArgumentNullException(nameof(titleGenerator));
-        if (urlGenerator == null)
-            throw new ArgumentNullException(nameof(urlGenerator));
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(fileLinks);
+        ArgumentNullException.ThrowIfNull(titleGenerator);
 
         var result = new Dictionary<string, HalLink>();
         bool isSelf = true;
 
         foreach (var fileLink in fileLinks)
         {
-            var filePath = Path.Combine(_rootPath, fileLink.File);
+            var filePath = Path.Combine(path, fileLink.File);
 
             if (!File.Exists(filePath))
             {

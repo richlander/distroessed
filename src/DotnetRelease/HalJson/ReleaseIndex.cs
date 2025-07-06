@@ -24,6 +24,9 @@ public record ReleaseIndexEntry(string Version, ReleaseKind Kind, [property: Jso
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Support? Support { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
 }
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]

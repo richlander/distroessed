@@ -47,6 +47,8 @@ public class ReleaseIndexFiles
             ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"
             : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
 
+        var halLinkGenerator = new HalLinkGenerator(rootDir, urlGenerator);
+        
         // Look at all the major version directories
         // The presence of a releases.json file indicates this is a major version directory
         foreach (var majorVersionDir in Directory.EnumerateDirectories(rootDir))
@@ -58,19 +60,18 @@ public class ReleaseIndexFiles
                 continue;
             }
 
-            var halLinkGenerator = new HalLinkGenerator(majorVersionDir);
             var majorVersionLinks = halLinkGenerator.Generate(
+                majorVersionDir,
                 MainFileMappings.Values,
-                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title,
-                urlGenerator);
+                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Generate patch version index; release-notes/8.0/index.json
             var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new(majorVersionDir, rootDir), releaseHistory);
 
             var auxLinks = halLinkGenerator.Generate(
+                majorVersionDir,
                 AuxFileMappings.Values,
-                (fileLink, key) => fileLink.Title,
-                urlGenerator);
+                (fileLink, key) => fileLink.Title);
 
             // Merge aux links into major version links
             foreach (var auxLink in auxLinks)
@@ -113,9 +114,9 @@ public class ReleaseIndexFiles
 
             // Same links as the major version index, but with a different base directory (to force different pathing)
             var majorVersionWithinAllReleasesIndexLinks = halLinkGenerator.Generate(
+                majorVersionDir,
                 MainFileMappings.Values,
-                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title,
-                urlGenerator);
+                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Add the major version entry to the list
             var majorEntry = new ReleaseIndexEntry(
@@ -128,11 +129,10 @@ public class ReleaseIndexFiles
             majorEntries.Add(majorEntry);
         }
 
-        var rootHalLinkGenerator = new HalLinkGenerator(rootDir);
-        var rootLinks = rootHalLinkGenerator.Generate(
+        var rootLinks = halLinkGenerator.Generate(
+            rootDir,
             MainFileMappings.Values,
-            (fileLink, key) => key == HalTerms.Self ? ".NET Release" : fileLink.Title,
-            urlGenerator);
+            (fileLink, key) => key == HalTerms.Self ? ".NET Release" : fileLink.Title);
 
         Console.WriteLine($"Found {rootLinks.Count} root links in {rootDir}");
 
@@ -200,7 +200,8 @@ public class ReleaseIndexFiles
                     }
                 };
 
-            // Add CVE links if available
+            // Add CVE links and records if available
+            IReadOnlyList<CveRecordSummary>? cveRecords = null;
             if (releaseHistory != null)
             {
                 var patchYear = summary.ReleaseDate.Year.ToString();
@@ -233,7 +234,19 @@ public class ReleaseIndexFiles
                 }
             }
 
-            var indexEntry = new ReleaseIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links);
+            // Add CVE records from the summary object
+            if (summary.CveList?.Count > 0)
+            {
+                cveRecords = summary.CveList.Select(cve => new CveRecordSummary(cve.CveId, $"CVE {cve.CveId}")
+                {
+                    Href = cve.CveUrl
+                }).ToList();
+            }
+
+            var indexEntry = new ReleaseIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
+            {
+                CveRecords = cveRecords
+            };
             indexEntries.Add(indexEntry);
         }
 

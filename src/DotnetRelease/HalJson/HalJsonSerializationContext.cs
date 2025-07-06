@@ -7,6 +7,7 @@ namespace DotnetRelease;
     WriteIndented = true)]
 [JsonSerializable(typeof(ReleaseIndex))]
 [JsonSerializable(typeof(Support))]
+[JsonSerializable(typeof(CveRecordSummary))]
 public partial class ReleaseIndexSerializerContext : JsonSerializerContext
 {
 }

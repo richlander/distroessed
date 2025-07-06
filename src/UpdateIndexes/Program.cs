@@ -23,8 +23,6 @@ if (!Directory.Exists(root))
     return 1;
 }
 
-var historyPath = Path.Combine(root, "history");
-
 // Generate general release summaries
 // This will read all the major version directories and their patch releases
 // and produce a summary of the releases, including SDK bands and patch releases.
@@ -32,6 +30,6 @@ var summaries = await Summary.GetReleaseSummariesAsync(root) ?? throw new Invali
 ReleaseHistory history = Summary.GetReleaseCalendar(summaries);
 Summary.PopulateCveInformation(history, root);
 await ReleaseIndexFiles.GenerateAsync(summaries, root, history);
-await HistoryIndexFiles.GenerateAsync(historyPath, history);
+await HistoryIndexFiles.GenerateAsync(root, history);
 
 return 0;
