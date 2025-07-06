@@ -16,13 +16,16 @@ public record HistoryYearIndexEmbedded
 
 public record MonthIndexEmbedded(List<HistoryMonthEntry> Months);
 
-public record HistoryMonthEntry(string Month, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links, IList<string> DotnetReleases)
+public record HistoryMonthEntry(
+    string Month,
+    [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<CveRecordSummary>? CveRecords,
+    IList<string> DotnetReleases,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IList<string>? DotnetPatchReleases
+)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IList<HistoryCveInfo>? CveInfo { get; set; }
-    
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
 };
 
 public record HistoryCveInfo(string Version, int CveCount);

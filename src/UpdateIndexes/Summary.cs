@@ -152,4 +152,29 @@ public class Summary
 
         return new ReleaseHistory(years);
     }
+
+    public static void PopulateCveInformation(ReleaseHistory releaseHistory, string rootDir)
+    {
+        var historyDir = Path.Combine(rootDir, "history");
+        if (!Directory.Exists(historyDir))
+        {
+            return;
+        }
+
+        foreach (var year in releaseHistory.Years.Values)
+        {
+            foreach (var month in year.Months.Values)
+            {
+                foreach (var day in month.Days.Values)
+                {
+                    var relativePath = Path.Combine(year.Year, month.Month, "cve.json");
+                    var cveJsonPath = Path.Combine(historyDir, relativePath);
+                    if (File.Exists(cveJsonPath))
+                    {
+                        day.CveJson = relativePath;
+                    }
+                }
+            }
+        }
+    }
 }

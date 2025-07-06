@@ -49,11 +49,9 @@ public class HistoryIndexFiles
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
         
-        var halLinkGenerator = new HalLinkGenerator(rootPath);
-        
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
-            ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"
-            : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
+            ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/history/{relativePath}"
+            : $"https://github.com/dotnet/core/blob/main/release-notes/history/{relativePath}";
         
         List<HistoryYearEntry> yearEntries = [];
 
@@ -76,12 +74,14 @@ public class HistoryIndexFiles
             {
                 Console.WriteLine($"Processing month: {month.Month} in year: {year.Year}");
                 var monthPath = Path.Combine(yearPath, month.Month);
-                var monthHistoryLinks = halLinkGenerator.Generate(
+                var monthHalLinkGenerator = new HalLinkGenerator(monthPath);
+                var monthHistoryLinks = monthHalLinkGenerator.Generate(
                     HistoryFileMappings.Values,
                     (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}-{month.Month}" : fileLink.Title,
                     urlGenerator);
 
                 HashSet<string> releases = [];
+                HashSet<string> patchReleases = [];
 
                 foreach (var days in month.Days.Values)
                 {
@@ -90,6 +90,18 @@ public class HistoryIndexFiles
                         releases.Add(day.MajorVersion);
                         releasesForYear.Add(day.MajorVersion);
                         allReleases.Add(day.MajorVersion);
+                        
+                        // Add patch version (e.g., "10.0.1")
+                        patchReleases.Add(day.PatchVersion);
+                        
+                        // Add runtime and SDK versions from components
+                        foreach (var component in day.Components)
+                        {
+                            if (component.Name == "Runtime" || component.Name == "SDK")
+                            {
+                                patchReleases.Add(component.Version);
+                            }
+                        }
                     }
                 }
 
@@ -103,17 +115,21 @@ public class HistoryIndexFiles
                 }
 
                 // Add to month entries for the year index
-                var entry = new HistoryMonthEntry(month.Month, monthHistoryLinks, releases.ToList())
-                {
-                    CveRecords = cveRecords?.Records.Select(r => new CveRecordSummary(r.Id, r.Title)
+                var entry = new HistoryMonthEntry(
+                    month.Month,
+                    monthHistoryLinks,
+                    cveRecords?.Records.Select(r => new CveRecordSummary(r.Id, r.Title)
                     {
                         Href = r.References?.FirstOrDefault()
-                    }).ToList()
-                };
+                    }).ToList(),
+                    releases.ToList(),
+                    patchReleases.OrderByDescending(v => v, numericStringComparer).ToList()
+                );
                 monthEntries.Add(entry);
             }
 
-            var yearHalLinks = halLinkGenerator.Generate(
+            var yearHalLinkGenerator = new HalLinkGenerator(yearPath);
+            var yearHalLinks = yearHalLinkGenerator.Generate(
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title,
                 urlGenerator);
@@ -144,7 +160,8 @@ public class HistoryIndexFiles
 
             // for the overall index
 
-            var overallYearHalLinks = halLinkGenerator.Generate(
+            var overallYearHalLinkGenerator = new HalLinkGenerator(yearPath);
+            var overallYearHalLinks = overallYearHalLinkGenerator.Generate(
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title,
                 urlGenerator);
@@ -160,7 +177,8 @@ public class HistoryIndexFiles
             );
         }
 
-        var fullIndexLinks = halLinkGenerator.Generate(
+        var rootHalLinkGenerator = new HalLinkGenerator(rootPath);
+        var fullIndexLinks = rootHalLinkGenerator.Generate(
             HistoryFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? "History of .NET releases" : fileLink.Title,
             urlGenerator);

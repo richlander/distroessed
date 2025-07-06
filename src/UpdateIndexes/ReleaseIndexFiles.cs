@@ -28,7 +28,7 @@ public class ReleaseIndexFiles
     private readonly List<string> _leafFiles = ["releases.json", "release.json", "manifest.json"];
 
     // Generates index files for each major version directory and one root index file
-    public static async Task GenerateAsync(List<MajorReleaseSummary> summaries, string rootDir)
+    public static async Task GenerateAsync(List<MajorReleaseSummary> summaries, string rootDir, ReleaseHistory? releaseHistory = null)
     {
         if (!Directory.Exists(rootDir))
         {
@@ -65,7 +65,7 @@ public class ReleaseIndexFiles
                 urlGenerator);
 
             // Generate patch version index; release-notes/8.0/index.json
-            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new(majorVersionDir, rootDir));
+            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new(majorVersionDir, rootDir), releaseHistory);
 
             var auxLinks = halLinkGenerator.Generate(
                 AuxFileMappings.Values,
@@ -157,7 +157,7 @@ public class ReleaseIndexFiles
     }
 
     // Generates index containing each patch release in the major version directory
-    private static List<ReleaseIndexEntry> GetPatchIndexEntries(IList<PatchReleaseSummary> summaries, PathContext pathContext)
+    private static List<ReleaseIndexEntry> GetPatchIndexEntries(IList<PatchReleaseSummary> summaries, PathContext pathContext, ReleaseHistory? releaseHistory)
     {
         var (rootDir, urlRootDir) = pathContext;
 
@@ -199,6 +199,40 @@ public class ReleaseIndexFiles
                         }
                     }
                 };
+
+            // Add CVE links if available
+            if (releaseHistory != null)
+            {
+                var patchYear = summary.ReleaseDate.Year.ToString();
+                var patchMonth = summary.ReleaseDate.Month.ToString("D2");
+                var patchDay = summary.ReleaseDate.Day.ToString("D2");
+
+                if (releaseHistory.Years.TryGetValue(patchYear, out var year) &&
+                    year.Months.TryGetValue(patchMonth, out var month) &&
+                    month.Days.TryGetValue(patchDay, out var day) &&
+                    !string.IsNullOrEmpty(day.CveJson))
+                {
+                    // Add CVE JSON link
+                    var cveJsonRelativePath = $"history/{day.CveJson}";
+                    links["cve-json"] = new HalLink(IndexHelpers.GetProdPath(cveJsonRelativePath))
+                    {
+                        Relative = cveJsonRelativePath,
+                        Title = "CVE Information (JSON)",
+                        Type = MediaType.Json
+                    };
+
+                    // Add CVE Markdown link
+                    var cveMdPath = day.CveJson.Replace(".json", ".md");
+                    var cveMdRelativePath = $"history/{cveMdPath}";
+                    links["cve-markdown"] = new HalLink(IndexHelpers.GetGitHubPath(cveMdRelativePath))
+                    {
+                        Relative = cveMdRelativePath,
+                        Title = "CVE Information (Markdown)",
+                        Type = MediaType.Markdown
+                    };
+                }
+            }
+
             var indexEntry = new ReleaseIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links);
             indexEntries.Add(indexEntry);
         }
