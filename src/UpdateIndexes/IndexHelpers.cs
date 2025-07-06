@@ -6,7 +6,7 @@ namespace UpdateIndexes;
 public class IndexHelpers
 {
 
-    private static readonly OrderedDictionary<string, ReleaseKindMapping> _halFileMappings = new()
+    private static readonly Dictionary<string, ReleaseKindMapping> _halFileMappings = new()
     {
         { "index.json", new ReleaseKindMapping("index", "index.json", ReleaseKind.Index, MediaType.Json) },
         { "releases.json", new ReleaseKindMapping("releases", "releases.json", ReleaseKind.MajorRelease, MediaType.Json) },
@@ -16,7 +16,7 @@ public class IndexHelpers
         { "terminology.md", new ReleaseKindMapping("terminology", "terminology.md", ReleaseKind.Content, MediaType.Markdown) }
     };
 
-    public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
+    public static readonly Dictionary<string, FileLink> AuxFileMappings = new()
     {
         {"supported-os.json", new FileLink("supported-os.json", "Supported OSes", LinkStyle.Prod) },
         {"supported-os.md", new FileLink("supported-os.md", "Supported OSes", LinkStyle.Prod | LinkStyle.GitHub) },

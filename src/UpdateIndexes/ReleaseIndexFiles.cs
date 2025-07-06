@@ -6,7 +6,7 @@ namespace UpdateIndexes;
 
 public class ReleaseIndexFiles
 {
-    public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
+    public static readonly Dictionary<string, FileLink> MainFileMappings = new()
     {
         {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
         {"releases.json", new FileLink("releases.json", "Releases", LinkStyle.Prod) },
@@ -16,7 +16,7 @@ public class ReleaseIndexFiles
         {"terminology.md", new FileLink("terminology.md", "Terminology", LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
-    public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
+    public static readonly Dictionary<string, FileLink> AuxFileMappings = new()
     {
         {"supported-os.json", new FileLink("supported-os.json", "Supported OSes", LinkStyle.Prod) },
         {"supported-os.md", new FileLink("supported-os.md", "Supported OSes", LinkStyle.Prod | LinkStyle.GitHub) },
@@ -35,7 +35,7 @@ public class ReleaseIndexFiles
             throw new DirectoryNotFoundException($"Root directory does not exist: {rootDir}");
         }
 
-        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.None);
         List<ReleaseIndexEntry> majorEntries = [];
 
         var summaryTable = summaries.ToDictionary(
@@ -59,10 +59,13 @@ public class ReleaseIndexFiles
             }
 
             var halLinkGenerator = new HalLinkGenerator(majorVersionDir);
+            var majorVersionUrlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
+                ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{majorVersionDirName}/{relativePath}"
+                : $"https://github.com/dotnet/core/blob/main/release-notes/{majorVersionDirName}/{relativePath}";
             var majorVersionLinks = halLinkGenerator.Generate(
                 MainFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title,
-                urlGenerator);
+                majorVersionUrlGenerator);
 
             // Generate patch version index; release-notes/8.0/index.json
             var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new(majorVersionDir, rootDir), releaseHistory);
@@ -70,7 +73,7 @@ public class ReleaseIndexFiles
             var auxLinks = halLinkGenerator.Generate(
                 AuxFileMappings.Values,
                 (fileLink, key) => fileLink.Title,
-                urlGenerator);
+                majorVersionUrlGenerator);
 
             // Merge aux links into major version links
             foreach (var auxLink in auxLinks)
@@ -115,7 +118,7 @@ public class ReleaseIndexFiles
             var majorVersionWithinAllReleasesIndexLinks = halLinkGenerator.Generate(
                 MainFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title,
-                urlGenerator);
+                majorVersionUrlGenerator);
 
             // Add the major version entry to the list
             var majorEntry = new ReleaseIndexEntry(

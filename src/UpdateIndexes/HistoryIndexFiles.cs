@@ -10,14 +10,14 @@ namespace UpdateIndexes;
 public class HistoryIndexFiles
 {
 
-    public static readonly OrderedDictionary<string, FileLink> HistoryFileMappings = new()
+    public static readonly Dictionary<string, FileLink> HistoryFileMappings = new()
     {
         {"index.json", new FileLink("index.json", "History Index", LinkStyle.Prod) },
         {"cve.json", new FileLink("cve.json", "CVE Information", LinkStyle.Prod) },
         {"cve.md", new FileLink("cve.md", "CVE Information", LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
-    public static readonly OrderedDictionary<string, FileLink> ReleaseFileMappings = new()
+    public static readonly Dictionary<string, FileLink> ReleaseFileMappings = new()
     {
         {"index.json", new FileLink("index.json", ".NET Release Index", LinkStyle.Prod) },
         {"README.md", new FileLink("README.md", ".NET Release Notes", LinkStyle.GitHub) },
@@ -47,7 +47,7 @@ public class HistoryIndexFiles
             throw new DirectoryNotFoundException($"Root directory does not exist: {rootPath}");
         }
 
-        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.None);
         
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
             ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/history/{relativePath}"
@@ -75,10 +75,13 @@ public class HistoryIndexFiles
                 Console.WriteLine($"Processing month: {month.Month} in year: {year.Year}");
                 var monthPath = Path.Combine(yearPath, month.Month);
                 var monthHalLinkGenerator = new HalLinkGenerator(monthPath);
+                var monthUrlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
+                    ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/history/{year.Year}/{month.Month}/{relativePath}"
+                    : $"https://github.com/dotnet/core/blob/main/release-notes/history/{year.Year}/{month.Month}/{relativePath}";
                 var monthHistoryLinks = monthHalLinkGenerator.Generate(
                     HistoryFileMappings.Values,
                     (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}-{month.Month}" : fileLink.Title,
-                    urlGenerator);
+                    monthUrlGenerator);
 
                 HashSet<string> releases = [];
                 HashSet<string> patchReleases = [];
@@ -129,10 +132,13 @@ public class HistoryIndexFiles
             }
 
             var yearHalLinkGenerator = new HalLinkGenerator(yearPath);
+            var yearUrlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
+                ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/history/{year.Year}/{relativePath}"
+                : $"https://github.com/dotnet/core/blob/main/release-notes/history/{year.Year}/{relativePath}";
             var yearHalLinks = yearHalLinkGenerator.Generate(
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title,
-                urlGenerator);
+                yearUrlGenerator);
 
             // Create the year index (e.g., release-notes/2025/index.json)
             var yearHistory = new HistoryYearIndex(
@@ -161,10 +167,13 @@ public class HistoryIndexFiles
             // for the overall index
 
             var overallYearHalLinkGenerator = new HalLinkGenerator(yearPath);
+            var overallYearUrlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
+                ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/history/{year.Year}/{relativePath}"
+                : $"https://github.com/dotnet/core/blob/main/release-notes/history/{year.Year}/{relativePath}";
             var overallYearHalLinks = overallYearHalLinkGenerator.Generate(
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title,
-                urlGenerator);
+                overallYearUrlGenerator);
 
             yearEntries.Add(new HistoryYearEntry(
                 HistoryKind.HistoryYearIndex,
