@@ -49,7 +49,7 @@ public class HistoryIndexFiles
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
         
-        var halLinkGenerator = new HalLinkGenerator(rootPath, Path.GetDirectoryName(rootPath)!);
+        var halLinkGenerator = new HalLinkGenerator(rootPath);
         
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
             ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"

@@ -2,10 +2,9 @@ using DotnetRelease;
 
 namespace UpdateIndexes;
 
-public class HalLinkGenerator(string rootPath, string urlRootPath)
+public class HalLinkGenerator(string rootPath)
 {
     private readonly string _rootPath = rootPath ?? throw new ArgumentNullException(nameof(rootPath));
-    private readonly string _urlRootPath = urlRootPath ?? throw new ArgumentNullException(nameof(urlRootPath));
 
     public Dictionary<string, HalLink> Generate(IEnumerable<FileLink> fileLinks, Func<FileLink, string, string> titleGenerator, Func<string, LinkStyle, string> urlGenerator)
     {
@@ -29,7 +28,6 @@ public class HalLinkGenerator(string rootPath, string urlRootPath)
             }
 
             string filename = fileLink.File;
-            string urlRelativePath = Path.GetRelativePath(_urlRootPath, filePath);
             string relativePath = Path.GetRelativePath(_rootPath, filePath);
             string name = Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
             string extension = Path.GetExtension(filename).ToLowerInvariant();
@@ -49,7 +47,7 @@ public class HalLinkGenerator(string rootPath, string urlRootPath)
                 if (fileLink.Style.HasFlag(style))
                 {
                     result[selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown-raw" : "markdown")}" : name)] =
-                        new HalLink(urlGenerator(urlRelativePath, style))
+                        new HalLink(urlGenerator(relativePath, style))
                         {
                             Relative = relativePath,
                             Title = isMarkdown
