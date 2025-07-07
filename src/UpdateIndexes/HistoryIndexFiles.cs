@@ -54,7 +54,8 @@ public class HistoryIndexFiles
                 Directory.CreateDirectory(yearPath);
             }
 
-            List<HistoryMonthEntry> monthEntries = [];
+            List<HistoryMonthSummary> monthSummaries = [];
+            List<HistoryMonthEntry> monthDayEntries = [];
 
             HashSet<string> releasesForYear = [];
 
@@ -62,6 +63,12 @@ public class HistoryIndexFiles
             {
                 Console.WriteLine($"Processing month: {month.Month} in year: {year.Year}");
                 var monthPath = Path.Combine(yearPath, month.Month);
+                
+                if (!Directory.Exists(monthPath))
+                {
+                    Directory.CreateDirectory(monthPath);
+                }
+
                 var monthHistoryLinks = halLinkGenerator.Generate(
                     monthPath,
                     HistoryFileMappings.Values,
@@ -70,7 +77,7 @@ public class HistoryIndexFiles
                 HashSet<string> monthReleases = [];
                 HashSet<string> monthPatchReleases = [];
 
-                // Get month information to add to the year index
+                // Process each day in the month
                 foreach (var days in month.Days.Values)
                 {
                     foreach (var day in days.Releases)
@@ -103,18 +110,76 @@ public class HistoryIndexFiles
                     cveRecords = await JsonSerializer.DeserializeAsync<CveRecords>(cveStream, CveInfoSerializerContext.Default.CveRecords);
                 }
 
-                // Add to month entries for the year index
-                var entry = new HistoryMonthEntry(
+                // Prepare month index path for links
+                var monthIndexPath = Path.Combine(monthPath, "index.json");
+                var monthIndexRelativePath = Path.GetRelativePath(rootPath, monthIndexPath);
+
+                // Create simplified month summary for year index with proper self link and CVE links
+                var monthSummaryLinks = new Dictionary<string, HalLink>
+                {
+                    [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
+                    {
+                        Relative = monthIndexRelativePath,
+                        Title = $"Release history for {year.Year}-{month.Month}",
+                        Type = MediaType.HalJson
+                    }
+                };
+
+                // Add CVE JSON link if CVE records exist
+                if (cveRecords?.Records.Count > 0)
+                {
+                    var cveJsonRelativePath = Path.GetRelativePath(rootPath, Path.Combine(monthPath, "cve.json"));
+                    
+                    monthSummaryLinks["cve-json"] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
+                    {
+                        Relative = cveJsonRelativePath,
+                        Title = "CVE Information",
+                        Type = MediaType.Json
+                    };
+                }
+
+                var monthSummary = new HistoryMonthSummary(
                     month.Month,
-                    monthHistoryLinks,
+                    monthSummaryLinks,
                     cveRecords?.Records.Select(r => new CveRecordSummary(r.Id, r.Title)
                     {
                         Href = r.References?.FirstOrDefault()
                     }).ToList() ?? [],
-                    [.. monthReleases],
-                    [.. monthPatchReleases.OrderByDescending(v => v, numericStringComparer)]
+                    [.. monthReleases]
                 );
-                monthEntries.Add(entry);
+                monthSummaries.Add(monthSummary);
+
+                // Create detailed month index with proper self link
+                var monthIndexLinks = new Dictionary<string, HalLink>(monthHistoryLinks)
+                {
+                    [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
+                    {
+                        Relative = monthIndexRelativePath,
+                        Title = $"Release history for {year.Year}-{month.Month}",
+                        Type = MediaType.HalJson
+                    }
+                };
+
+                var monthIndex = new HistoryMonthIndex(
+                    HistoryKind.HistoryMonthIndex,
+                    $"Release history for {year.Year}-{month.Month}",
+                    year.Year,
+                    month.Month,
+                    monthIndexLinks)
+                {
+                    Embedded = new HistoryMonthIndexEmbedded
+                    {
+                        DotnetReleases = [.. monthReleases.OrderByDescending(v => v, numericStringComparer)],
+                        DotnetPatchReleases = [.. monthPatchReleases.OrderByDescending(v => v, numericStringComparer)]
+                    }
+                };
+
+                // Write monthly index file
+                using Stream monthStream = File.Create(Path.Combine(monthPath, "index.json"));
+                JsonSerializer.Serialize(
+                    monthStream,
+                    monthIndex,
+                    HistoryYearIndexSerializerContext.Default.HistoryMonthIndex);
             }
 
             // Generate the root links for the year index
@@ -138,7 +203,7 @@ public class HistoryIndexFiles
             
             yearHistory.Embedded = new HistoryYearIndexEmbedded
             {
-                Months = monthEntries,
+                Months = monthSummaries,
                 Releases = releaseEntries
             };
 

@@ -30,6 +30,7 @@ public enum HistoryKind
 {
     HistoryIndex,
     HistoryYearIndex,
+    HistoryMonthIndex,
 }
 
 /*

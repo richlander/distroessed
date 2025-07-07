@@ -10,7 +10,7 @@ public record HistoryYearIndex(HistoryKind Kind, string Description, string Year
 
 public record HistoryYearIndexEmbedded
 {
-    public List<HistoryMonthEntry>? Months { get; set; }
+    public List<HistoryMonthSummary>? Months { get; set; }
     public List<HistoryReleaseIndexEntry>? Releases { get; set; }
 }
 
@@ -27,6 +27,32 @@ public record HistoryMonthEntry(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IList<HistoryCveInfo>? CveInfo { get; set; }
 };
+
+// Simplified month entry for year index
+public record HistoryMonthSummary(
+    string Month,
+    [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<CveRecordSummary>? CveRecords,
+    IList<string> DotnetReleases
+);
+
+// Monthly index record
+public record HistoryMonthIndex(
+    HistoryKind Kind,
+    string Description,
+    string Year,
+    string Month,
+    [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+{
+    [JsonPropertyName("_embedded")]
+    public HistoryMonthIndexEmbedded? Embedded { get; set; }
+}
+
+public record HistoryMonthIndexEmbedded
+{
+    public IList<string>? DotnetReleases { get; set; }
+    public IList<string>? DotnetPatchReleases { get; set; }
+}
 
 public record HistoryCveInfo(string Version, int CveCount);
 
