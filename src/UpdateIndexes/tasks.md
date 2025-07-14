@@ -9,7 +9,7 @@ The following are the tasks for the project
 
 ## Schemas
 
-- [ ] Generate schemas for all the OMs with the [GenerateJsonSchemas](../GenerateJsonSchemas/) tool
+- [ ] Generate schemas for all the HalJson OMs with the [GenerateJsonSchemas](../GenerateJsonSchemas/) tool.
 - [ ] Publish schemas to the `release-notes/schemas` directory
 - [ ] Reference schemas from the generated JSON documents so that it is easy for assistants to access the documents for more information in context of reading a given document
 - [ ] Document the object models (to enable rich schema information)

@@ -9,7 +9,13 @@ There are two big ideas at play here:
 - Our release notes contain a lot of valuable information that would benefit from a more rigorous design, an expansive cross-referencing index graph, and access to it via smaller files. In the current scheme, you quickly hit 1MB+ of JSON.
 - AI assistants and agents greatly value token-density and are capable of using tools to follow links. Graph navigation is a fundamental AI skill. AI tools will be happy to explore a [hypermedia graph](https://en.wikipedia.org/wiki/Hypermedia) to find information if it is an efficient and thoughtful approach. We carefully build tools that are delightful for humans to use; we can do the same for AI tools.
 
-Note: At present, this tool is a prototype. It is using the richlander/core repo instead of the dotnet/core one. Once the tool and (more importantly) the generated resources are considered "ready", then the URLs will switch to the dotnet/core repo (and this note will be deleted). A separate (personal) repo is being used because chat assistants seem unable to use branch URLs, particularly via `raw.githubusercontent.com` URLs.
+## Rules
+
+- All code needs to be Native AOT friendly.
+- Use the following root URL for assets: `https://raw.githubusercontent.com/richlander/core/main/release-notes`
+- Schemas should also use this URL not `json-schema.org` or similar.
+- Only generate schemas and JSON files that are asked for.
+- Leave the `TargetFramework` and `LanguageVersion` property as-is. If it needs to be changed, ask first and explain why.
 
 ## Motivation
 
