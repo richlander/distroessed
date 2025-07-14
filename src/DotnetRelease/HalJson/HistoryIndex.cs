@@ -10,7 +10,7 @@ public record HistoryIndex(HistoryKind Kind, string Description, [property: Json
 
 public record HistoryIndexEmbedded
 {
-    public List<HistoryYearEntry>? Years { get; set; }
+    // public List<HistoryYearEntry>? Years { get; set; }
     public List<HistoryReleaseIndexEntry>? Releases { get; set; }
 }
 
