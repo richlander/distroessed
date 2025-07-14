@@ -1,9 +1,14 @@
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
+[Description("Index of .NET releases for a specific year with month-by-month breakdown.")]
 public record HistoryYearIndex(HistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
+    [JsonPropertyName("$schema")]
+    public string? Schema { get; set; }
+
     [JsonPropertyName("_embedded")]
     public HistoryYearIndexEmbedded? Embedded { get; set; }
 }
@@ -44,6 +49,9 @@ public record HistoryMonthIndex(
     string Month,
     [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
+    [JsonPropertyName("$schema")]
+    public string? Schema { get; set; }
+
     [JsonPropertyName("_embedded")]
     public HistoryMonthIndexEmbedded? Embedded { get; set; }
 }

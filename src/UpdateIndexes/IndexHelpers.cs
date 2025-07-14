@@ -3,10 +3,22 @@ using DotnetRelease;
 
 namespace UpdateIndexes;
 
+public static class SchemaUrls
+{
+    // Base URL for schema files - using the richlander/core repo as mentioned in the spec
+    private const string BaseSchemaUrl = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas";
+    
+    public static string MajorVersionIndex => $"{BaseSchemaUrl}/major-version-index.json";
+    public static string HistoryIndex => $"{BaseSchemaUrl}/history-index.json";
+    public static string HistoryYearIndex => $"{BaseSchemaUrl}/history-year-index.json";
+    public static string HistoryMonthIndex => $"{BaseSchemaUrl}/history-month-index.json";
+    public static string ReleaseManifest => $"{BaseSchemaUrl}/release-manifest.json";
+}
+
 public class IndexHelpers
 {
 
-    private static readonly OrderedDictionary<string, ReleaseKindMapping> _halFileMappings = new()
+    private static readonly Dictionary<string, ReleaseKindMapping> _halFileMappings = new()
     {
         { "index.json", new ReleaseKindMapping("index", "index.json", ReleaseKind.Index, MediaType.Json) },
         { "releases.json", new ReleaseKindMapping("releases", "releases.json", ReleaseKind.MajorRelease, MediaType.Json) },
@@ -16,7 +28,7 @@ public class IndexHelpers
         { "terminology.md", new ReleaseKindMapping("terminology", "terminology.md", ReleaseKind.Content, MediaType.Markdown) }
     };
 
-    public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
+    public static readonly Dictionary<string, FileLink> AuxFileMappings = new()
     {
         {"supported-os.json", new FileLink("supported-os.json", "Supported OSes", LinkStyle.Prod) },
         {"supported-os.md", new FileLink("supported-os.md", "Supported OSes", LinkStyle.Prod | LinkStyle.GitHub) },

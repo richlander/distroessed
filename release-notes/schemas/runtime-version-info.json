@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "RuntimeVersionInfo",
+  "type": "object",
+  "description": "Runtime version information for a .NET release.",
+  "additionalProperties": false,
+  "properties": {
+    "Version": {
+      "type": "string",
+      "description": "The .NET runtime version."
+    },
+    "ReleaseDate": {
+      "type": "string",
+      "description": "The release date of this runtime version.",
+      "format": "date-time"
+    },
+    "BuildInfo": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "Additional version details or build information."
+    }
+  }
+}

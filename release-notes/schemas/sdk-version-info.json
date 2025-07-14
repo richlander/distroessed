@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "SdkVersionInfo",
+  "type": "object",
+  "description": "SDK version information for a .NET release.",
+  "additionalProperties": false,
+  "properties": {
+    "Version": {
+      "type": "string",
+      "description": "The .NET SDK version."
+    },
+    "ReleaseDate": {
+      "type": "string",
+      "description": "The release date of this SDK version.",
+      "format": "date-time"
+    },
+    "BuildInfo": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "Additional version details or build information."
+    },
+    "FeatureBand": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "Feature band information for the SDK."
+    }
+  }
+}

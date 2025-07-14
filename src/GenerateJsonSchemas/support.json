@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Support",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ReleaseType": {
+      "$ref": "#/definitions/ReleaseType"
+    },
+    "phase": {
+      "$ref": "#/definitions/SupportPhase"
+    },
+    "GaDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "EolDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "ReleaseType": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "LTS",
+        "STS"
+      ],
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "SupportPhase": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "Preview",
+        "GoLive",
+        "Active",
+        "Maintenance",
+        "Eol"
+      ],
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  }
+}

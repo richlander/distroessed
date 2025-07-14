@@ -18,6 +18,7 @@ public record CveRecord(string Id, string Title)
     public IReadOnlyList<string>? References { get; set; }
 }
 
+[System.ComponentModel.Description("Summary of a CVE record with identifier, title, and optional link.")]
 public record CveRecordSummary(string Id, string Title)
 {
     public string? Href { get; set; }

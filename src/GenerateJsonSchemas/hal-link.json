@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "HalLink",
+  "type": "object",
+  "description": "HAL+JSON hyperlink with optional metadata for navigation.",
+  "additionalProperties": false,
+  "properties": {
+    "Href": {
+      "type": "string"
+    },
+    "Relative": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "Title": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "Type": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  }
+}

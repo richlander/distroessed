@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -17,7 +17,7 @@ if (!File.Exists(path) && !Directory.Exists(path))
     return;
 }
 
-var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+var numericStringComparer = StringComparer.OrdinalIgnoreCase;
 
 
 foreach (var dir in Directory.EnumerateDirectories(path).OrderByDescending(d => d, numericStringComparer))

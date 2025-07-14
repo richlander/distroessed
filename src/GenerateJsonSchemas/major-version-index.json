@@ -1,0 +1,217 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ReleaseIndex",
+  "type": "object",
+  "description": "Index of .NET releases, organized by major or patch versions with HAL+JSON hypermedia links.",
+  "additionalProperties": false,
+  "properties": {
+    "Kind": {
+      "$ref": "#/definitions/ReleaseKind"
+    },
+    "Description": {
+      "type": "string"
+    },
+    "_links": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/HalLink"
+      }
+    },
+    "$schema": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "_embedded": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/ReleaseIndexEmbedded"
+        }
+      ]
+    },
+    "Support": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/Support"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "ReleaseKind": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "Index",
+        "Manifest",
+        "MajorRelease",
+        "PatchRelease",
+        "Content",
+        "Unknown"
+      ],
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "HalLink": {
+      "type": "object",
+      "description": "HAL+JSON hyperlink with optional metadata for navigation.",
+      "additionalProperties": false,
+      "properties": {
+        "Href": {
+          "type": "string"
+        },
+        "Relative": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Title": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Type": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "ReleaseIndexEmbedded": {
+      "type": "object",
+      "description": "Container for embedded release entries in a release index.",
+      "additionalProperties": false,
+      "properties": {
+        "Releases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReleaseIndexEntry"
+          }
+        }
+      }
+    },
+    "ReleaseIndexEntry": {
+      "type": "object",
+      "description": "Individual release entry with version information, links, and optional support/CVE data.",
+      "additionalProperties": false,
+      "properties": {
+        "Version": {
+          "type": "string"
+        },
+        "Kind": {
+          "$ref": "#/definitions/ReleaseKind"
+        },
+        "_links": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/HalLink"
+          }
+        },
+        "Support": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/Support"
+            }
+          ]
+        },
+        "CveRecords": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/CveRecordSummary"
+          }
+        }
+      }
+    },
+    "Support": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ReleaseType": {
+          "$ref": "#/definitions/ReleaseType"
+        },
+        "phase": {
+          "$ref": "#/definitions/SupportPhase"
+        },
+        "GaDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "EolDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ReleaseType": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "LTS",
+        "STS"
+      ],
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "SupportPhase": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "Preview",
+        "GoLive",
+        "Active",
+        "Maintenance",
+        "Eol"
+      ],
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "CveRecordSummary": {
+      "type": "object",
+      "description": "Summary of a CVE record with identifier, title, and optional link.",
+      "additionalProperties": false,
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "Title": {
+          "type": "string"
+        },
+        "Href": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    }
+  }
+}

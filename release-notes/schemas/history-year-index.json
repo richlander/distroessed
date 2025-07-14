@@ -1,0 +1,173 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "HistoryYearIndex",
+  "type": "object",
+  "description": "Index of .NET releases for a specific year with month-by-month breakdown.",
+  "additionalProperties": false,
+  "properties": {
+    "Kind": {
+      "$ref": "#/definitions/HistoryKind"
+    },
+    "Description": {
+      "type": "string"
+    },
+    "Year": {
+      "type": "string"
+    },
+    "_links": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/HalLink"
+      }
+    },
+    "$schema": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "_embedded": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/HistoryYearIndexEmbedded"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "HistoryKind": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "HistoryIndex",
+        "HistoryYearIndex",
+        "HistoryMonthIndex"
+      ],
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "HalLink": {
+      "type": "object",
+      "description": "HAL+JSON hyperlink with optional metadata for navigation.",
+      "additionalProperties": false,
+      "properties": {
+        "Href": {
+          "type": "string"
+        },
+        "Relative": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Title": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Type": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "HistoryYearIndexEmbedded": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Months": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/HistoryMonthSummary"
+          }
+        },
+        "Releases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/HistoryReleaseIndexEntry"
+          }
+        }
+      }
+    },
+    "HistoryMonthSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Month": {
+          "type": "string"
+        },
+        "_links": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/HalLink"
+          }
+        },
+        "CveRecords": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/CveRecordSummary"
+          }
+        },
+        "DotnetReleases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "CveRecordSummary": {
+      "type": "object",
+      "description": "Summary of a CVE record with identifier, title, and optional link.",
+      "additionalProperties": false,
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "Title": {
+          "type": "string"
+        },
+        "Href": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "HistoryReleaseIndexEntry": {
+      "type": "object",
+      "description": "Release entry in history index with version and navigation links.",
+      "additionalProperties": false,
+      "properties": {
+        "Version": {
+          "type": "string"
+        },
+        "_links": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/HalLink"
+          }
+        }
+      }
+    }
+  }
+}

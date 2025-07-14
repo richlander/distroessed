@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ReleaseManifest",
+  "type": "object",
+  "description": "Manifest containing release metadata including version, dates, and support information.",
+  "additionalProperties": false,
+  "properties": {
+    "Kind": {
+      "$ref": "#/definitions/ReleaseKind"
+    },
+    "_links": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/HalLink"
+      }
+    },
+    "Version": {
+      "type": "string"
+    },
+    "Label": {
+      "type": "string"
+    },
+    "GaDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "EolDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ReleaseType": {
+      "$ref": "#/definitions/ReleaseType"
+    },
+    "SupportPhase": {
+      "$ref": "#/definitions/SupportPhase"
+    },
+    "$schema": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "Runtime": {
+      "description": "Runtime version information for this release.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/RuntimeVersionInfo"
+        }
+      ]
+    },
+    "Sdk": {
+      "description": "SDK version information for this release.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/SdkVersionInfo"
+        }
+      ]
+    },
+    "CveRecords": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "description": "CVE records associated with this release.",
+      "items": {
+        "$ref": "#/definitions/CveRecordSummary"
+      }
+    }
+  },
+  "definitions": {
+    "ReleaseKind": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "Index",
+        "Manifest",
+        "MajorRelease",
+        "PatchRelease",
+        "Content",
+        "Unknown"
+      ],
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "HalLink": {
+      "type": "object",
+      "description": "HAL+JSON hyperlink with optional metadata for navigation.",
+      "additionalProperties": false,
+      "properties": {
+        "Href": {
+          "type": "string"
+        },
+        "Relative": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Title": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Type": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "ReleaseType": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "LTS",
+        "STS"
+      ],
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "SupportPhase": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "Preview",
+        "GoLive",
+        "Active",
+        "Maintenance",
+        "Eol"
+      ],
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "RuntimeVersionInfo": {
+      "type": "object",
+      "description": "Runtime version information for a .NET release.",
+      "additionalProperties": false,
+      "properties": {
+        "Version": {
+          "type": "string",
+          "description": "The .NET runtime version."
+        },
+        "ReleaseDate": {
+          "type": "string",
+          "description": "The release date of this runtime version.",
+          "format": "date-time"
+        },
+        "BuildInfo": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Additional version details or build information."
+        }
+      }
+    },
+    "SdkVersionInfo": {
+      "type": "object",
+      "description": "SDK version information for a .NET release.",
+      "additionalProperties": false,
+      "properties": {
+        "Version": {
+          "type": "string",
+          "description": "The .NET SDK version."
+        },
+        "ReleaseDate": {
+          "type": "string",
+          "description": "The release date of this SDK version.",
+          "format": "date-time"
+        },
+        "BuildInfo": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Additional version details or build information."
+        },
+        "FeatureBand": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Feature band information for the SDK."
+        }
+      }
+    },
+    "CveRecordSummary": {
+      "type": "object",
+      "description": "Summary of a CVE record with identifier, title, and optional link.",
+      "additionalProperties": false,
+      "properties": {
+        "Id": {
+          "type": "string"
+        },
+        "Title": {
+          "type": "string"
+        },
+        "Href": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    }
+  }
+}

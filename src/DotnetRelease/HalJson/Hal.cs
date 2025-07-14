@@ -1,8 +1,10 @@
+using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
+[Description("HAL+JSON hyperlink with optional metadata for navigation.")]
 public record HalLink(string Href)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

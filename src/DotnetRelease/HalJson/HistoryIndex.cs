@@ -1,19 +1,26 @@
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
+[Description("Index of .NET release history organized chronologically with HAL+JSON hypermedia links.")]
 public record HistoryIndex(HistoryKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
+    [JsonPropertyName("$schema")]
+    public string? Schema { get; set; }
+
     [JsonPropertyName("_embedded")]
     public HistoryIndexEmbedded? Embedded { get; set; }
 }
 
+[Description("Container for embedded history entries in a history index.")]
 public record HistoryIndexEmbedded
 {
-    // public List<HistoryYearEntry>? Years { get; set; }
+    public List<HistoryYearEntry>? Years { get; set; }
     public List<HistoryReleaseIndexEntry>? Releases { get; set; }
 }
 
+[Description("Release entry in history index with version and navigation links.")]
 public record HistoryReleaseIndexEntry(string Version, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
 
 public record YearIndexEmbedded(List<HistoryYearEntry> Years);
@@ -26,6 +33,7 @@ public record HistoryYearEntry(HistoryKind Kind, string Description, string Year
 
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<HistoryKind>))]
+[Description("The kind of history resource, indicating the chronological level of the index.")]
 public enum HistoryKind
 {
     HistoryIndex,

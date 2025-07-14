@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "HistoryIndex",
+  "type": "object",
+  "description": "Index of .NET release history organized chronologically with HAL+JSON hypermedia links.",
+  "additionalProperties": false,
+  "properties": {
+    "Kind": {
+      "$ref": "#/definitions/HistoryKind"
+    },
+    "Description": {
+      "type": "string"
+    },
+    "_links": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/HalLink"
+      }
+    },
+    "$schema": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "_embedded": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/HistoryIndexEmbedded"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "HistoryKind": {
+      "type": "integer",
+      "description": "",
+      "x-enumNames": [
+        "HistoryIndex",
+        "HistoryYearIndex",
+        "HistoryMonthIndex"
+      ],
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "HalLink": {
+      "type": "object",
+      "description": "HAL+JSON hyperlink with optional metadata for navigation.",
+      "additionalProperties": false,
+      "properties": {
+        "Href": {
+          "type": "string"
+        },
+        "Relative": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Title": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "Type": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "HistoryIndexEmbedded": {
+      "type": "object",
+      "description": "Container for embedded history entries in a history index.",
+      "additionalProperties": false,
+      "properties": {
+        "Years": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/HistoryYearEntry"
+          }
+        },
+        "Releases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/HistoryReleaseIndexEntry"
+          }
+        }
+      }
+    },
+    "HistoryYearEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Kind": {
+          "$ref": "#/definitions/HistoryKind"
+        },
+        "Description": {
+          "type": "string"
+        },
+        "Year": {
+          "type": "string"
+        },
+        "_links": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/HalLink"
+          }
+        },
+        "DotnetReleases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "HistoryReleaseIndexEntry": {
+      "type": "object",
+      "description": "Release entry in history index with version and navigation links.",
+      "additionalProperties": false,
+      "properties": {
+        "Version": {
+          "type": "string"
+        },
+        "_links": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/HalLink"
+          }
+        }
+      }
+    }
+  }
+}

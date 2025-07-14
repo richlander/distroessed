@@ -10,14 +10,14 @@ namespace UpdateIndexes;
 public class HistoryIndexFiles
 {
 
-    public static readonly OrderedDictionary<string, FileLink> HistoryFileMappings = new()
+    public static readonly Dictionary<string, FileLink> HistoryFileMappings = new()
     {
         {"index.json", new FileLink("index.json", "History Index", LinkStyle.Prod) },
         {"cve.json", new FileLink("cve.json", "CVE Information", LinkStyle.Prod) },
         {"cve.md", new FileLink("cve.md", "CVE Information", LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
-    public static readonly OrderedDictionary<string, FileLink> ReleaseFileMappings = new()
+    public static readonly Dictionary<string, FileLink> ReleaseFileMappings = new()
     {
         {"index.json", new FileLink("index.json", ".NET Release Index", LinkStyle.Prod) },
         {"README.md", new FileLink("README.md", ".NET Release Notes", LinkStyle.GitHub) },
@@ -32,7 +32,7 @@ public class HistoryIndexFiles
             Directory.CreateDirectory(historyPath);
         }
 
-        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        var numericStringComparer = StringComparer.OrdinalIgnoreCase;
         
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
             ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"
@@ -167,6 +167,7 @@ public class HistoryIndexFiles
                     month.Month,
                     monthIndexLinks)
                 {
+                    Schema = SchemaUrls.HistoryMonthIndex,
                     Embedded = new HistoryMonthIndexEmbedded
                     {
                         DotnetReleases = [.. monthReleases.OrderByDescending(v => v, numericStringComparer)],
@@ -193,7 +194,10 @@ public class HistoryIndexFiles
                 HistoryKind.HistoryYearIndex,
                 $"Release history for {year.Year}",
                 year.Year,
-                yearHalLinks);
+                yearHalLinks)
+            {
+                Schema = SchemaUrls.HistoryYearIndex
+            };
             // Create embedded releases structure
             var releaseEntries = new List<HistoryReleaseIndexEntry>(
                 releasesForYear
@@ -249,6 +253,7 @@ public class HistoryIndexFiles
             fullIndexLinks
             )
         {
+            Schema = SchemaUrls.HistoryIndex,
             Embedded = new HistoryIndexEmbedded
             {
                 Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)],
