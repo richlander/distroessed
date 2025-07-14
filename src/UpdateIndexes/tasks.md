@@ -4,8 +4,8 @@ The following are the tasks for the project
 
 - [x] Generate version index.json hierarchy
 - [x] Generate history index.json hierarchy
-- [ ] Define an approach for exposing runtime and SDK version numbers, like we currently have in `release-index.json`. Current plan is to include a `manifest.json` file in each patch version directory (like `8.0/8.0.1`) with dates, version numbers, and CVEs. The patch version index can link to the index.json and manifest.json file as root links as "latest-patch-index" (or similar). This approach doesn't have the same coherency problems as `release-index.json` since the indexes and the content will always be consistent.
 - [ ] Consider an index.json at the patch version location. This would enable very quick templated URL access to the monthly location (which will be a smaller file). If we did that, it would motivate removing some of the lower-value files/data from the patch-version index. This is similar to how the history index already works, aligning the two models.
+- [ ] Define an approach for exposing runtime and SDK version numbers, like we currently have in `release-index.json`. Current plan is to include a `manifest.json` file in each patch version directory (like `8.0/8.0.1`) with dates, version numbers, and CVEs. The patch version index can link to the index.json and manifest.json file as root links as "latest-patch-index" (or similar). This approach doesn't have the same coherency problems as `release-index.json` since the indexes and the content will always be consistent.
 
 ## Schemas
 
@@ -17,6 +17,8 @@ The following are the tasks for the project
 - [ ] The type name `ReleasesIndex` is likely wrong given that it is for the version index.
 
 ## .NET SDK links
+
+- None yet
 
 ## Longer-term
 
