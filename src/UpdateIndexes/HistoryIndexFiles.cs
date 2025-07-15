@@ -41,7 +41,7 @@ public class HistoryIndexFiles
 
         var halLinkGenerator = new HalLinkGenerator(rootPath, urlGenerator);
         
-        List<HistoryYearEntry> yearEntries = [];
+        List<ReleaseHistoryYearEntry> yearEntries = [];
 
         HashSet<string> allReleases = [];
 
@@ -190,15 +190,15 @@ public class HistoryIndexFiles
 
             // Create the year index (e.g., release-notes/2025/index.json)
             var yearHistory = new HistoryYearIndex(
-                HistoryKind.HistoryYearIndex,
+                ReleaseHistoryKind.ReleaseHistoryYearIndex,
                 $"Release history for {year.Year}",
                 year.Year,
                 yearHalLinks);
             // Create embedded releases structure
-            var releaseEntries = new List<HistoryReleaseIndexEntry>(
+            var releaseEntries = new List<ReleaseHistoryReleaseIndexEntry>(
                 releasesForYear
                     .OrderByDescending(v => v, numericStringComparer)
-                    .Select(version => new HistoryReleaseIndexEntry(version, yearHalLinks))
+                    .Select(version => new ReleaseHistoryReleaseIndexEntry(version, yearHalLinks))
             );
             
             yearHistory.Embedded = new HistoryYearIndexEmbedded
@@ -220,8 +220,8 @@ public class HistoryIndexFiles
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title);
 
-            yearEntries.Add(new HistoryYearEntry(
-                HistoryKind.HistoryYearIndex,
+            yearEntries.Add(new ReleaseHistoryYearEntry(
+                ReleaseHistoryKind.ReleaseHistoryYearIndex,
                 $".NET release history for {year.Year}",
                 year.Year,
                 overallYearHalLinks)
@@ -239,17 +239,17 @@ public class HistoryIndexFiles
         // Create embedded releases structure
         var rootReleaseEntries = allReleases
             .OrderByDescending(v => v, numericStringComparer)
-            .Select(version => new HistoryReleaseIndexEntry(version, fullIndexLinks))
+            .Select(version => new ReleaseHistoryReleaseIndexEntry(version, fullIndexLinks))
             .ToList();
 
         // Create the history index
-        var historyIndex = new HistoryIndex(
-            HistoryKind.HistoryIndex,
+        var historyIndex = new ReleaseHistoryIndex(
+            ReleaseHistoryKind.ReleaseHistoryIndex,
             "History of .NET releases",
             fullIndexLinks
             )
         {
-            Embedded = new HistoryIndexEmbedded
+            Embedded = new ReleaseHistoryIndexEmbedded
             {
                 Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)],
                 Releases = rootReleaseEntries
@@ -260,6 +260,6 @@ public class HistoryIndexFiles
         JsonSerializer.Serialize(
             historyStream,
             historyIndex,
-            HistoryIndexSerializerContext.Default.HistoryIndex);
+            ReleaseHistoryIndexSerializerContext.Default.ReleaseHistoryIndex);
     }
 }

@@ -8,19 +8,19 @@ namespace DotnetRelease;
 // The HAL spec has all properties inline (except for the conttent within `_embedded`).
 // It is more straightforward to model `T Embedded` however at the point that a custom
 // type is needed, then why bother with a generic type at all (unless the same envelope can carry different data).
-public record ReleaseIndex(ReleaseKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+public record ReleaseVersionIndex(ReleaseKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ReleaseIndexEmbedded? Embedded { get; set; }
+    public ReleaseVersionIndexEmbedded? Embedded { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Support? Support { get; set; }
 }
 
-public record ReleaseIndexEmbedded(List<ReleaseIndexEntry> Releases);
+public record ReleaseVersionIndexEmbedded(List<ReleaseVersionIndexEntry> Releases);
 
-public record ReleaseIndexEntry(string Version, ReleaseKind Kind, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+public record ReleaseVersionIndexEntry(string Version, ReleaseKind Kind, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Support? Support { get; set; }
@@ -39,4 +39,3 @@ public enum ReleaseKind
     Content,
     Unknown
 }
-

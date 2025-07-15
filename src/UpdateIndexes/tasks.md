@@ -20,22 +20,22 @@ The following are the tasks for the project
 
 ## Schemas
 
-- [ ] Generate schemas for all the HalJson OMs with the [GenerateJsonSchemas](../GenerateJsonSchemas/) tool.
+- [x] Generate schemas for all the HalJson OMs with the [GenerateJsonSchemas](../GenerateJsonSchemas/) tool.
 - [ ] Document the object models (to enable rich schema information)
 
 ## Object models (OM)
-- [ ] Change `HistoryIndex` to `ReleaseHistoryIndex`. The filename and the child types should follow.
-- [ ] Change `ReleaseIndex` to `ReleaseVersionIndex`. The filename and the child types should follow.
+- [x] Change `HistoryIndex` to `ReleaseHistoryIndex`. The filename and the child types should follow.
+- [x] Change `ReleaseIndex` to `ReleaseVersionIndex`. The filename and the child types should follow.
 - [ ] Move URL information from the ReleaseNotes class in the DotnetRelease project to a new Location class.
-- [ ] The GitHubBaseUri property should change from the substring "dotnet/core" to "richlander/core". That property should be used wherever the desired root URL (mentioned above) is needed. This will help avoid DRY problems.
+- [x] The GitHubBaseUri property should change from the substring "dotnet/core" to "richlander/core". That property should be used wherever the desired root URL (mentioned above) is needed. This will help avoid DRY problems.
 
 ## Tools
 
-- [ ] Remove setting "args" in UpdateIndexes/Program.cs. That was a debugging technique on Linux, isn't compatible on other OSes, and isn't needed anymore.
-- [ ] Write a script in the root `scripts` folder that generates schemas. It should take a target directory.
+- [x] Remove setting "args" in UpdateIndexes/Program.cs. That was a debugging technique on Linux, isn't compatible on other OSes, and isn't needed anymore.
+- [x] Write a script in the root `scripts` folder that generates schemas. It should take a target directory.
 - [ ] Run the schema script with the `schemas` directory (at root of the repo) as the target.
-- [ ] Add a new library that uses JsonDocument to surgically open any JSON file and add a "$schema" property at root (in the typical location).
-- [ ] Update the UpdateIndexes tool to use this new library to add schema references to all the generated JSON documents so that it is easy for assistants access schema information (to better undertand the meaning of properies).
+- [x] Add a new library that uses JsonDocument to surgically open any JSON file and add a "$schema" property at root (in the typical location).
+- [x] Update the UpdateIndexes tool to use this new library to add schema references to all the generated JSON documents so that it is easy for assistants access schema information (to better undertand the meaning of properies).
 
 
 ## .NET SDK links

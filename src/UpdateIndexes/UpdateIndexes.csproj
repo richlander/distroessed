@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../DotnetRelease/DotnetRelease.csproj" />
+    <ProjectReference Include="../JsonSchemaInjection/JsonSchemaInjection.csproj" />
   </ItemGroup>
 
 </Project>

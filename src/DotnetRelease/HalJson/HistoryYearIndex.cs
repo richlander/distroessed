@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-public record HistoryYearIndex(HistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+public record HistoryYearIndex(ReleaseHistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded")]
     public HistoryYearIndexEmbedded? Embedded { get; set; }
@@ -11,7 +11,7 @@ public record HistoryYearIndex(HistoryKind Kind, string Description, string Year
 public record HistoryYearIndexEmbedded
 {
     public List<HistoryMonthSummary>? Months { get; set; }
-    public List<HistoryReleaseIndexEntry>? Releases { get; set; }
+    public List<ReleaseHistoryReleaseIndexEntry>? Releases { get; set; }
 }
 
 public record MonthIndexEmbedded(List<HistoryMonthEntry> Months);
@@ -38,7 +38,7 @@ public record HistoryMonthSummary(
 
 // Monthly index record
 public record HistoryMonthIndex(
-    HistoryKind Kind,
+    ReleaseHistoryKind Kind,
     string Description,
     string Year,
     string Month,

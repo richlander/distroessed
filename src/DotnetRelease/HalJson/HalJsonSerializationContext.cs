@@ -5,10 +5,10 @@ namespace DotnetRelease;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
-[JsonSerializable(typeof(ReleaseIndex))]
+[JsonSerializable(typeof(ReleaseVersionIndex))]
 [JsonSerializable(typeof(Support))]
 [JsonSerializable(typeof(CveRecordSummary))]
-public partial class ReleaseIndexSerializerContext : JsonSerializerContext
+public partial class ReleaseVersionIndexSerializerContext : JsonSerializerContext
 {
 }
 
@@ -24,9 +24,9 @@ public partial class ReleaseManifestSerializerContext : JsonSerializerContext
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
-[JsonSerializable(typeof(HistoryIndex))]
+[JsonSerializable(typeof(ReleaseHistoryIndex))]
 [JsonSerializable(typeof(ReleaseMetadata))]
-public partial class HistoryIndexSerializerContext : JsonSerializerContext
+public partial class ReleaseHistoryIndexSerializerContext : JsonSerializerContext
 {
 }
 

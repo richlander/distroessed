@@ -2,40 +2,40 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-public record HistoryIndex(HistoryKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+public record ReleaseHistoryIndex(ReleaseHistoryKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded")]
-    public HistoryIndexEmbedded? Embedded { get; set; }
+    public ReleaseHistoryIndexEmbedded? Embedded { get; set; }
 }
 
-public record HistoryIndexEmbedded
+public record ReleaseHistoryIndexEmbedded
 {
-    // public List<HistoryYearEntry>? Years { get; set; }
-    public List<HistoryReleaseIndexEntry>? Releases { get; set; }
+    // public List<ReleaseHistoryYearEntry>? Years { get; set; }
+    public List<ReleaseHistoryReleaseIndexEntry>? Releases { get; set; }
 }
 
-public record HistoryReleaseIndexEntry(string Version, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
+public record ReleaseHistoryReleaseIndexEntry(string Version, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
 
-public record YearIndexEmbedded(List<HistoryYearEntry> Years);
+public record ReleaseHistoryYearIndexEmbedded(List<ReleaseHistoryYearEntry> Years);
 
-public record HistoryYearEntry(HistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+public record ReleaseHistoryYearEntry(ReleaseHistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     public IList<string>? DotnetReleases { get; set; }
 };
 
 
 
-[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<HistoryKind>))]
-public enum HistoryKind
+[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseHistoryKind>))]
+public enum ReleaseHistoryKind
 {
-    HistoryIndex,
-    HistoryYearIndex,
-    HistoryMonthIndex,
+    ReleaseHistoryIndex,
+    ReleaseHistoryYearIndex,
+    ReleaseHistoryMonthIndex,
 }
 
 /*
 {
-    "kind": "history-index",
+    "kind": "release-history-index",
     "description": "History of .NET releases",
     "_links": {
         "self": {
@@ -49,7 +49,7 @@ public enum HistoryKind
         "entries": [
             {
                 "year": "2025",
-                "kind": "history-year-index",
+                "kind": "release-history-year-index",
                 "_links": {
                     "self": {
                         "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/history/2025/index.json",
@@ -62,7 +62,7 @@ public enum HistoryKind
             },
             {
                 "year": "2024",
-                "kind": "history-year-index",
+                "kind": "release-history-year-index",
                 "_links": {
                     "self": {
                         "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/history/2024/index.json",

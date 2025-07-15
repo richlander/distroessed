@@ -36,7 +36,7 @@ public class ReleaseIndexFiles
         }
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
-        List<ReleaseIndexEntry> majorEntries = [];
+        List<ReleaseVersionIndexEntry> majorEntries = [];
 
         var summaryTable = summaries.ToDictionary(
             s => s.MajorVersion,
@@ -96,12 +96,12 @@ public class ReleaseIndexFiles
             // write major version index.json if there are patch releases found
             var majorIndexPath = Path.Combine(majorVersionDir, "index.json");
             var relativeMajorIndexPath = Path.GetRelativePath(rootDir, majorIndexPath);
-            var patchVersionIndex = new ReleaseIndex(
+            var patchVersionIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
                     $"Index for {summary.MajorVersionLabel} patch releases",
                     majorVersionLinks)
             {
-                Embedded = patchEntries.Count > 0 ? new ReleaseIndexEmbedded(patchEntries) : null,
+                Embedded = patchEntries.Count > 0 ? new ReleaseVersionIndexEmbedded(patchEntries) : null,
                 Support = support
             };
 
@@ -110,7 +110,7 @@ public class ReleaseIndexFiles
             JsonSerializer.Serialize(
                 patchStream,
                 patchVersionIndex,
-                ReleaseIndexSerializerContext.Default.ReleaseIndex);
+                ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
 
             // Same links as the major version index, but with a different base directory (to force different pathing)
             var majorVersionWithinAllReleasesIndexLinks = halLinkGenerator.Generate(
@@ -119,7 +119,7 @@ public class ReleaseIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Add the major version entry to the list
-            var majorEntry = new ReleaseIndexEntry(
+            var majorEntry = new ReleaseVersionIndexEntry(
                 majorVersionDirName,
                 ReleaseKind.Index,
                 majorVersionWithinAllReleasesIndexLinks
@@ -140,12 +140,12 @@ public class ReleaseIndexFiles
         var rootIndexPath = Path.Combine(rootDir, "index.json");
         var rootIndexRelativePath = Path.GetRelativePath(rootDir, rootIndexPath);
         var title = "Index of .NET major versions";
-        var majorIndex = new ReleaseIndex(
+        var majorIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
                 title,
                 rootLinks)
         {
-            Embedded = new ReleaseIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)])
+            Embedded = new ReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)])
         };
 
         // Write the major index file
@@ -153,11 +153,11 @@ public class ReleaseIndexFiles
         JsonSerializer.Serialize(
             stream,
             majorIndex,
-            ReleaseIndexSerializerContext.Default.ReleaseIndex);
+            ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
     }
 
     // Generates index containing each patch release in the major version directory
-    private static List<ReleaseIndexEntry> GetPatchIndexEntries(IList<PatchReleaseSummary> summaries, PathContext pathContext, ReleaseHistory? releaseHistory)
+    private static List<ReleaseVersionIndexEntry> GetPatchIndexEntries(IList<PatchReleaseSummary> summaries, PathContext pathContext, ReleaseHistory? releaseHistory)
     {
         var (rootDir, urlRootDir) = pathContext;
 
@@ -171,7 +171,7 @@ public class ReleaseIndexFiles
             s => s,
             StringComparer.OrdinalIgnoreCase);
 
-        List<ReleaseIndexEntry> indexEntries = [];
+        List<ReleaseVersionIndexEntry> indexEntries = [];
 
         foreach (var summary in summaries)
         {
@@ -243,7 +243,7 @@ public class ReleaseIndexFiles
                 }).ToList();
             }
 
-            var indexEntry = new ReleaseIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
+            var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
             {
                 CveRecords = cveRecords
             };
