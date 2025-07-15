@@ -9,6 +9,9 @@ The following are the tasks for the project
 - Schemas should use this root URL not `json-schema.org` or similar.
 - Only generate schemas and JSON files that are asked for.
 - Leave the `TargetFramework` and `LanguageVersion` property as-is. If it needs to be changed, ask first and explain why.
+- If you need to run the `UpdateIndexes` tool, it needs a target directory as input.
+  - On macOS, use: `/Users/rich/git/core-rich/release-notes`
+  - On Linux, use: `/home/rich/git/rich-core/release-notes`
 
 ## JSON format
 
@@ -28,6 +31,7 @@ The following are the tasks for the project
 
 ## Tools
 
+- [ ] Remove setting "args" in UpdateIndexes/Program.cs. That was a debugging technique on Linux, isn't compatible on other OSes, and isn't needed anymore.
 - [ ] Write a script in the root `scripts` folder that generates schemas. It should take a target directory.
 - [ ] Run the schema script with the `schemas` directory (at root of the repo) as the target.
 - [ ] Add a new library that uses JsonDocument to surgically open any JSON file and add a "$schema" property at root (in the typical location).
