@@ -2,21 +2,21 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-public record HistoryYearIndex(ReleaseHistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+public record ReleaseHistoryYearIndex(ReleaseHistoryKind Kind, string Description, string Year, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded")]
-    public HistoryYearIndexEmbedded? Embedded { get; set; }
+    public ReleaseHistoryYearIndexEmbedded? Embedded { get; set; }
 }
 
-public record HistoryYearIndexEmbedded
+public record ReleaseHistoryYearIndexEmbedded
 {
-    public List<HistoryMonthSummary>? Months { get; set; }
+    public List<ReleaseHistoryMonthSummary>? Months { get; set; }
     public List<ReleaseHistoryReleaseIndexEntry>? Releases { get; set; }
 }
 
-public record MonthIndexEmbedded(List<HistoryMonthEntry> Months);
+public record ReleaseHistoryMonthIndexEmbedded(List<ReleaseHistoryMonthEntry> Months);
 
-public record HistoryMonthEntry(
+public record ReleaseHistoryMonthEntry(
     string Month,
     [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<CveRecordSummary>? CveRecords,
@@ -25,11 +25,11 @@ public record HistoryMonthEntry(
 )
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IList<HistoryCveInfo>? CveInfo { get; set; }
+    public IList<ReleaseHistoryCveInfo>? CveInfo { get; set; }
 };
 
 // Simplified month entry for year index
-public record HistoryMonthSummary(
+public record ReleaseHistoryMonthSummary(
     string Month,
     [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<CveRecordSummary>? CveRecords,
@@ -37,7 +37,7 @@ public record HistoryMonthSummary(
 );
 
 // Monthly index record
-public record HistoryMonthIndex(
+public record ReleaseHistoryMonthIndex(
     ReleaseHistoryKind Kind,
     string Description,
     string Year,
@@ -45,24 +45,24 @@ public record HistoryMonthIndex(
     [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded")]
-    public HistoryMonthIndexEmbedded? Embedded { get; set; }
+    public ReleaseHistoryMonthIndexEmbedded? Embedded { get; set; }
 }
 
-public record HistoryMonthIndexEmbedded
+public record ReleaseHistoryMonthIndexEmbedded
 {
     public IList<string>? DotnetReleases { get; set; }
     public IList<string>? DotnetPatchReleases { get; set; }
 }
 
-public record HistoryCveInfo(string Version, int CveCount);
+public record ReleaseHistoryCveInfo(string Version, int CveCount);
 
-// public record HistoryRelease(string Version, int CveCount, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
+// public record ReleaseHistoryRelease(string Version, int CveCount, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
 
 public record ReleaseMetadata(string Version, string Href, string Title, string Type);
 
 /*
 {
-    "kind": "history-year-index",
+    "kind": "release-history-year-index",
     "description": "2025 Release History Index",
     "year": "2025",
     "_links": {
@@ -76,7 +76,7 @@ public record ReleaseMetadata(string Version, string Href, string Title, string 
     "_embedded": {
         "entries": [
             {
-                "kind": "history-month-index",
+                "kind": "release-history-month-index",
                 "description": "Releases in February 2025 for .NET 8, 9, and 10",
                 "year": "2025",
                 "month": "02",

@@ -54,8 +54,8 @@ public class HistoryIndexFiles
                 Directory.CreateDirectory(yearPath);
             }
 
-            List<HistoryMonthSummary> monthSummaries = [];
-            List<HistoryMonthEntry> monthDayEntries = [];
+            List<ReleaseHistoryMonthSummary> monthSummaries = [];
+            List<ReleaseHistoryMonthEntry> monthDayEntries = [];
 
             HashSet<string> releasesForYear = [];
 
@@ -138,7 +138,7 @@ public class HistoryIndexFiles
                     };
                 }
 
-                var monthSummary = new HistoryMonthSummary(
+                var monthSummary = new ReleaseHistoryMonthSummary(
                     month.Month,
                     monthSummaryLinks,
                     cveRecords?.Records.Select(r => new CveRecordSummary(r.Id, r.Title)
@@ -160,14 +160,14 @@ public class HistoryIndexFiles
                     }
                 };
 
-                var monthIndex = new HistoryMonthIndex(
-                    HistoryKind.HistoryMonthIndex,
+                var monthIndex = new ReleaseHistoryMonthIndex(
+                    ReleaseHistoryKind.ReleaseHistoryMonthIndex,
                     $"Release history for {year.Year}-{month.Month}",
                     year.Year,
                     month.Month,
                     monthIndexLinks)
                 {
-                    Embedded = new HistoryMonthIndexEmbedded
+                    Embedded = new ReleaseHistoryMonthIndexEmbedded
                     {
                         DotnetReleases = [.. monthReleases.OrderByDescending(v => v, numericStringComparer)],
                         DotnetPatchReleases = [.. monthPatchReleases.OrderByDescending(v => v, numericStringComparer)]
@@ -179,7 +179,7 @@ public class HistoryIndexFiles
                 JsonSerializer.Serialize(
                     monthStream,
                     monthIndex,
-                    HistoryYearIndexSerializerContext.Default.HistoryMonthIndex);
+                    ReleaseHistoryYearIndexSerializerContext.Default.ReleaseHistoryMonthIndex);
             }
 
             // Generate the root links for the year index
@@ -189,7 +189,7 @@ public class HistoryIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title);
 
             // Create the year index (e.g., release-notes/2025/index.json)
-            var yearHistory = new HistoryYearIndex(
+            var yearHistory = new ReleaseHistoryYearIndex(
                 ReleaseHistoryKind.ReleaseHistoryYearIndex,
                 $"Release history for {year.Year}",
                 year.Year,
@@ -201,7 +201,7 @@ public class HistoryIndexFiles
                     .Select(version => new ReleaseHistoryReleaseIndexEntry(version, yearHalLinks))
             );
             
-            yearHistory.Embedded = new HistoryYearIndexEmbedded
+            yearHistory.Embedded = new ReleaseHistoryYearIndexEmbedded
             {
                 Months = monthSummaries,
                 Releases = releaseEntries
@@ -211,7 +211,7 @@ public class HistoryIndexFiles
             JsonSerializer.Serialize(
                 yearStream,
                 yearHistory,
-                HistoryYearIndexSerializerContext.Default.HistoryYearIndex);
+                ReleaseHistoryYearIndexSerializerContext.Default.ReleaseHistoryYearIndex);
 
             // for the overall index
 

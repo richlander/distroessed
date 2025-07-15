@@ -123,8 +123,8 @@ public static class JsonSchemaInjector
                 {
                     "index" => $"{baseSchemaUrl}/release-version-index.json",
                     "release-history-index" => $"{baseSchemaUrl}/release-history-index.json",
-                    "release-history-year-index" => $"{baseSchemaUrl}/history-year-index.json",
-                    "release-history-month-index" => $"{baseSchemaUrl}/history-month-index.json",
+                    "release-history-year-index" => $"{baseSchemaUrl}/release-history-year-index.json",
+                    "release-history-month-index" => $"{baseSchemaUrl}/release-history-month-index.json",
                     "manifest" => $"{baseSchemaUrl}/release-manifest.json",
                     _ => null
                 };

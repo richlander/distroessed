@@ -29,8 +29,8 @@ List<ModelInfo> models = [
     // HAL+JSON schemas
     new (typeof(ReleaseVersionIndex), HalJsonSchemaContext.Default.ReleaseVersionIndex, Path.Combine(outputDir, "release-version-index.json")),
     new (typeof(ReleaseHistoryIndex), HalJsonSchemaContext.Default.ReleaseHistoryIndex, Path.Combine(outputDir, "release-history-index.json")),
-    new (typeof(HistoryYearIndex), HalJsonSchemaContext.Default.HistoryYearIndex, Path.Combine(outputDir, "history-year-index.json")),
-    new (typeof(HistoryMonthIndex), HalJsonSchemaContext.Default.HistoryMonthIndex, Path.Combine(outputDir, "history-month-index.json")),
+    new (typeof(ReleaseHistoryYearIndex), HalJsonSchemaContext.Default.ReleaseHistoryYearIndex, Path.Combine(outputDir, "release-history-year-index.json")),
+    new (typeof(ReleaseHistoryMonthIndex), HalJsonSchemaContext.Default.ReleaseHistoryMonthIndex, Path.Combine(outputDir, "release-history-month-index.json")),
     new (typeof(ReleaseManifest), HalJsonSchemaContext.Default.ReleaseManifest, Path.Combine(outputDir, "release-manifest.json")),
 ];
 
@@ -93,8 +93,8 @@ public partial class JsonSchemaContext : JsonSerializerContext
 
 [JsonSerializable(typeof(ReleaseVersionIndex))]
 [JsonSerializable(typeof(ReleaseHistoryIndex))]
-[JsonSerializable(typeof(HistoryYearIndex))]
-[JsonSerializable(typeof(HistoryMonthIndex))]
+[JsonSerializable(typeof(ReleaseHistoryYearIndex))]
+[JsonSerializable(typeof(ReleaseHistoryMonthIndex))]
 [JsonSerializable(typeof(ReleaseManifest))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, WriteIndented = true)]
 public partial class HalJsonSchemaContext : JsonSerializerContext

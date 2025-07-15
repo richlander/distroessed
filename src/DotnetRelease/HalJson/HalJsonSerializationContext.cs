@@ -33,12 +33,12 @@ public partial class ReleaseHistoryIndexSerializerContext : JsonSerializerContex
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
-[JsonSerializable(typeof(HistoryYearIndex))]
-[JsonSerializable(typeof(HistoryMonthIndex))]
-[JsonSerializable(typeof(HistoryMonthSummary))]
+[JsonSerializable(typeof(ReleaseHistoryYearIndex))]
+[JsonSerializable(typeof(ReleaseHistoryMonthIndex))]
+[JsonSerializable(typeof(ReleaseHistoryMonthSummary))]
 [JsonSerializable(typeof(CveRecords))]
 [JsonSerializable(typeof(CveRecordsSummary))]
 [JsonSerializable(typeof(CveRecordSummary))]
-public partial class HistoryYearIndexSerializerContext : JsonSerializerContext
+public partial class ReleaseHistoryYearIndexSerializerContext : JsonSerializerContext
 {
 }
