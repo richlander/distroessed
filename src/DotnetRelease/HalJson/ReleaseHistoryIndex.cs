@@ -2,19 +2,19 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-public record HistoryIndex(HistoryKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
+public record ReleaseHistoryIndex(HistoryKind Kind, string Description, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links)
 {
     [JsonPropertyName("_embedded")]
-    public HistoryIndexEmbedded? Embedded { get; set; }
+    public ReleaseHistoryIndexEmbedded? Embedded { get; set; }
 }
 
-public record HistoryIndexEmbedded
+public record ReleaseHistoryIndexEmbedded
 {
-    // public List<HistoryYearEntry>? Years { get; set; }
-    public List<HistoryReleaseIndexEntry>? Releases { get; set; }
+    public List<HistoryYearEntry>? Years { get; set; }
+    public List<ReleaseHistoryIndexEntry>? Releases { get; set; }
 }
 
-public record HistoryReleaseIndexEntry(string Version, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
+public record ReleaseHistoryIndexEntry(string Version, [property: JsonPropertyName("_links")] Dictionary<string, HalLink> Links);
 
 public record YearIndexEmbedded(List<HistoryYearEntry> Years);
 
@@ -28,7 +28,7 @@ public record HistoryYearEntry(HistoryKind Kind, string Description, string Year
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<HistoryKind>))]
 public enum HistoryKind
 {
-    HistoryIndex,
+    ReleaseHistoryIndex,
     HistoryYearIndex,
     HistoryMonthIndex,
 }

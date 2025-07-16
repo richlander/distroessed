@@ -1,0 +1,144 @@
+{
+  "type": [
+    "object",
+    "null"
+  ],
+  "properties": {
+    "kind": {
+      "enum": [
+        "release-history-index",
+        "history-year-index",
+        "history-month-index"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "_links": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "relative": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "href"
+        ]
+      }
+    },
+    "_embedded": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "years": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "release-history-index",
+                  "history-year-index",
+                  "history-month-index"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "year": {
+                "type": "string"
+              },
+              "_links": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/properties/_links/additionalProperties"
+                }
+              },
+              "dotnet-releases": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "description",
+              "year",
+              "_links"
+            ]
+          }
+        },
+        "releases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "_links": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/properties/_links/additionalProperties"
+                }
+              }
+            },
+            "required": [
+              "version",
+              "_links"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "kind",
+    "description",
+    "_links"
+  ]
+}

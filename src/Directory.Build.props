@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <IsAotCompatible>true</IsAotCompatible>
-    <PublishArtifacts>true</PublishArtifacts>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../artifacts</ArtifactsPath>
   </PropertyGroup>
 </Project>

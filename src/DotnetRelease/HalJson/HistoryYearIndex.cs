@@ -11,7 +11,7 @@ public record HistoryYearIndex(HistoryKind Kind, string Description, string Year
 public record HistoryYearIndexEmbedded
 {
     public List<HistoryMonthSummary>? Months { get; set; }
-    public List<HistoryReleaseIndexEntry>? Releases { get; set; }
+    public List<ReleaseHistoryIndexEntry>? Releases { get; set; }
 }
 
 public record MonthIndexEmbedded(List<HistoryMonthEntry> Months);

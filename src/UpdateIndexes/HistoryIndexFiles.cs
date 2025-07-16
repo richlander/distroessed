@@ -4,6 +4,7 @@ using System.Text.Json;
 using DotnetRelease;
 using System.Linq;
 using System.Globalization;
+using JsonSchemaInjector;
 
 namespace UpdateIndexes;
 
@@ -174,12 +175,20 @@ public class HistoryIndexFiles
                     }
                 };
 
-                // Write monthly index file
-                using Stream monthStream = File.Create(Path.Combine(monthPath, "index.json"));
-                JsonSerializer.Serialize(
-                    monthStream,
+                // Serialize to string first to add schema reference
+                var monthIndexJson = JsonSerializer.Serialize(
                     monthIndex,
                     HistoryYearIndexSerializerContext.Default.HistoryMonthIndex);
+                
+                // Add schema reference
+                var monthSchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-history-index.json";
+                var updatedMonthIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(monthIndexJson, monthSchemaUri);
+                
+                // Write monthly index file
+                using Stream monthStream = File.Create(Path.Combine(monthPath, "index.json"));
+                using var monthWriter = new StreamWriter(monthStream);
+                await monthWriter.WriteAsync(updatedMonthIndexJson ?? monthIndexJson);
+                await monthWriter.WriteAsync('\n');
             }
 
             // Generate the root links for the year index
@@ -195,10 +204,10 @@ public class HistoryIndexFiles
                 year.Year,
                 yearHalLinks);
             // Create embedded releases structure
-            var releaseEntries = new List<HistoryReleaseIndexEntry>(
+            var releaseEntries = new List<ReleaseHistoryIndexEntry>(
                 releasesForYear
                     .OrderByDescending(v => v, numericStringComparer)
-                    .Select(version => new HistoryReleaseIndexEntry(version, yearHalLinks))
+                    .Select(version => new ReleaseHistoryIndexEntry(version, yearHalLinks))
             );
             
             yearHistory.Embedded = new HistoryYearIndexEmbedded
@@ -207,11 +216,19 @@ public class HistoryIndexFiles
                 Releases = releaseEntries
             };
 
-            using Stream yearStream = File.Create(Path.Combine(yearPath, "index.json"));
-            JsonSerializer.Serialize(
-                yearStream,
+            // Serialize to string first to add schema reference
+            var yearIndexJson = JsonSerializer.Serialize(
                 yearHistory,
                 HistoryYearIndexSerializerContext.Default.HistoryYearIndex);
+            
+            // Add schema reference
+            var yearSchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-history-index.json";
+            var updatedYearIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(yearIndexJson, yearSchemaUri);
+            
+            using Stream yearStream = File.Create(Path.Combine(yearPath, "index.json"));
+            using var yearWriter = new StreamWriter(yearStream);
+            await yearWriter.WriteAsync(updatedYearIndexJson ?? yearIndexJson);
+            await yearWriter.WriteAsync('\n');
 
             // for the overall index
 
@@ -239,27 +256,35 @@ public class HistoryIndexFiles
         // Create embedded releases structure
         var rootReleaseEntries = allReleases
             .OrderByDescending(v => v, numericStringComparer)
-            .Select(version => new HistoryReleaseIndexEntry(version, fullIndexLinks))
+            .Select(version => new ReleaseHistoryIndexEntry(version, fullIndexLinks))
             .ToList();
 
         // Create the history index
-        var historyIndex = new HistoryIndex(
-            HistoryKind.HistoryIndex,
+        var historyIndex = new ReleaseHistoryIndex(
+            HistoryKind.ReleaseHistoryIndex,
             "History of .NET releases",
             fullIndexLinks
             )
         {
-            Embedded = new HistoryIndexEmbedded
+            Embedded = new ReleaseHistoryIndexEmbedded
             {
                 Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)],
                 Releases = rootReleaseEntries
             }
         };
 
-        using var historyStream = File.Create(Path.Combine(historyPath, "index.json"));
-        JsonSerializer.Serialize(
-            historyStream,
+        // Serialize to string first to add schema reference
+        var historyIndexJson = JsonSerializer.Serialize(
             historyIndex,
-            HistoryIndexSerializerContext.Default.HistoryIndex);
+            ReleaseHistoryIndexSerializerContext.Default.ReleaseHistoryIndex);
+        
+        // Add schema reference
+        var historySchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-history-index.json";
+        var updatedHistoryIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(historyIndexJson, historySchemaUri);
+        
+        using var historyStream = File.Create(Path.Combine(historyPath, "index.json"));
+        using var historyWriter = new StreamWriter(historyStream);
+        await historyWriter.WriteAsync(updatedHistoryIndexJson ?? historyIndexJson);
+        await historyWriter.WriteAsync('\n');
     }
 }

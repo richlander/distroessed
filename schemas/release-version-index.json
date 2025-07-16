@@ -1,0 +1,215 @@
+{
+  "type": [
+    "object",
+    "null"
+  ],
+  "properties": {
+    "kind": {
+      "enum": [
+        "index",
+        "manifest",
+        "major-release",
+        "patch-release",
+        "content",
+        "unknown"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "_links": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "relative": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "href"
+        ]
+      }
+    },
+    "_embedded": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "releases": {
+          "type": "array",
+          "items": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "index",
+                  "manifest",
+                  "major-release",
+                  "patch-release",
+                  "content",
+                  "unknown"
+                ]
+              },
+              "_links": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/properties/_links/additionalProperties"
+                }
+              },
+              "support": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "release-type": {
+                    "description": "The release types, offering different support lengths.",
+                    "enum": [
+                      "lts",
+                      "sts"
+                    ]
+                  },
+                  "phase": {
+                    "description": "The support phases of a product.",
+                    "enum": [
+                      "preview",
+                      "go-live",
+                      "active",
+                      "maintenance",
+                      "eol"
+                    ]
+                  },
+                  "ga-date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "eol-date": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "release-type",
+                  "phase",
+                  "ga-date",
+                  "eol-date"
+                ]
+              },
+              "cve-records": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "href": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "version",
+              "kind",
+              "_links"
+            ]
+          }
+        }
+      },
+      "required": [
+        "releases"
+      ]
+    },
+    "support": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "release-type": {
+          "description": "The release types, offering different support lengths.",
+          "enum": [
+            "lts",
+            "sts"
+          ]
+        },
+        "phase": {
+          "description": "The support phases of a product.",
+          "enum": [
+            "preview",
+            "go-live",
+            "active",
+            "maintenance",
+            "eol"
+          ]
+        },
+        "ga-date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "eol-date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "release-type",
+        "phase",
+        "ga-date",
+        "eol-date"
+      ]
+    }
+  },
+  "required": [
+    "kind",
+    "description",
+    "_links"
+  ]
+}

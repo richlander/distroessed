@@ -19,7 +19,7 @@ public class DotnetReleaseInfo(HttpClient httpClient)
             return _majorReleasesIndex;
         }
 
-        var stream = await _httpClient.GetStreamAsync(ReleaseNotes.MajorReleasesIndexUri)
+        var stream = await _httpClient.GetStreamAsync(Location.MajorReleasesIndexUri)
             ?? throw new InvalidOperationException("Failed to retrieve major releases index stream.");
         var index = await ReleaseNotes.GetMajorReleasesIndex(stream)
             ?? throw new InvalidOperationException("Failed to retrieve major releases index.");

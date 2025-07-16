@@ -10,7 +10,7 @@ if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 string version = $"{majorVersion}.0";
 
 // Get path adaptor
-string basePath = args.Length > 1 ? args[1] : ReleaseNotes.OfficialBaseUri;
+string basePath = args.Length > 1 ? args[1] : Location.OfficialBaseUri;
 using HttpClient client = new();
 IAdaptivePath path = AdaptivePath.GetFromDefaultAdaptors(basePath, client);
 

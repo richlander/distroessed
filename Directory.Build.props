@@ -1,6 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <IsAotCompatible>true</IsAotCompatible>
-    <UseArtifactsOutput>true</UseArtifactsOutput>
-  </PropertyGroup>
-</Project>

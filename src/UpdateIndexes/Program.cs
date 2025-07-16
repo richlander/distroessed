@@ -8,7 +8,6 @@ using UpdateIndexes;
 // Determine the composition of each patch version from release.json files
 // Determine set of CVEs for each patch version; ensure it matches the CVE-specific data
 
-args = "/home/rich/git/rich-core/release-notes".Split(' ');
 
 if (args.Length == 0)
 {
