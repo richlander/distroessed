@@ -55,7 +55,7 @@
             ]
           },
           "support-phase": {
-            "description": "The support phases of a product.",
+            "description": "The support phases of a .NET release through its lifecycle",
             "enum": [
               "preview",
               "go-live",
@@ -69,7 +69,7 @@
             "format": "date"
           },
           "release-type": {
-            "description": "The release types, offering different support lengths.",
+            "description": "The release support models offering different support lengths",
             "enum": [
               "lts",
               "sts"

@@ -93,6 +93,17 @@ Here's the root index, demonstrating the complete structure.
 
 The combination of `$schema`, `kind` and `description` provides a complete description of the kind of data to be expected in the index. The liberal use of `_links` and `_embedded` provides familiar footing within an unfamiliar domain language.
 
+## Cache-Friendly Design Philosophy
+
+All index files include the note "This file is cache-friendly; follow links for the most current details." in their descriptions. This reflects a core design principle:
+
+- **Index files are designed to be nearly immutable** and highly cacheable, with long TTLs
+- **Frequently changing details** (like latest-supported-version or next-eol-date) are not embedded at the top level
+- **Clients should follow links** to more granular resources for the most current information
+- **This approach prioritizes system reliability** over convenience for single-file consumers
+
+This design avoids the cache invalidation problems described in the Motivation section while still providing efficient navigation for AI assistants and other tools that can follow hypermedia links.
+
 The .NET 10 support information is projected up, in the `support` property. Notably, this information is very slow changing and won't suffer from the same data coherency problem covered earlier. The only property that would be expected to change over the life of the release would be `phase` changing from `preview` through a set of values ending with `eol`. It would once every several months. The rest of the data would not change.
 
 The .NET 10 `release` object within the `releases` array can be thought of multiple ways:

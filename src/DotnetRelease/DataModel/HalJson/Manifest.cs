@@ -7,7 +7,10 @@ namespace DotnetRelease;
 public record ReleaseManifest(
     [Description("Type of release document, always 'manifest'")]
     ReleaseKind Kind,
-    [property: JsonPropertyName("_links"), Description("HAL+JSON links for hypermedia navigation")]
+    [Description("Concise title for the document")]
+    string Title,
+    [property: JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links,
     [Description("Major version identifier (e.g., '8.0')")]
     string Version,
@@ -20,6 +23,10 @@ public record ReleaseManifest(
     [Description("Release support model (LTS or STS)")]
     ReleaseType ReleaseType,
     [Description("Current lifecycle phase (preview, active, maintenance, eol)")]
-    SupportPhase SupportPhase);
+    SupportPhase SupportPhase)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Metadata about when and how this document was generated")]
+    public GenerationMetadata? Metadata { get; set; }
+}
 
-    

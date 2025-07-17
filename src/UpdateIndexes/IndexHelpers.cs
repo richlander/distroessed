@@ -127,7 +127,7 @@ public class IndexHelpers
     public static string GetProdPath(string relativePath) => GetRawGitHubBranchPath(relativePath);
 
     public static string GetRawGitHubBranchPath(string relativePath) =>
-      $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}";
+      $"{Location.GitHubBaseUri}{relativePath}";
 
 
     public static string GetGitHubPath(string relativePath) =>

@@ -34,14 +34,14 @@ public class HistoryIndexFiles
         }
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
-        
-        var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
-            ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"
-            : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
-        
+
+        var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod
+    ? $"{Location.GitHubBaseUri}{relativePath}"
+    : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
+
 
         var halLinkGenerator = new HalLinkGenerator(rootPath, urlGenerator);
-        
+
         List<HistoryYearEntry> yearEntries = [];
 
         HashSet<string> allReleases = [];
@@ -64,7 +64,7 @@ public class HistoryIndexFiles
             {
                 Console.WriteLine($"Processing month: {month.Month} in year: {year.Year}");
                 var monthPath = Path.Combine(yearPath, month.Month);
-                
+
                 if (!Directory.Exists(monthPath))
                 {
                     Directory.CreateDirectory(monthPath);
@@ -86,10 +86,10 @@ public class HistoryIndexFiles
                         monthReleases.Add(day.MajorVersion);
                         releasesForYear.Add(day.MajorVersion);
                         allReleases.Add(day.MajorVersion);
-                        
+
                         // Add patch version (e.g., "10.0.1")
                         monthPatchReleases.Add(day.PatchVersion);
-                        
+
                         // Add runtime and SDK versions from components
                         foreach (var component in day.Components)
                         {
@@ -130,7 +130,7 @@ public class HistoryIndexFiles
                 if (cveRecords?.Records.Count > 0)
                 {
                     var cveJsonRelativePath = Path.GetRelativePath(rootPath, Path.Combine(monthPath, "cve.json"));
-                    
+
                     monthSummaryLinks["cve-json"] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
                     {
                         Relative = cveJsonRelativePath,
@@ -161,9 +161,15 @@ public class HistoryIndexFiles
                     }
                 };
 
+                // Calculate version range for month index
+                var monthMinVersion = monthReleases.Min(numericStringComparer);
+                var monthMaxVersion = monthReleases.Max(numericStringComparer);
+                var monthVersionRange = $"{monthMinVersion}–{monthMaxVersion}";
+
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.HistoryMonthIndex,
-                    $"Release history for {year.Year}-{month.Month}",
+                    $".NET Release History Index - {year.Year}-{month.Month}",
+                    $"Release history for {year.Year}-{month.Month} ({monthVersionRange}); {Location.CacheFriendlyNote}",
                     year.Year,
                     month.Month,
                     monthIndexLinks)
@@ -172,18 +178,19 @@ public class HistoryIndexFiles
                     {
                         DotnetReleases = [.. monthReleases.OrderByDescending(v => v, numericStringComparer)],
                         DotnetPatchReleases = [.. monthPatchReleases.OrderByDescending(v => v, numericStringComparer)]
-                    }
+                    },
+                    Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
                 };
 
                 // Serialize to string first to add schema reference
                 var monthIndexJson = JsonSerializer.Serialize(
                     monthIndex,
                     HistoryYearIndexSerializerContext.Default.HistoryMonthIndex);
-                
+
                 // Add schema reference
-                var monthSchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-history-index.json";
+                var monthSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
                 var updatedMonthIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(monthIndexJson, monthSchemaUri);
-                
+
                 // Write monthly index file
                 using Stream monthStream = File.Create(Path.Combine(monthPath, "index.json"));
                 using var monthWriter = new StreamWriter(monthStream);
@@ -197,19 +204,29 @@ public class HistoryIndexFiles
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title);
 
+            // Calculate version range for year index
+            var yearMinVersion = releasesForYear.Min(numericStringComparer);
+            var yearMaxVersion = releasesForYear.Max(numericStringComparer);
+            var yearVersionRange = $"{yearMinVersion}–{yearMaxVersion}";
+
             // Create the year index (e.g., release-notes/2025/index.json)
             var yearHistory = new HistoryYearIndex(
                 HistoryKind.HistoryYearIndex,
-                $"Release history for {year.Year}",
+                $".NET Release History Index - {year.Year}",
+                $"Release history for {year.Year} ({yearVersionRange}); {Location.CacheFriendlyNote}",
                 year.Year,
-                yearHalLinks);
+                yearHalLinks)
+            {
+                Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+            };
+
             // Create embedded releases structure
             var releaseEntries = new List<ReleaseHistoryIndexEntry>(
                 releasesForYear
                     .OrderByDescending(v => v, numericStringComparer)
                     .Select(version => new ReleaseHistoryIndexEntry(version, yearHalLinks))
             );
-            
+
             yearHistory.Embedded = new HistoryYearIndexEmbedded
             {
                 Months = monthSummaries,
@@ -220,11 +237,11 @@ public class HistoryIndexFiles
             var yearIndexJson = JsonSerializer.Serialize(
                 yearHistory,
                 HistoryYearIndexSerializerContext.Default.HistoryYearIndex);
-            
+
             // Add schema reference
-            var yearSchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-history-index.json";
+            var yearSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
             var updatedYearIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(yearIndexJson, yearSchemaUri);
-            
+
             using Stream yearStream = File.Create(Path.Combine(yearPath, "index.json"));
             using var yearWriter = new StreamWriter(yearStream);
             await yearWriter.WriteAsync(updatedYearIndexJson ?? yearIndexJson);
@@ -259,10 +276,16 @@ public class HistoryIndexFiles
             .Select(version => new ReleaseHistoryIndexEntry(version, fullIndexLinks))
             .ToList();
 
+        // Calculate version range for root history index
+        var minVersion = allReleases.Min(numericStringComparer);
+        var maxVersion = allReleases.Max(numericStringComparer);
+        var rootVersionRange = $"{minVersion}–{maxVersion}";
+
         // Create the history index
         var historyIndex = new ReleaseHistoryIndex(
             HistoryKind.ReleaseHistoryIndex,
-            "History of .NET releases",
+            ".NET Release History Index",
+            $"History of .NET releases {rootVersionRange}; {Location.CacheFriendlyNote}",
             fullIndexLinks
             )
         {
@@ -270,18 +293,19 @@ public class HistoryIndexFiles
             {
                 Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)],
                 Releases = rootReleaseEntries
-            }
+            },
+            Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };
 
         // Serialize to string first to add schema reference
         var historyIndexJson = JsonSerializer.Serialize(
             historyIndex,
             ReleaseHistoryIndexSerializerContext.Default.ReleaseHistoryIndex);
-        
+
         // Add schema reference
-        var historySchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-history-index.json";
+        var historySchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
         var updatedHistoryIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(historyIndexJson, historySchemaUri);
-        
+
         using var historyStream = File.Create(Path.Combine(historyPath, "index.json"));
         using var historyWriter = new StreamWriter(historyStream);
         await historyWriter.WriteAsync(updatedHistoryIndexJson ?? historyIndexJson);

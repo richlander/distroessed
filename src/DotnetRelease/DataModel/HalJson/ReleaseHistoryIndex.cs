@@ -6,15 +6,23 @@ namespace DotnetRelease;
 [Description("Provides chronological access to .NET releases organized by time periods (years → months → releases)")]
 public record ReleaseHistoryIndex(
     [Description("Type of history index (release-history-index, history-year-index, history-month-index)")]
-    HistoryKind Kind, 
+    HistoryKind Kind,
+    [Description("Concise title for the document")]
+    string Title,
     [Description("Context-aware description of the time period")]
-    string Description, 
-    [property: JsonPropertyName("_links"), Description("HAL+JSON links for hypermedia navigation")]
+    string Description,
+    [property: JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links)
 {
+
     [JsonPropertyName("_embedded"),
      Description("Embedded time-based navigation entries and release summaries")]
     public ReleaseHistoryIndexEmbedded? Embedded { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Metadata about when and how this document was generated")]
+    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded chronological navigation entries")]
@@ -29,8 +37,9 @@ public record ReleaseHistoryIndexEmbedded
 [Description("Individual release entry within a history index, linking to version-specific content")]
 public record ReleaseHistoryIndexEntry(
     [Description("Version identifier for the release")]
-    string Version, 
-    [property: JsonPropertyName("_links"), Description("HAL+JSON links for navigation to this release's content")]
+    string Version,
+    [property: JsonPropertyName("_links"),
+     Description("HAL+JSON links for navigation to this release's content")]
     Dictionary<string, HalLink> Links);
 
 [Description("Container for yearly history entries")]
@@ -41,12 +50,13 @@ public record YearIndexEmbedded(
 [Description("Year entry in the release history, containing annual release information")]
 public record HistoryYearEntry(
     [Description("Type of history index for this year")]
-    HistoryKind Kind, 
-    [Description("Human-readable description of the year's releases")]
-    string Description, 
+    HistoryKind Kind,
+    [Description("Description of the year's releases")]
+    string Description,
     [Description("Year identifier (e.g., '2025')")]
-    string Year, 
-    [property: JsonPropertyName("_links"), Description("HAL+JSON links for navigation to this year's content")]
+    string Year,
+    [property: JsonPropertyName("_links"),
+     Description("HAL+JSON links for navigation to this year's content")]
     Dictionary<string, HalLink> Links)
 {
     [Description("List of .NET version identifiers released during this year")]

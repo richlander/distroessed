@@ -1,3 +1,5 @@
+using DotnetRelease;
+
 namespace UpdateIndexes;
 
 public class LinkHelpers
@@ -12,7 +14,7 @@ public class LinkHelpers
       $"https://raw.githubusercontent.com/dotnet/core/main/release-notes/{relativePath}";
 
     public static string GetRawGitHubBranchPath(string relativePath) =>
-      $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}";
+      $"{Location.GitHubBaseUri}{relativePath}";
 
 
     public static string GetGitHubPath(string relativePath) =>

@@ -1,45 +1,96 @@
+using System.ComponentModel;
+
 namespace DotnetRelease;
 
-public record CveRecords(string Date, IReadOnlyList<CveRecord> Records, IReadOnlyList<CvePackage> Packages)
+[Description("Collection of CVE security vulnerability records for a specific date")]
+public record CveRecords(
+    [Description("Date when the CVEs were disclosed (ISO 8601 format)")]
+    string Date,
+    [Description("List of detailed CVE vulnerability records")]
+    IReadOnlyList<CveRecord> Records,
+    [Description("List of affected packages and their vulnerability details")]
+    IReadOnlyList<CvePackage> Packages)
 {
+    [Description("Git commits that address these CVE vulnerabilities")]
     public IReadOnlyList<Commit>? Commits { get; set; }
 }
 
-public record CveRecord(string Id, string Title)
+[Description("Detailed CVE security vulnerability record")]
+public record CveRecord(
+    [Description("CVE identifier (e.g., 'CVE-2025-12345')")]
+    string Id,
+    [Description("Title describing the vulnerability")]
+    string Title)
 {
+    [Description("Severity rating (e.g., 'Critical', 'High', 'Medium', 'Low')")]
     public string? Severity { get; set; }
+    [Description("CVSS (Common Vulnerability Scoring System) score")]
     public string? Cvss { get; set; }
+    [Description("Detailed description of the vulnerability")]
     public IReadOnlyList<string>? Description { get; set; }
+    [Description("Recommended mitigation steps")]
     public IReadOnlyList<string>? Mitigation { get; set; }
+    [Description("Affected product name")]
     public string? Product { get; set; }
-    // This is the list of platforms affected by the CVE
-    // Unset is assumed to be all platforms
+    [Description("List of platforms affected by this CVE (unset means all platforms)")]
     public IReadOnlyList<string>? Platforms { get; set; }
+    [Description("External reference URLs for more information")]
     public IReadOnlyList<string>? References { get; set; }
 }
 
-public record CveRecordSummary(string Id, string Title)
+[Description("Simplified CVE record for embedding in indexes")]
+public record CveRecordSummary(
+    [Description("CVE identifier (e.g., 'CVE-2025-12345')")]
+    string Id,
+    [Description("Title describing the vulnerability")]
+    string Title)
 {
+    [Description("URL to detailed CVE information")]
     public string? Href { get; set; }
 };
 
-public record CveRecordsSummary(IReadOnlyList<CveRecordSummary> Records);
+[Description("Collection of simplified CVE records")]
+public record CveRecordsSummary(
+    [Description("List of CVE summary records")]
+    IReadOnlyList<CveRecordSummary> Records);
 
-public record CvePackage(string Name, IReadOnlyList<Affected> Affected);
-public record Affected(string CveId, string MinVulnerable, string MaxVulnerable, string Fixed)
+[Description("Package affected by CVE vulnerabilities")]
+public record CvePackage(
+    [Description("Package name")]
+    string Name,
+    [Description("List of vulnerability details for this package")]
+    IReadOnlyList<Affected> Affected);
+
+[Description("Vulnerability details for a specific package version range")]
+public record Affected(
+    [Description("CVE identifier that affects this package")]
+    string CveId,
+    [Description("Minimum vulnerable version")]
+    string MinVulnerable,
+    [Description("Maximum vulnerable version")]
+    string MaxVulnerable,
+    [Description("Version where the vulnerability was fixed")]
+    string Fixed)
 {
-    // May be important to specify the binaries affected by the CVE
+    [Description("Specific binary files affected by the CVE")]
     public IReadOnlyList<string>? Binaries { get; set; }
-    // This is the version family affected
-    // Might be "8.0", "8.0.100x", a codename or whatever is appropriate
+    [Description("Version family affected (e.g., '8.0', '8.0.100x')")]
     public string? Family { get; set; }
-    // This is the commit that fixed the CVE (can be multiple)
-    // Can be used as a foreign key to CveRecords.Commits
+    [Description("Git commit hashes that fixed this CVE")]
     public IReadOnlyList<string>? Commits { get; set; }
 }
 
-public record Commit(string Repo, string Branch, string Hash)
+[Description("Git commit information for CVE fixes")]
+public record Commit(
+    [Description("Repository name")]
+    string Repo,
+    [Description("Git branch name")]
+    string Branch,
+    [Description("Git commit hash")]
+    string Hash)
 {
+    [Description("GitHub organization or user name")]
     public string? Org { get; set; }
+    [Description("Full URL to the commit")]
     public string? Url { get; set; }
 };

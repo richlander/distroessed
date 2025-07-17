@@ -23,9 +23,9 @@ SCHEMAS_DIR="$ROOT_DIR/schemas"
 
 # Schema files referenced by UpdateIndexes
 HAL_SCHEMAS=(
-    "release-version-index.json"
-    "release-history-index.json"
-    "release-manifest.json"
+    "dotnet-release-version-index.json"
+    "dotnet-release-history-index.json"
+    "dotnet-release-manifest.json"
 )
 
 # Create target directory if it doesn't exist

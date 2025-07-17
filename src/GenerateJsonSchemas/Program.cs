@@ -25,9 +25,9 @@ List<ModelInfo> models = [
     new (typeof(PatchReleaseOverview), PatchReleaseOverviewSerializerContext.Default.PatchReleaseOverview, "dotnet-patch-release.json"),
     new (typeof(OSPackagesOverview), OSPackagesSerializerContext.Default.OSPackagesOverview, "dotnet-os-packages.json"),
     new (typeof(SupportedOSMatrix), SupportedOSMatrixSerializerContext.Default.SupportedOSMatrix, "dotnet-supported-os-matrix.json"),
-    new (typeof(ReleaseVersionIndex), ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex, "release-version-index.json"),
-    new (typeof(ReleaseHistoryIndex), ReleaseHistoryIndexSerializerContext.Default.ReleaseHistoryIndex, "release-history-index.json"),
-    new (typeof(ReleaseManifest), ReleaseManifestSerializerContext.Default.ReleaseManifest, "release-manifest.json"),
+    new (typeof(ReleaseVersionIndex), ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex, "dotnet-release-version-index.json"),
+    new (typeof(ReleaseHistoryIndex), ReleaseHistoryIndexSerializerContext.Default.ReleaseHistoryIndex, "dotnet-release-history-index.json"),
+    new (typeof(ReleaseManifest), ReleaseManifestSerializerContext.Default.ReleaseManifest, "dotnet-release-manifest.json"),
 ];
 
 var exporterOptions = new JsonSchemaExporterOptions()

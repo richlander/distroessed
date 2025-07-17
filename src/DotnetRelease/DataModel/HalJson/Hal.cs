@@ -1,17 +1,24 @@
+using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-public record HalLink(string Href)
+[Description("HAL+JSON hypermedia link providing navigation to related resources")]
+public record HalLink(
+    [Description("Absolute URL to the linked resource")]
+    string Href)
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Relative path from the base URL")]
     public string? Relative { get; set; }
-    
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Descriptive title for the linked resource")]
     public string? Title { get; set; }
-    
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("MIME type of the linked resource")]
     public string? Type { get; set; }
 }
 
@@ -80,3 +87,12 @@ public class Hal
 {
     public static ValueTask<ReleaseManifest?> GetMajorReleasesIndex(Stream stream) => JsonSerializer.DeserializeAsync<ReleaseManifest>(stream, ReleaseManifestSerializerContext.Default.ReleaseManifest);
 }
+
+[Description("Metadata about when and how this document was generated")]
+public record GenerationMetadata(
+    [property: JsonPropertyName("generated-on"),
+     Description("ISO 8601 timestamp when this document was generated")]
+    DateTimeOffset GeneratedOn,
+    [property: JsonPropertyName("generated-by"),
+     Description("Name of the tool or script that generated this document")]
+    string GeneratedBy);

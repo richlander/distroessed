@@ -16,6 +16,12 @@
         "unknown"
       ]
     },
+    "title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "description": {
       "type": [
         "string",
@@ -28,6 +34,7 @@
         "null"
       ],
       "additionalProperties": {
+        "description": "HAL\u002BJSON hypermedia link providing navigation to related resources",
         "type": [
           "object",
           "null"
@@ -109,20 +116,21 @@
                 }
               },
               "support": {
+                "description": "Support lifecycle information for a .NET release",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "release-type": {
-                    "description": "The release types, offering different support lengths.",
+                    "description": "The release support models offering different support lengths",
                     "enum": [
                       "lts",
                       "sts"
                     ]
                   },
                   "phase": {
-                    "description": "The support phases of a product.",
+                    "description": "The support phases of a .NET release through its lifecycle",
                     "enum": [
                       "preview",
                       "go-live",
@@ -153,6 +161,7 @@
                   "null"
                 ],
                 "items": {
+                  "description": "Simplified CVE record for embedding in indexes",
                   "type": [
                     "object",
                     "null"
@@ -197,20 +206,21 @@
       ]
     },
     "support": {
+      "description": "Support lifecycle information for a .NET release",
       "type": [
         "object",
         "null"
       ],
       "properties": {
         "release-type": {
-          "description": "The release types, offering different support lengths.",
+          "description": "The release support models offering different support lengths",
           "enum": [
             "lts",
             "sts"
           ]
         },
         "phase": {
-          "description": "The support phases of a product.",
+          "description": "The support phases of a .NET release through its lifecycle",
           "enum": [
             "preview",
             "go-live",
@@ -234,10 +244,34 @@
         "ga-date",
         "eol-date"
       ]
+    },
+    "metadata": {
+      "description": "Metadata about when and how this document was generated",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "generated-on": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "generated-by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "generated-on",
+        "generated-by"
+      ]
     }
   },
   "required": [
     "kind",
+    "title",
     "description",
     "_links"
   ]

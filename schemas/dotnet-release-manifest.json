@@ -16,12 +16,19 @@
         "unknown"
       ]
     },
+    "title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "_links": {
       "type": [
         "object",
         "null"
       ],
       "additionalProperties": {
+        "description": "HAL\u002BJSON hypermedia link providing navigation to related resources",
         "type": [
           "object",
           "null"
@@ -78,14 +85,14 @@
       "format": "date-time"
     },
     "release-type": {
-      "description": "The release types, offering different support lengths.",
+      "description": "The release support models offering different support lengths",
       "enum": [
         "lts",
         "sts"
       ]
     },
     "support-phase": {
-      "description": "The support phases of a product.",
+      "description": "The support phases of a .NET release through its lifecycle",
       "enum": [
         "preview",
         "go-live",
@@ -93,10 +100,34 @@
         "maintenance",
         "eol"
       ]
+    },
+    "metadata": {
+      "description": "Metadata about when and how this document was generated",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "generated-on": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "generated-by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "generated-on",
+        "generated-by"
+      ]
     }
   },
   "required": [
     "kind",
+    "title",
     "_links",
     "version",
     "label",

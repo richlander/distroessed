@@ -10,6 +10,14 @@ public class ReleaseIndexFiles
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
         {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
+        {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
+        {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
+        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) }
+    };
+
+    public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
+    {
+        {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
         {"releases.json", new FileLink("releases.json", "Releases", LinkStyle.Prod) },
         {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
         {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
@@ -44,7 +52,7 @@ public class ReleaseIndexFiles
             StringComparer.OrdinalIgnoreCase);
 
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod
-            ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"
+            ? $"{Location.GitHubBaseUri}{relativePath}"
             : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
 
         var halLinkGenerator = new HalLinkGenerator(rootDir, urlGenerator);
@@ -62,7 +70,7 @@ public class ReleaseIndexFiles
 
             var majorVersionLinks = halLinkGenerator.Generate(
                 majorVersionDir,
-                MainFileMappings.Values,
+                PatchFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Generate patch version index; release-notes/8.0/index.json
@@ -96,13 +104,23 @@ public class ReleaseIndexFiles
             // write major version index.json if there are patch releases found
             var majorIndexPath = Path.Combine(majorVersionDir, "index.json");
             var relativeMajorIndexPath = Path.GetRelativePath(rootDir, majorIndexPath);
+
+            // Calculate version range for patch releases
+            var patchVersions = summary.PatchReleases.Select(p => p.PatchVersion).ToList();
+            var minPatchVersion = patchVersions.Min(numericStringComparer);
+            var maxPatchVersion = patchVersions.Max(numericStringComparer);
+            var patchVersionRange = $"{minPatchVersion}–{maxPatchVersion}";
+
+            var patchDescription = $"Index of .NET versions {patchVersionRange}; {Location.CacheFriendlyNote}";
             var patchVersionIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
-                    $"Index for {summary.MajorVersionLabel} patch releases",
-                    majorVersionLinks)
+                $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Patch Release Index",
+                patchDescription,
+                majorVersionLinks)
             {
                 Embedded = patchEntries.Count > 0 ? new ReleaseVersionIndexEmbedded(patchEntries) : null,
-                Support = support
+                Support = support,
+                Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
             };
 
             // Serialize to string first to add schema reference
@@ -111,7 +129,7 @@ public class ReleaseIndexFiles
                 ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
 
             // Add schema reference
-            var schemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-version-index.json";
+            var schemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-version-index.json";
             var updatedPatchIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchIndexJson, schemaUri);
 
             // Write to file
@@ -147,13 +165,22 @@ public class ReleaseIndexFiles
         // Create the major releases index; release-notes/index.json
         var rootIndexPath = Path.Combine(rootDir, "index.json");
         var rootIndexRelativePath = Path.GetRelativePath(rootDir, rootIndexPath);
-        var title = "Index of .NET major versions";
+
+        // Calculate version range for description
+        var majorVersions = majorEntries.Select(e => e.Version).ToList();
+        var minMajorVersion = majorVersions.Min(numericStringComparer);
+        var maxMajorVersion = majorVersions.Max(numericStringComparer);
+        var versionRange = $"{minMajorVersion}–{maxMajorVersion}";
+
+        var description = $"Index of .NET versions {versionRange}; {Location.CacheFriendlyNote}";
         var majorIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
-                title,
+                ".NET Release Version Index",
+                description,
                 rootLinks)
         {
-            Embedded = new ReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)])
+            Embedded = new ReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
+            Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };
 
         // Serialize to string first to add schema reference
@@ -162,7 +189,7 @@ public class ReleaseIndexFiles
             ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
 
         // Add schema reference
-        var rootSchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-version-index.json";
+        var rootSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-version-index.json";
         var updatedMajorIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(majorIndexJson, rootSchemaUri);
 
         // Write the major index file
@@ -215,6 +242,8 @@ public class ReleaseIndexFiles
                         }
                     }
                 };
+
+
 
             // Add CVE links and records if available
             IReadOnlyList<CveRecordSummary>? cveRecords = null;
