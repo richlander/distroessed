@@ -13,8 +13,7 @@ public class ReleaseIndexFiles
         {"releases.json", new FileLink("releases.json", "Releases", LinkStyle.Prod) },
         {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
         {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
-        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"terminology.md", new FileLink("terminology.md", "Terminology", LinkStyle.Prod | LinkStyle.GitHub) }
+        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
@@ -44,12 +43,12 @@ public class ReleaseIndexFiles
             s => s,
             StringComparer.OrdinalIgnoreCase);
 
-        var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod 
+        var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod
             ? $"https://raw.githubusercontent.com/richlander/core/main/release-notes/{relativePath}"
             : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
 
         var halLinkGenerator = new HalLinkGenerator(rootDir, urlGenerator);
-        
+
         // Look at all the major version directories
         // The presence of a releases.json file indicates this is a major version directory
         foreach (var majorVersionDir in Directory.EnumerateDirectories(rootDir))
@@ -110,11 +109,11 @@ public class ReleaseIndexFiles
             var patchIndexJson = JsonSerializer.Serialize(
                 patchVersionIndex,
                 ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
-            
+
             // Add schema reference
             var schemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-version-index.json";
             var updatedPatchIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchIndexJson, schemaUri);
-            
+
             // Write to file
             using Stream patchStream = File.Create(Path.Combine(majorVersionDir, "index.json"));
             using var writer = new StreamWriter(patchStream);
@@ -161,11 +160,11 @@ public class ReleaseIndexFiles
         var majorIndexJson = JsonSerializer.Serialize(
             majorIndex,
             ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
-        
+
         // Add schema reference
         var rootSchemaUri = "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-version-index.json";
         var updatedMajorIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(majorIndexJson, rootSchemaUri);
-        
+
         // Write the major index file
         using Stream stream = File.Create(Path.Combine(rootDir, "index.json"));
         using var rootWriter = new StreamWriter(stream);
