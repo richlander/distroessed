@@ -6,8 +6,10 @@
   ],
   "properties": {
     "releases-index": {
-      "description": "Set of major releases.",
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "description": "A major version release, including the latest patch version, and whether that patch version included security updates.",
         "type": [
@@ -16,36 +18,44 @@
         ],
         "properties": {
           "channel-version": {
-            "description": "Major (or major.minor) version of product.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "latest-release": {
-            "description": "The version of the most recent patch release.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "latest-release-date": {
-            "description": "The date of the most recent patch release.",
             "type": "string",
             "format": "date"
           },
           "security": {
-            "description": "Whether the most recent patch release contains security fixes.",
             "type": "boolean"
           },
           "latest-runtime": {
-            "description": "The runtime version of the most recent patch release.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "latest-sdk": {
-            "description": "The SDK version of the most recent patch release.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "product": {
-            "description": "The product marketing name.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "support-phase": {
-            "description": "The support phase of the major release.",
+            "description": "The support phases of a product.",
             "enum": [
               "preview",
               "go-live",
@@ -55,27 +65,29 @@
             ]
           },
           "eol-date": {
-            "description": "End of life date of the major release.",
             "type": "string",
             "format": "date"
           },
           "release-type": {
-            "description": "The release type of the major release.",
+            "description": "The release types, offering different support lengths.",
             "enum": [
               "lts",
               "sts"
             ]
           },
           "releases.json": {
-            "description": "Link to detailed release descriptions (JSON format), with all patch releases in one file. This property is now deprecated, but still required (for compatibility).",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "patch-releases-info-uri": {
-            "description": "Link to detailed release descriptions (JSON format), with all patch releases in one file.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "patch-releases-index-uri": {
-            "description": "Link to index file of detailed release descriptions (JSON format), with one file per patch release.",
             "type": [
               "string",
               "null"
@@ -83,7 +95,6 @@
             "default": null
           },
           "supported-os.json": {
-            "description": "Link to supported OS matrix (JSON format). This property is now deprecated, but still required (for compatibility).",
             "type": [
               "string",
               "null"
@@ -91,7 +102,6 @@
             "default": null
           },
           "supported-os-info-uri": {
-            "description": "Link to supported OS matrix (JSON format).",
             "type": [
               "string",
               "null"
@@ -99,7 +109,6 @@
             "default": null
           },
           "os-packages-info-uri": {
-            "description": "Link to OS package information (JSON format).",
             "type": [
               "string",
               "null"

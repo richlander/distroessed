@@ -26,9 +26,6 @@ public class ReleaseNotes
     // Example file: https://github.com/dotnet/core/blob/main/release-notes/8.0/releases.json
     public static ValueTask<MajorReleaseOverview?> GetMajorRelease(Stream stream) => JsonSerializer.DeserializeAsync<MajorReleaseOverview>(stream, MajorReleaseOverviewSerializerContext.Default.MajorReleaseOverview);
 
-    // Example file: https://github.com/dotnet/core/blob/main/release-notes/8.0/patch-releases-index.json
-    public static ValueTask<PatchReleasesIndex?> GetPatchReleasesIndex(Stream stream) => JsonSerializer.DeserializeAsync<PatchReleasesIndex>(stream, PatchReleasesIndexSerializerContext.Default.PatchReleasesIndex);
-
     // Example file: https://github.com/dotnet/core/blob/main/release-notes/8.0/8.0.1/release.json
     public static ValueTask<PatchReleaseOverview?> GetPatchRelease(Stream stream) => JsonSerializer.DeserializeAsync<PatchReleaseOverview>(stream, PatchReleaseOverviewSerializerContext.Default.PatchReleaseOverview);
 

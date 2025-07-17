@@ -22,3 +22,4 @@ create_symlink DistroessedExceptional
 create_symlink distroessed
 create_symlink CveMarkdown
 create_symlink GenerateJsonSchemas
+create_symlink UpdateIndexes

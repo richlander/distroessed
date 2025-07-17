@@ -6,12 +6,16 @@
   ],
   "properties": {
     "channel-version": {
-      "description": "Major (or major.minor) version of product.",
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "packages": {
-      "description": "Set of nominal packages used by product, with descriptions.",
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "description": "A nominal package is a distro-agnostic representation of a package, including the scenarios for which the package is required. A nominal package will be referenced by a distribution package, with a distribution-specific package name.",
         "type": [
@@ -20,16 +24,22 @@
         ],
         "properties": {
           "id": {
-            "description": "ID of nominal package.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
-            "description": "Display name of nominal package.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "required-scenarios": {
-            "description": "Required scenarios for which the package must be used.",
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "description": "Scenarios relating to package dependencies. \u0027All\u0027 includes both CoreCLR and NativeAOT while \u0027Runtime\u0027 is intended to cover CoreCLR, only.",
               "enum": [
@@ -43,7 +53,6 @@
             }
           },
           "min-version": {
-            "description": "Minimum required version of library.",
             "type": [
               "string",
               "null"
@@ -51,7 +60,6 @@
             "default": null
           },
           "references": {
-            "description": "Related references.",
             "type": [
               "array",
               "null"
@@ -74,8 +82,10 @@
       }
     },
     "distributions": {
-      "description": "Set of distributions where the product can be used.",
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "description": "An operating system distribution, with required package install commands and specific packages for distribution releases.",
         "type": [
@@ -84,12 +94,16 @@
         ],
         "properties": {
           "name": {
-            "description": "Name of the distribution, matching ID in /etc/os-release, however, the expectation is that this value starts with a capital letter (proper noun).",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "install-commands": {
-            "description": "Commands required to install packages within the distribution.",
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "description": "A command to be run to install packages",
               "type": [
@@ -98,15 +112,15 @@
               ],
               "properties": {
                 "run-under-sudo": {
-                  "description": "Whether the command needs to be run under sudo.",
                   "type": "boolean"
                 },
                 "command-root": {
-                  "description": "The command to be run, like apt.",
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "command-parts": {
-                  "description": "The command parts or arguments that need to be used.",
                   "type": [
                     "array",
                     "null"
@@ -128,8 +142,10 @@
             }
           },
           "releases": {
-            "description": "Releases for that distribution.",
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "description": "A distribution release with a list of packages to install.",
               "type": [
@@ -138,16 +154,22 @@
               ],
               "properties": {
                 "name": {
-                  "description": "The name of the release, matching PRETTY_NAME in /etc/os-release.",
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "release": {
-                  "description": "The version number for the release, matching VERSION_ID in /etc/os-release.",
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "packages": {
-                  "description": "The packages required by the distro release.",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
                   "items": {
                     "description": "A distro archive package to install, with a reference to a logical package with more information.",
                     "type": [
@@ -156,12 +178,16 @@
                     ],
                     "properties": {
                       "id": {
-                        "description": "Reference to nominal package ID, providing access to required scenarios and other information.",
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "name": {
-                        "description": "Package name in the distro archive.",
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       }
                     },
                     "required": [

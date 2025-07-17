@@ -1,10 +1,12 @@
 {
+  "description": "Index of .NET releases organized by version hierarchy, supporting navigation from major versions to patch releases",
   "type": [
     "object",
     "null"
   ],
   "properties": {
     "kind": {
+      "description": "Identifies the type of release or index document",
       "enum": [
         "index",
         "manifest",
@@ -15,10 +17,16 @@
       ]
     },
     "description": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "_links": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": {
         "type": [
           "object",
@@ -26,7 +34,10 @@
         ],
         "properties": {
           "href": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "relative": {
             "type": [
@@ -53,23 +64,32 @@
       }
     },
     "_embedded": {
+      "description": "Container for embedded release entries in a version index",
       "type": [
         "object",
         "null"
       ],
       "properties": {
         "releases": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
+            "description": "Individual release entry within a version index, containing version metadata and navigation links",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "version": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "kind": {
+                "description": "Identifies the type of release or index document",
                 "enum": [
                   "index",
                   "manifest",
@@ -80,7 +100,10 @@
                 ]
               },
               "_links": {
-                "type": "object",
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": {
                   "$ref": "#/properties/_links/additionalProperties"
                 }
@@ -136,10 +159,16 @@
                   ],
                   "properties": {
                     "id": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "title": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "href": {
                       "type": [

@@ -6,17 +6,20 @@
   ],
   "properties": {
     "channel-version": {
-      "description": "Major (or major.minor) version of product.",
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "last-updated": {
-      "description": "Date when file was last updated",
       "type": "string",
       "format": "date"
     },
     "families": {
-      "description": "Supported operating system families.",
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "description": "Operating system family, such as Linux.",
         "type": [
@@ -25,12 +28,16 @@
         ],
         "properties": {
           "name": {
-            "description": "Operating system family name.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "distributions": {
-            "description": "Supported operating system family distributions.",
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "description": "A supported operating system distribution, like iOS or Ubuntu.",
               "type": [
@@ -39,20 +46,28 @@
               ],
               "properties": {
                 "id": {
-                  "description": "ID for distribution matching IDs used at https://endoflife.date/.",
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "name": {
-                  "description": "Display name for distribution.",
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "link": {
-                  "description": "Link to home page for distribution.",
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "architectures": {
-                  "description": "Supported architectures for distribution.",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
                   "items": {
                     "type": [
                       "string",
@@ -61,8 +76,10 @@
                   }
                 },
                 "supported-versions": {
-                  "description": "Supported versions for distribution.",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
                   "items": {
                     "type": [
                       "string",
@@ -71,7 +88,6 @@
                   }
                 },
                 "unsupported-versions": {
-                  "description": "Once but not longer supported versions for distribution.",
                   "type": [
                     "array",
                     "null"
@@ -84,14 +100,12 @@
                   }
                 },
                 "lifecycle": {
-                  "description": "Link to lifecycle page for distribution.",
                   "type": [
                     "string",
                     "null"
                   ]
                 },
                 "notes": {
-                  "description": "Support notes for distribution. For example, use notes if a given distribution architecture or version is only supported in certain circumstances.",
                   "type": [
                     "array",
                     "null"
@@ -123,7 +137,6 @@
       }
     },
     "libc": {
-      "description": "Minimum supported libc versions, per architecture.",
       "type": [
         "array",
         "null"
@@ -136,16 +149,22 @@
         ],
         "properties": {
           "name": {
-            "description": "Name of libc library.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "version": {
-            "description": "Minimum version supported.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "architectures": {
-            "description": "Architectures where that version is supported.",
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": [
                 "string",
@@ -154,8 +173,10 @@
             }
           },
           "source": {
-            "description": "Source of the libc header files and libraries (used by a compiler).",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -168,7 +189,6 @@
       }
     },
     "notes": {
-      "description": "Notes relating to support.",
       "type": [
         "array",
         "null"

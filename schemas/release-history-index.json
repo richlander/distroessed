@@ -1,10 +1,12 @@
 {
+  "description": "Provides chronological access to .NET releases organized by time periods (years \u2192 months \u2192 releases)",
   "type": [
     "object",
     "null"
   ],
   "properties": {
     "kind": {
+      "description": "Identifies the type of history index document",
       "enum": [
         "release-history-index",
         "history-year-index",
@@ -12,10 +14,16 @@
       ]
     },
     "description": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "_links": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": {
         "type": [
           "object",
@@ -23,7 +31,10 @@
         ],
         "properties": {
           "href": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "relative": {
             "type": [
@@ -50,6 +61,7 @@
       }
     },
     "_embedded": {
+      "description": "Container for embedded chronological navigation entries",
       "type": [
         "object",
         "null"
@@ -61,12 +73,14 @@
             "null"
           ],
           "items": {
+            "description": "Year entry in the release history, containing annual release information",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "kind": {
+                "description": "Identifies the type of history index document",
                 "enum": [
                   "release-history-index",
                   "history-year-index",
@@ -74,13 +88,22 @@
                 ]
               },
               "description": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "year": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "_links": {
-                "type": "object",
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": {
                   "$ref": "#/properties/_links/additionalProperties"
                 }
@@ -112,16 +135,23 @@
             "null"
           ],
           "items": {
+            "description": "Individual release entry within a history index, linking to version-specific content",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "version": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "_links": {
-                "type": "object",
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "additionalProperties": {
                   "$ref": "#/properties/_links/additionalProperties"
                 }

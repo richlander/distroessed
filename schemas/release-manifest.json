@@ -1,10 +1,12 @@
 {
+  "description": "Contains comprehensive metadata about a specific .NET major release, including support lifecycle information",
   "type": [
     "object",
     "null"
   ],
   "properties": {
     "kind": {
+      "description": "Identifies the type of release or index document",
       "enum": [
         "index",
         "manifest",
@@ -15,7 +17,10 @@
       ]
     },
     "_links": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": {
         "type": [
           "object",
@@ -23,7 +28,10 @@
         ],
         "properties": {
           "href": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "relative": {
             "type": [
@@ -50,10 +58,16 @@
       }
     },
     "version": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "label": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "ga-date": {
       "type": "string",

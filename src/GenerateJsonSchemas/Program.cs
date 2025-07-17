@@ -20,41 +20,40 @@ if (!Directory.Exists(targetDirectory))
 }
 
 List<ModelInfo> models = [
-    new (typeof(MajorReleasesIndex), JsonSchemaContext.Default.MajorReleasesIndex, "dotnet-releases-index.json"),
-    new (typeof(MajorReleaseOverview), JsonSchemaContext.Default.MajorReleaseOverview, "dotnet-releases.json"),
-    new (typeof(PatchReleasesIndex), JsonSchemaContext.Default.PatchReleasesIndex, "dotnet-patch-releases-index.json"),
-    new (typeof(PatchReleaseOverview), JsonSchemaContext.Default.PatchReleaseOverview, "dotnet-patch-release.json"),
-    new (typeof(OSPackagesOverview), JsonSchemaContext.Default.OSPackagesOverview, "dotnet-os-packages.json"),
-    new (typeof(SupportedOSMatrix), JsonSchemaContext.Default.SupportedOSMatrix, "dotnet-supported-os-matrix.json"),
-    new (typeof(ReleaseVersionIndex), HalJsonSchemaContext.Default.ReleaseVersionIndex, "release-version-index.json"),
-    new (typeof(ReleaseHistoryIndex), HalJsonSchemaContext.Default.ReleaseHistoryIndex, "release-history-index.json"),
-    new (typeof(ReleaseManifest), HalJsonSchemaContext.Default.ReleaseManifest, "release-manifest.json"),
+    new (typeof(MajorReleasesIndex), MajorReleasesIndexSerializerContext.Default.MajorReleasesIndex, "dotnet-releases-index.json"),
+    new (typeof(MajorReleaseOverview), MajorReleaseOverviewSerializerContext.Default.MajorReleaseOverview, "dotnet-releases.json"),
+    new (typeof(PatchReleaseOverview), PatchReleaseOverviewSerializerContext.Default.PatchReleaseOverview, "dotnet-patch-release.json"),
+    new (typeof(OSPackagesOverview), OSPackagesSerializerContext.Default.OSPackagesOverview, "dotnet-os-packages.json"),
+    new (typeof(SupportedOSMatrix), SupportedOSMatrixSerializerContext.Default.SupportedOSMatrix, "dotnet-supported-os-matrix.json"),
+    new (typeof(ReleaseVersionIndex), ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex, "release-version-index.json"),
+    new (typeof(ReleaseHistoryIndex), ReleaseHistoryIndexSerializerContext.Default.ReleaseHistoryIndex, "release-history-index.json"),
+    new (typeof(ReleaseManifest), ReleaseManifestSerializerContext.Default.ReleaseManifest, "release-manifest.json"),
 ];
 
 var exporterOptions = new JsonSchemaExporterOptions()
+{
+
+    TransformSchemaNode = (ctx, schema) =>
     {
-        
-        TransformSchemaNode = (ctx, schema) =>
+        if (schema is not JsonObject schemaObj || schemaObj.ContainsKey("$ref"))
         {
-            if (schema is not JsonObject schemaObj || schemaObj.ContainsKey("$ref"))
-            {
-                return schema;
-            }
-
-            DescriptionAttribute? descriptionAttribute =
-                GetCustomAttribute<DescriptionAttribute>(ctx.PropertyInfo?.AttributeProvider) ??
-                GetCustomAttribute<DescriptionAttribute>(ctx.PropertyInfo?.AssociatedParameter?.AttributeProvider) ??
-                GetCustomAttribute<DescriptionAttribute>(ctx.TypeInfo.Type);
-
-            if (descriptionAttribute != null)
-            {
-                schemaObj.Insert(0, "description", (JsonNode)descriptionAttribute.Description);
-            }
-
-            return schemaObj;
+            return schema;
         }
 
-    };
+        DescriptionAttribute? descriptionAttribute =
+            GetCustomAttribute<DescriptionAttribute>(ctx.PropertyInfo?.AttributeProvider) ??
+            GetCustomAttribute<DescriptionAttribute>(ctx.PropertyInfo?.AssociatedParameter?.AttributeProvider) ??
+            GetCustomAttribute<DescriptionAttribute>(ctx.TypeInfo.Type);
+
+        if (descriptionAttribute != null)
+        {
+            schemaObj.Insert(0, "description", (JsonNode)descriptionAttribute.Description);
+        }
+
+        return schemaObj;
+    }
+
+};
 
 foreach (var model in models)
 {
@@ -78,21 +77,3 @@ static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? prov
 record ModelInfo(Type Type, JsonTypeInfo TypeInfo, string TargetFile);
 
 
-[JsonSerializable(typeof(MajorReleasesIndex))]
-[JsonSerializable(typeof(MajorReleaseOverview))]
-[JsonSerializable(typeof(PatchReleasesIndex))]
-[JsonSerializable(typeof(PatchReleaseOverview))]
-[JsonSerializable(typeof(OSPackagesOverview))]
-[JsonSerializable(typeof(SupportedOSMatrix))]
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, WriteIndented = true)]
-public partial class JsonSchemaContext : JsonSerializerContext
-{
-}
-
-[JsonSerializable(typeof(ReleaseVersionIndex))]
-[JsonSerializable(typeof(ReleaseHistoryIndex))]
-[JsonSerializable(typeof(ReleaseManifest))]
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower, WriteIndented = true)]
-public partial class HalJsonSchemaContext : JsonSerializerContext
-{
-}
