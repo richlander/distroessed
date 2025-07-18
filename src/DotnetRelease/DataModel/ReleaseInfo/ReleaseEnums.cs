@@ -76,4 +76,21 @@ public static class ReleaseStability
     {
         return lifecycle != null && IsStable(lifecycle.phase);
     }
+
+    /// <summary>
+    /// Determines if a release is currently supported based on its EOL date and lifecycle phase.
+    /// </summary>
+    /// <param name="lifecycle">The lifecycle to check</param>
+    /// <param name="referenceDate">The date to check against (typically DateTime.UtcNow)</param>
+    /// <returns>True if the release is currently supported, false otherwise</returns>
+    public static bool IsSupported(Lifecycle? lifecycle, DateTimeOffset? referenceDate = null)
+    {
+        if (lifecycle == null)
+            return false;
+
+        var checkDate = referenceDate ?? DateTimeOffset.UtcNow;
+        
+        // A release is supported if it's not in EOL phase and hasn't reached its EOL date
+        return lifecycle.phase != SupportPhase.Eol && checkDate < lifecycle.EolDate;
+    }
 }

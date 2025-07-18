@@ -21,7 +21,8 @@ public record ReleaseManifest(
      Description("Support lifecycle information including release type, phase, and dates")]
     public Lifecycle? Lifecycle { get; set; }
     
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [property: JsonPropertyName("_metadata"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }
 }

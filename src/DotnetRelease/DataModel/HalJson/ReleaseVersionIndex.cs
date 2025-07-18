@@ -32,7 +32,8 @@ public record ReleaseVersionIndex(
      Description("Lifecycle information (GA date, EOL date, release type, phase)")]
     public Lifecycle? Lifecycle { get; set; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [property: JsonPropertyName("_metadata"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }
 }
@@ -59,6 +60,10 @@ public record ReleaseVersionIndexEntry(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability records associated with this release")]
     public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Whether this release is currently supported (calculated at build time)")]
+    public bool? Supported { get; set; }
 }
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]
