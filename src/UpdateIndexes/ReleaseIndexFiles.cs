@@ -175,7 +175,7 @@ public class ReleaseIndexFiles
                 )
             { 
                 Lifecycle = lifecycle,
-                Supported = ReleaseStability.IsSupported(lifecycle)
+                Supported = lifecycle != null && ReleaseStability.IsSupported(lifecycle)
             };
 
             majorEntries.Add(majorEntry);
@@ -352,7 +352,7 @@ public class ReleaseIndexFiles
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
             {
                 CveRecords = cveRecords,
-                Supported = ReleaseStability.IsSupported(majorVersionLifecycle)
+                Supported = majorVersionLifecycle != null && ReleaseStability.IsSupported(majorVersionLifecycle)
             };
             indexEntries.Add(indexEntry);
         }

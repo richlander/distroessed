@@ -61,9 +61,8 @@ public record ReleaseVersionIndexEntry(
      Description("CVE security vulnerability records associated with this release")]
     public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Whether this release is currently supported (calculated at build time)")]
-    public bool? Supported { get; set; }
+    [Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
+    public bool Supported { get; set; } = false;
 }
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]
