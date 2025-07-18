@@ -76,29 +76,44 @@
         "null"
       ]
     },
-    "ga-date": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "eol-date": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "release-type": {
-      "description": "The release support models offering different support lengths",
-      "enum": [
-        "lts",
-        "sts"
-      ]
-    },
-    "support-phase": {
-      "description": "The support phases of a .NET release through its lifecycle",
-      "enum": [
-        "preview",
-        "go-live",
-        "active",
-        "maintenance",
-        "eol"
+    "lifecycle": {
+      "description": "Lifecycle information for a .NET release",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "release-type": {
+          "description": "The release support models offering different support lengths",
+          "enum": [
+            "lts",
+            "sts"
+          ]
+        },
+        "phase": {
+          "description": "The support phases of a .NET release through its lifecycle",
+          "enum": [
+            "preview",
+            "go-live",
+            "active",
+            "maintenance",
+            "eol"
+          ]
+        },
+        "ga-date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "eol-date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "release-type",
+        "phase",
+        "ga-date",
+        "eol-date"
       ]
     },
     "metadata": {
@@ -130,10 +145,6 @@
     "title",
     "_links",
     "version",
-    "label",
-    "ga-date",
-    "eol-date",
-    "release-type",
-    "support-phase"
+    "label"
   ]
 }

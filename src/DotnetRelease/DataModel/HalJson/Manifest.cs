@@ -15,18 +15,31 @@ public record ReleaseManifest(
     [Description("Major version identifier (e.g., '8.0')")]
     string Version,
     [Description("Human-friendly version label (e.g., '.NET 8.0')")]
-    string Label,
-    [Description("General Availability release date in ISO 8601 format")]
-    DateTimeOffset GaDate,
-    [Description("End of Life date in ISO 8601 format")]
-    DateTimeOffset EolDate,
-    [Description("Release support model (LTS or STS)")]
-    ReleaseType ReleaseType,
-    [Description("Current lifecycle phase (preview, active, maintenance, eol)")]
-    SupportPhase SupportPhase)
+    string Label)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Support lifecycle information including release type, phase, and dates")]
+    public Lifecycle? Lifecycle { get; set; }
+    
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }
+}
+
+[Description("Partial manifest data for hand-maintained release information")]
+public record PartialManifest(
+    [Description("General Availability release date in ISO 8601 format")]
+    DateTimeOffset? GaDate,
+    [Description("End of Life date in ISO 8601 format")]
+    DateTimeOffset? EolDate,
+    [Description("Release support model (LTS or STS) - overrides computed value")]
+    ReleaseType? ReleaseType,
+    [Description("Current lifecycle phase - overrides computed value")]
+    SupportPhase? SupportPhase)
+{
+    [JsonPropertyName("_links")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Description("Additional HAL+JSON links (e.g., blog posts, announcements)")]
+    public Dictionary<string, HalLink>? Links { get; set; }
 }
 

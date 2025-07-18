@@ -99,18 +99,21 @@ public class ReleaseIndexFiles
                 majorVersionLinks[auxLink.Key] = auxLink.Value;
             }
 
+            // Generate manifest.json from _manifest.json and computed data
+            var generatedManifest = await ManifestGenerator.GenerateManifestAsync(majorVersionDir, majorVersionDirName, halLinkGenerator);
+            
+            // Write the generated manifest.json
             var manifestPath = Path.Combine(majorVersionDir, "manifest.json");
-            Lifecycle? lifecycle = null;
-            if (File.Exists(manifestPath))
+            var manifestJson = JsonSerializer.Serialize(
+                generatedManifest, 
+                ReleaseManifestSerializerContext.Default.ReleaseManifest);
+            await File.WriteAllTextAsync(manifestPath, manifestJson);
+            
+            // Extract lifecycle from generated manifest
+            var lifecycle = generatedManifest.Lifecycle;
+            if (lifecycle == null)
             {
-                Console.WriteLine($"Processing manifest file: {manifestPath}");
-                Stream manifestStream = File.OpenRead(manifestPath);
-                ReleaseManifest manifest = await Hal.GetMajorReleasesIndex(manifestStream) ?? throw new InvalidOperationException($"Failed to read manifest from {manifestPath}");
-                lifecycle = new Lifecycle(manifest.ReleaseType, manifest.SupportPhase, manifest.GaDate, manifest.EolDate);
-            }
-            else
-            {
-                lifecycle = new Lifecycle(summary.ReleaseType, summary.SupportPhase, summary.GaDate, summary.EolDate);
+                Console.WriteLine($"Warning: {majorVersionDirName} - Lifecycle is null");
             }
 
             // write major version index.json if there are patch releases found

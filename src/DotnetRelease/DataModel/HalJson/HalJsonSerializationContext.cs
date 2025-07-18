@@ -17,6 +17,7 @@ public partial class ReleaseVersionIndexSerializerContext : JsonSerializerContex
     WriteIndented = true)]
 
 [JsonSerializable(typeof(ReleaseManifest))]
+[JsonSerializable(typeof(PartialManifest))]
 public partial class ReleaseManifestSerializerContext : JsonSerializerContext
 {
 }
