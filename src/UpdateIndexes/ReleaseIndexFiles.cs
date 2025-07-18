@@ -12,7 +12,9 @@ public class ReleaseIndexFiles
         {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
         {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
         {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
-        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) }
+        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"terminology.md", new FileLink("terminology.md", "Terminology", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"history/index.json", new FileLink("history/index.json", ".NET Release and CVE History", LinkStyle.Prod) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
@@ -20,8 +22,7 @@ public class ReleaseIndexFiles
         {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
         {"releases.json", new FileLink("releases.json", "Releases", LinkStyle.Prod) },
         {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
-        {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
-        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) }
+        {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()

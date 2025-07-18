@@ -12,7 +12,9 @@ public class IndexHelpers
         { "releases.json", new ReleaseKindMapping("releases", "releases.json", ReleaseKind.MajorRelease, MediaType.Json) },
         { "release.json", new ReleaseKindMapping("release", "release.json", ReleaseKind.PatchRelease, MediaType.Json) },
         { "manifest.json", new ReleaseKindMapping("manifest", "manifest.json", ReleaseKind.Manifest, MediaType.Json) },
-        { "usage.md", new ReleaseKindMapping("usage", "usage.md", ReleaseKind.Content, MediaType.Markdown) }
+        { "usage.md", new ReleaseKindMapping("usage", "usage.md", ReleaseKind.Content, MediaType.Markdown) },
+        { "terminology.md", new ReleaseKindMapping("terminology", "terminology.md", ReleaseKind.Content, MediaType.Markdown) },
+        { "history/index.json", new ReleaseKindMapping("release-history-index", "history/index.json", ReleaseKind.Index, MediaType.Json) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
