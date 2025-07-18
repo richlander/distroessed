@@ -135,40 +135,6 @@
               "_links"
             ]
           }
-        },
-        "releases": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "description": "Individual release entry within a history index, linking to version-specific content",
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "version": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "_links": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "additionalProperties": {
-                  "$ref": "#/properties/_links/additionalProperties"
-                }
-              }
-            },
-            "required": [
-              "version",
-              "_links"
-            ]
-          }
         }
       }
     },

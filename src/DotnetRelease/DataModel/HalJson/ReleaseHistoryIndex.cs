@@ -30,8 +30,6 @@ public record ReleaseHistoryIndexEmbedded
 {
     [Description("Yearly navigation entries (root level history index)")]
     public List<HistoryYearEntry>? Years { get; set; }
-    [Description("Release version summaries across all time periods")]
-    public List<ReleaseHistoryIndexEntry>? Releases { get; set; }
 }
 
 [Description("Individual release entry within a history index, linking to version-specific content")]

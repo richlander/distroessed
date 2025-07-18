@@ -169,7 +169,7 @@ public class HistoryIndexFiles
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.HistoryMonthIndex,
                     $".NET Release History Index - {year.Year}-{month.Month}",
-                    $"Release history for {year.Year}-{month.Month} ({monthVersionRange}); {Location.CacheFriendlyNote}",
+                    $"Release history for {year.Year}-{month.Month} ({monthVersionRange}, latest first); {Location.CacheFriendlyNote}",
                     year.Year,
                     month.Month,
                     monthIndexLinks)
@@ -213,7 +213,7 @@ public class HistoryIndexFiles
             var yearHistory = new HistoryYearIndex(
                 HistoryKind.HistoryYearIndex,
                 $".NET Release History Index - {year.Year}",
-                $"Release history for {year.Year} ({yearVersionRange}); {Location.CacheFriendlyNote}",
+                $"Release history for {year.Year} ({yearVersionRange}, latest first); {Location.CacheFriendlyNote}",
                 year.Year,
                 yearHalLinks)
             {
@@ -270,11 +270,13 @@ public class HistoryIndexFiles
             HistoryFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? "History of .NET releases" : fileLink.Title);
 
-        // Create embedded releases structure
-        var rootReleaseEntries = allReleases
-            .OrderByDescending(v => v, numericStringComparer)
-            .Select(version => new ReleaseHistoryIndexEntry(version, fullIndexLinks))
-            .ToList();
+        // Add release-version-index link pointing back to root index.json
+        fullIndexLinks["release-version-index"] = new HalLink($"{Location.GitHubBaseUri}index.json")
+        {
+            Relative = "index.json",
+            Title = ".NET Release Version Index",
+            Type = MediaType.HalJson
+        };
 
         // Calculate version range for root history index
         var minVersion = allReleases.Min(numericStringComparer);
@@ -285,14 +287,13 @@ public class HistoryIndexFiles
         var historyIndex = new ReleaseHistoryIndex(
             HistoryKind.ReleaseHistoryIndex,
             ".NET Release History Index",
-            $"History of .NET releases {rootVersionRange}; {Location.CacheFriendlyNote}",
+            $"History of .NET releases {rootVersionRange} (latest first); {Location.CacheFriendlyNote}",
             fullIndexLinks
             )
         {
             Embedded = new ReleaseHistoryIndexEmbedded
             {
-                Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)],
-                Releases = rootReleaseEntries
+                Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)]
             },
             Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };

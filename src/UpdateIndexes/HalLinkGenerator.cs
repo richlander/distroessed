@@ -30,6 +30,12 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             string name = Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
             string extension = Path.GetExtension(filename).ToLowerInvariant();
             bool isMarkdown = ".md".Equals(extension, StringComparison.OrdinalIgnoreCase);
+            
+            // Special case for history/index.json to use correct key name
+            if (filename == "history/index.json")
+            {
+                name = "release-history-index";
+            }
             var fileType = MediaType.GetFileType(filename);
 
             string? selfKey = null;

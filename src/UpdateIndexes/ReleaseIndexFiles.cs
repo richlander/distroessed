@@ -112,7 +112,7 @@ public class ReleaseIndexFiles
             var maxPatchVersion = patchVersions.Max(numericStringComparer);
             var patchVersionRange = $"{minPatchVersion}–{maxPatchVersion}";
 
-            var patchDescription = $"Index of .NET versions {patchVersionRange}; {Location.CacheFriendlyNote}";
+            var patchDescription = $"Index of .NET versions {patchVersionRange} (latest first); {Location.CacheFriendlyNote}";
             var patchVersionIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
                 $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Patch Release Index",
@@ -173,7 +173,7 @@ public class ReleaseIndexFiles
         var maxMajorVersion = majorVersions.Max(numericStringComparer);
         var versionRange = $"{minMajorVersion}–{maxMajorVersion}";
 
-        var description = $"Index of .NET versions {versionRange}; {Location.CacheFriendlyNote}";
+        var description = $"Index of .NET versions {versionRange} (latest first); {Location.CacheFriendlyNote}";
         var majorIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
                 ".NET Release Version Index",
