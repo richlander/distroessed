@@ -7,6 +7,17 @@ namespace UpdateIndexes;
 
 public class ReleaseIndexFiles
 {
+    private static Dictionary<string, string> CreateGlossary()
+    {
+        return new Dictionary<string, string>
+        {
+            ["LTS"] = "Long-Term Support – 3-year support window",
+            ["STS"] = "Standard-Term Support – 18-month support window",
+            ["GA"] = "General Availability – Production-ready release",
+            ["EOL"] = "End of Life – No longer supported"
+        };
+    }
+
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
         {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
@@ -89,17 +100,17 @@ public class ReleaseIndexFiles
             }
 
             var manifestPath = Path.Combine(majorVersionDir, "manifest.json");
-            Support? support = null;
+            Lifecycle? lifecycle = null;
             if (File.Exists(manifestPath))
             {
                 Console.WriteLine($"Processing manifest file: {manifestPath}");
                 Stream manifestStream = File.OpenRead(manifestPath);
                 ReleaseManifest manifest = await Hal.GetMajorReleasesIndex(manifestStream) ?? throw new InvalidOperationException($"Failed to read manifest from {manifestPath}");
-                support = new Support(manifest.ReleaseType, manifest.SupportPhase, manifest.GaDate, manifest.EolDate);
+                lifecycle = new Lifecycle(manifest.ReleaseType, manifest.SupportPhase, manifest.GaDate, manifest.EolDate);
             }
             else
             {
-                support = new Support(summary.ReleaseType, summary.SupportPhase, summary.GaDate, summary.EolDate);
+                lifecycle = new Lifecycle(summary.ReleaseType, summary.SupportPhase, summary.GaDate, summary.EolDate);
             }
 
             // write major version index.json if there are patch releases found
@@ -119,8 +130,9 @@ public class ReleaseIndexFiles
                 patchDescription,
                 majorVersionLinks)
             {
+                Glossary = CreateGlossary(),
                 Embedded = patchEntries.Count > 0 ? new ReleaseVersionIndexEmbedded(patchEntries) : null,
-                Support = support,
+                Lifecycle = lifecycle,
                 Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
             };
 
@@ -151,7 +163,7 @@ public class ReleaseIndexFiles
                 ReleaseKind.Index,
                 majorVersionWithinAllReleasesIndexLinks
                 )
-            { Support = support };
+            { Lifecycle = lifecycle };
 
             majorEntries.Add(majorEntry);
         }
@@ -160,6 +172,40 @@ public class ReleaseIndexFiles
             rootDir,
             MainFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? ".NET Release" : fileLink.Title);
+
+        // Add latest and latest-lts links if we have entries
+        if (majorEntries.Count > 0)
+        {
+            // Find latest stable release (Active, Maintenance, or GoLive)
+            var latestRelease = majorEntries
+                .Where(e => ReleaseStability.IsStable(e.Lifecycle))
+                .OrderByDescending(e => e.Version, numericStringComparer)
+                .FirstOrDefault();
+            
+            if (latestRelease != null)
+            {
+                rootLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
+                {
+                    Title = $".NET {latestRelease.Version}",
+                    Type = MediaType.Json
+                };
+            }
+
+            // Find latest stable LTS release
+            var latestLtsRelease = majorEntries
+                .Where(e => e.Lifecycle?.ReleaseType == ReleaseType.LTS && ReleaseStability.IsStable(e.Lifecycle))
+                .OrderByDescending(e => e.Version, numericStringComparer)
+                .FirstOrDefault();
+            
+            if (latestLtsRelease != null)
+            {
+                rootLinks["latest-lts"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
+                {
+                    Title = $".NET {latestLtsRelease.Version} (LTS)",
+                    Type = MediaType.Json
+                };
+            }
+        }
 
         Console.WriteLine($"Found {rootLinks.Count} root links in {rootDir}");
 
@@ -180,6 +226,7 @@ public class ReleaseIndexFiles
                 description,
                 rootLinks)
         {
+            Glossary = CreateGlossary(),
             Embedded = new ReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
             Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };

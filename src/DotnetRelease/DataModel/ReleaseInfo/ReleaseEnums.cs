@@ -29,8 +29,8 @@ public enum ReleaseType
     STS,
 }
 
-[Description("Support lifecycle information for a .NET release")]
-public record Support(
+[Description("Lifecycle information for a .NET release")]
+public record Lifecycle(
     [Description("Support model (LTS or STS)")]
     ReleaseType ReleaseType,
     [Description("Current lifecycle phase")]
@@ -44,4 +44,36 @@ public enum ProductComponent
 {
     Runtime,
     SDK
+}
+
+public static class ReleaseStability
+{
+    /// <summary>
+    /// Determines if a release is stable (suitable for latest/latest-lts links).
+    /// Stable releases are those in Active, Maintenance, or GoLive phases.
+    /// </summary>
+    /// <param name="phase">The support phase to check</param>
+    /// <returns>True if the release is stable, false otherwise</returns>
+    public static bool IsStable(SupportPhase phase)
+    {
+        return phase switch
+        {
+            SupportPhase.Active => true,
+            SupportPhase.Maintenance => true,
+            SupportPhase.GoLive => true,
+            SupportPhase.Preview => false,
+            SupportPhase.Eol => false,
+            _ => false
+        };
+    }
+    
+    /// <summary>
+    /// Determines if a lifecycle is stable (suitable for latest/latest-lts links).
+    /// </summary>
+    /// <param name="lifecycle">The lifecycle to check</param>
+    /// <returns>True if the lifecycle is stable, false otherwise</returns>
+    public static bool IsStable(Lifecycle? lifecycle)
+    {
+        return lifecycle != null && IsStable(lifecycle.phase);
+    }
 }

@@ -19,14 +19,18 @@ public record ReleaseVersionIndex(
      Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Glossary of .NET terminology and abbreviations")]
+    public Dictionary<string, string>? Glossary { get; set; }
+
     [JsonPropertyName("_embedded"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded release entries for this index level")]
     public ReleaseVersionIndexEmbedded? Embedded { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Support lifecycle information (GA date, EOL date, release type, phase)")]
-    public Support? Support { get; set; }
+     Description("Lifecycle information (GA date, EOL date, release type, phase)")]
+    public Lifecycle? Lifecycle { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
@@ -49,8 +53,8 @@ public record ReleaseVersionIndexEntry(
     Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Support lifecycle information for this specific release")]
-    public Support? Support { get; set; }
+     Description("Lifecycle information for this specific release")]
+    public Lifecycle? Lifecycle { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability records associated with this release")]

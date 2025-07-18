@@ -6,7 +6,7 @@ namespace DotnetRelease;
     PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(ReleaseVersionIndex))]
-[JsonSerializable(typeof(Support))]
+[JsonSerializable(typeof(Lifecycle))]
 [JsonSerializable(typeof(CveRecordSummary))]
 public partial class ReleaseVersionIndexSerializerContext : JsonSerializerContext
 {

@@ -70,6 +70,18 @@
         ]
       }
     },
+    "glossary": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
     "_embedded": {
       "description": "Container for embedded release entries in a version index",
       "type": [
@@ -115,8 +127,8 @@
                   "$ref": "#/properties/_links/additionalProperties"
                 }
               },
-              "support": {
-                "description": "Support lifecycle information for a .NET release",
+              "lifecycle": {
+                "description": "Lifecycle information for a .NET release",
                 "type": [
                   "object",
                   "null"
@@ -205,8 +217,8 @@
         "releases"
       ]
     },
-    "support": {
-      "description": "Support lifecycle information for a .NET release",
+    "lifecycle": {
+      "description": "Lifecycle information for a .NET release",
       "type": [
         "object",
         "null"
