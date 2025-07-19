@@ -116,7 +116,7 @@
         "eol-date"
       ]
     },
-    "metadata": {
+    "_metadata": {
       "description": "Metadata about when and how this document was generated",
       "type": [
         "object",
