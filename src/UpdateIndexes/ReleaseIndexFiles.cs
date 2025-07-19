@@ -11,10 +11,14 @@ public class ReleaseIndexFiles
     {
         return new Dictionary<string, string>
         {
-            ["LTS"] = "Long-Term Support – 3-year support window",
-            ["STS"] = "Standard-Term Support – 18-month support window",
-            ["GA"] = "General Availability – Production-ready release",
-            ["EOL"] = "End of Life – No longer supported"
+            ["lts"] = "Long-Term Support – 3-year support window", 
+            ["sts"] = "Standard-Term Support – 18-month support window",
+            ["ga"] = "General Availability – Production-ready release",
+            ["eol"] = "End of Life – No longer supported",
+            ["preview"] = "Pre-release phase with previews and release candidates",
+            ["golive"] = "Production-ready but with limited support", 
+            ["active"] = "Full support with regular updates and security fixes",
+            ["maintenance"] = "Security updates only, no new features"
         };
     }
 
@@ -25,7 +29,7 @@ public class ReleaseIndexFiles
         {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
         {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) },
         {"terminology.md", new FileLink("terminology.md", "Terminology", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"history/index.json", new FileLink("history/index.json", ".NET Release and CVE History", LinkStyle.Prod) }
+        {"history/index.json", new FileLink("history/index.json", "Historical Release and CVE Records", LinkStyle.Prod) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
@@ -80,25 +84,6 @@ public class ReleaseIndexFiles
                 continue;
             }
 
-            var majorVersionLinks = halLinkGenerator.Generate(
-                majorVersionDir,
-                PatchFileMappings.Values,
-                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
-
-            // Generate patch version index; release-notes/8.0/index.json
-            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new(majorVersionDir, rootDir), releaseHistory);
-
-            var auxLinks = halLinkGenerator.Generate(
-                majorVersionDir,
-                AuxFileMappings.Values,
-                (fileLink, key) => fileLink.Title);
-
-            // Merge aux links into major version links
-            foreach (var auxLink in auxLinks)
-            {
-                majorVersionLinks[auxLink.Key] = auxLink.Value;
-            }
-
             // Generate manifest.json from _manifest.json and computed data
             var generatedManifest = await ManifestGenerator.GenerateManifestAsync(majorVersionDir, majorVersionDirName, halLinkGenerator);
             
@@ -114,6 +99,25 @@ public class ReleaseIndexFiles
             if (lifecycle == null)
             {
                 Console.WriteLine($"Warning: {majorVersionDirName} - Lifecycle is null");
+            }
+
+            var majorVersionLinks = halLinkGenerator.Generate(
+                majorVersionDir,
+                PatchFileMappings.Values,
+                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
+
+            // Generate patch version index; release-notes/8.0/index.json
+            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, rootDir), releaseHistory, lifecycle);
+
+            var auxLinks = halLinkGenerator.Generate(
+                majorVersionDir,
+                AuxFileMappings.Values,
+                (fileLink, key) => fileLink.Title);
+
+            // Merge aux links into major version links
+            foreach (var auxLink in auxLinks)
+            {
+                majorVersionLinks[auxLink.Key] = auxLink.Value;
             }
 
             // write major version index.json if there are patch releases found
@@ -166,7 +170,10 @@ public class ReleaseIndexFiles
                 ReleaseKind.Index,
                 majorVersionWithinAllReleasesIndexLinks
                 )
-            { Lifecycle = lifecycle };
+            { 
+                Lifecycle = lifecycle,
+                Supported = lifecycle != null && ReleaseStability.IsSupported(lifecycle)
+            };
 
             majorEntries.Add(majorEntry);
         }
@@ -190,7 +197,7 @@ public class ReleaseIndexFiles
                 rootLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
                 {
                     Title = $".NET {latestRelease.Version}",
-                    Type = MediaType.Json
+                    Type = MediaType.HalJson
                 };
             }
 
@@ -205,7 +212,7 @@ public class ReleaseIndexFiles
                 rootLinks["latest-lts"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
                 {
                     Title = $".NET {latestLtsRelease.Version} (LTS)",
-                    Type = MediaType.Json
+                    Type = MediaType.HalJson
                 };
             }
         }
@@ -251,7 +258,7 @@ public class ReleaseIndexFiles
     }
 
     // Generates index containing each patch release in the major version directory
-    private static List<ReleaseVersionIndexEntry> GetPatchIndexEntries(IList<PatchReleaseSummary> summaries, PathContext pathContext, ReleaseHistory? releaseHistory)
+    private static List<ReleaseVersionIndexEntry> GetPatchIndexEntries(IList<PatchReleaseSummary> summaries, PathContext pathContext, ReleaseHistory? releaseHistory, Lifecycle? majorVersionLifecycle)
     {
         var (rootDir, urlRootDir) = pathContext;
 
@@ -341,7 +348,8 @@ public class ReleaseIndexFiles
 
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
             {
-                CveRecords = cveRecords
+                CveRecords = cveRecords,
+                Supported = majorVersionLifecycle != null && ReleaseStability.IsSupported(majorVersionLifecycle)
             };
             indexEntries.Add(indexEntry);
         }

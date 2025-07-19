@@ -22,7 +22,8 @@ public record HistoryYearIndex(
      Description("Embedded monthly summaries and release listings")]
     public HistoryYearIndexEmbedded? Embedded { get; set; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [property: JsonPropertyName("_metadata"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }
 }
@@ -95,7 +96,8 @@ public record HistoryMonthIndex(
      Description("Embedded release listings for this month")]
     public HistoryMonthIndexEmbedded? Embedded { get; set; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [property: JsonPropertyName("_metadata"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }
 }
