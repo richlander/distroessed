@@ -11,17 +11,14 @@ public class ReleaseIndexFiles
     {
         return new Dictionary<string, string>
         {
-            ["LTS"] = "Long-Term Support – 3-year support window",
             ["lts"] = "Long-Term Support – 3-year support window", 
-            ["STS"] = "Standard-Term Support – 18-month support window",
             ["sts"] = "Standard-Term Support – 18-month support window",
-            ["GA"] = "General Availability – Production-ready release",
-            ["EOL"] = "End of Life – No longer supported",
+            ["ga"] = "General Availability – Production-ready release",
+            ["eol"] = "End of Life – No longer supported",
             ["preview"] = "Pre-release phase with previews and release candidates",
             ["golive"] = "Production-ready but with limited support", 
             ["active"] = "Full support with regular updates and security fixes",
-            ["maintenance"] = "Security updates only, no new features",
-            ["eol"] = "End of life, no further updates"
+            ["maintenance"] = "Security updates only, no new features"
         };
     }
 
