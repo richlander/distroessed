@@ -87,25 +87,6 @@ public class ReleaseIndexFiles
                 continue;
             }
 
-            var majorVersionLinks = halLinkGenerator.Generate(
-                majorVersionDir,
-                PatchFileMappings.Values,
-                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
-
-            // Generate patch version index; release-notes/8.0/index.json
-            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new(majorVersionDir, rootDir), releaseHistory, lifecycle);
-
-            var auxLinks = halLinkGenerator.Generate(
-                majorVersionDir,
-                AuxFileMappings.Values,
-                (fileLink, key) => fileLink.Title);
-
-            // Merge aux links into major version links
-            foreach (var auxLink in auxLinks)
-            {
-                majorVersionLinks[auxLink.Key] = auxLink.Value;
-            }
-
             // Generate manifest.json from _manifest.json and computed data
             var generatedManifest = await ManifestGenerator.GenerateManifestAsync(majorVersionDir, majorVersionDirName, halLinkGenerator);
             
@@ -121,6 +102,25 @@ public class ReleaseIndexFiles
             if (lifecycle == null)
             {
                 Console.WriteLine($"Warning: {majorVersionDirName} - Lifecycle is null");
+            }
+
+            var majorVersionLinks = halLinkGenerator.Generate(
+                majorVersionDir,
+                PatchFileMappings.Values,
+                (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
+
+            // Generate patch version index; release-notes/8.0/index.json
+            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, rootDir), releaseHistory, lifecycle);
+
+            var auxLinks = halLinkGenerator.Generate(
+                majorVersionDir,
+                AuxFileMappings.Values,
+                (fileLink, key) => fileLink.Title);
+
+            // Merge aux links into major version links
+            foreach (var auxLink in auxLinks)
+            {
+                majorVersionLinks[auxLink.Key] = auxLink.Value;
             }
 
             // write major version index.json if there are patch releases found
