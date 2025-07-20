@@ -485,3 +485,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Temporary files and directories
+tmp-core/
+*.patch
+dotnet-install.sh
+scripts/
