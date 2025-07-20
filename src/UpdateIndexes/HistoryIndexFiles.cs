@@ -192,10 +192,15 @@ public class HistoryIndexFiles
                 var updatedMonthIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(monthIndexJson, monthSchemaUri);
 
                 // Write monthly index file
-                using Stream monthStream = File.Create(Path.Combine(monthPath, "index.json"));
-                using var monthWriter = new StreamWriter(monthStream);
-                await monthWriter.WriteAsync(updatedMonthIndexJson ?? monthIndexJson);
-                await monthWriter.WriteAsync('\n');
+                var monthIndexPath = Path.Combine(monthPath, "index.json");
+                var finalMonthIndexJson = (updatedMonthIndexJson ?? monthIndexJson) + '\n';
+                
+                if (HalJsonComparer.ShouldWriteFile(monthIndexPath, finalMonthIndexJson))
+                {
+                    using Stream monthStream = File.Create(monthIndexPath);
+                    using var monthWriter = new StreamWriter(monthStream);
+                    await monthWriter.WriteAsync(finalMonthIndexJson);
+                }
             }
 
             // Generate the root links for the year index
@@ -242,10 +247,15 @@ public class HistoryIndexFiles
             var yearSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
             var updatedYearIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(yearIndexJson, yearSchemaUri);
 
-            using Stream yearStream = File.Create(Path.Combine(yearPath, "index.json"));
-            using var yearWriter = new StreamWriter(yearStream);
-            await yearWriter.WriteAsync(updatedYearIndexJson ?? yearIndexJson);
-            await yearWriter.WriteAsync('\n');
+            var yearIndexPath = Path.Combine(yearPath, "index.json");
+            var finalYearIndexJson = (updatedYearIndexJson ?? yearIndexJson) + '\n';
+            
+            if (HalJsonComparer.ShouldWriteFile(yearIndexPath, finalYearIndexJson))
+            {
+                using Stream yearStream = File.Create(yearIndexPath);
+                using var yearWriter = new StreamWriter(yearStream);
+                await yearWriter.WriteAsync(finalYearIndexJson);
+            }
 
             // for the overall index
 
@@ -307,9 +317,14 @@ public class HistoryIndexFiles
         var historySchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
         var updatedHistoryIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(historyIndexJson, historySchemaUri);
 
-        using var historyStream = File.Create(Path.Combine(historyPath, "index.json"));
-        using var historyWriter = new StreamWriter(historyStream);
-        await historyWriter.WriteAsync(updatedHistoryIndexJson ?? historyIndexJson);
-        await historyWriter.WriteAsync('\n');
+        var historyIndexPath = Path.Combine(historyPath, "index.json");
+        var finalHistoryIndexJson = (updatedHistoryIndexJson ?? historyIndexJson) + '\n';
+        
+        if (HalJsonComparer.ShouldWriteFile(historyIndexPath, finalHistoryIndexJson))
+        {
+            using var historyStream = File.Create(historyIndexPath);
+            using var historyWriter = new StreamWriter(historyStream);
+            await historyWriter.WriteAsync(finalHistoryIndexJson);
+        }
     }
 }
