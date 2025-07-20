@@ -10,7 +10,7 @@ set -e
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
-TOOLS_DIR="$ROOT_DIR/tools"
+TOOLS_DIR="$ROOT_DIR/_tools"
 GENERATE_SCHEMAS_TOOL="$TOOLS_DIR/GenerateJsonSchemas"
 
 # Default target directory if not specified

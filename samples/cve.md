@@ -18,10 +18,6 @@ The following table lists version ranges for affected platform components.
 | .NET Runtime  | >=8.0.0       | <=8.0.7   | [8.0.8](https://github.com/dotnet/core/blob/main/release-notes/8.0/8.0.8/8.0.8.md) | CVE-2024-38167 | [56cf645][56cf645]  |
 
 
-| Component     | Min Version   | Max Version | Fixed Version | CVE         | Source fix |
-| ------------- | ------------- | ----------- | ------------- | ----------- | ---------- |
-| .NET          | 8.0.0         | 8.0.1       | 8.0.2         | CVE-BLAH    |            |
-
 ## Packages
 
 The following table lists version ranges for affected packages.

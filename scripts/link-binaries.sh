@@ -3,7 +3,7 @@
 # Function to create a symbolic link if it doesn't already exist
 create_symlink() {
     source="../artifacts/publish/$1/release/$1"
-    target="../tools/$1"
+    target="../_tools/$1"
     if [ ! -L "$target" ]; then
         ln -s "$source" "$target"
         echo "Created symlink: $target -> $source"
@@ -12,8 +12,8 @@ create_symlink() {
     fi
 }
 
-if [ ! -d "../tools" ]; then
-    mkdir -p "../tools"
+if [ ! -d "../_tools" ]; then
+    mkdir -p "../_tools"
 fi
 
 create_symlink SupportedOsMd

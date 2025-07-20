@@ -25,7 +25,7 @@ fi
 # Step 1: Validate required binaries exist or build if needed
 REQUIRED_TOOLS=("GenerateJsonSchemas" "UpdateIndexes" "CveMarkdown")
 ARTIFACTS_DIR="./artifacts"
-TOOLS_DIR="./tools"
+TOOLS_DIR="./_tools"
 
 echo "Validating required binaries..."
 
@@ -90,7 +90,7 @@ cd ..
 
 # Step 4: Run UpdateIndexes with target path
 echo "Running UpdateIndexes to generate release indexes..."
-./tools/UpdateIndexes "$TARGET_PATH"
+./_tools/UpdateIndexes "$TARGET_PATH"
 if [ $? -ne 0 ]; then
     echo "Error: Failed to run UpdateIndexes"
     exit 1
