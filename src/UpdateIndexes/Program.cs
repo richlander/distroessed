@@ -8,18 +8,34 @@ using UpdateIndexes;
 // Determine the composition of each patch version from release.json files
 // Determine set of CVEs for each patch version; ensure it matches the CVE-specific data
 
-
 if (args.Length == 0)
 {
-    Console.Error.WriteLine("Usage: UpdateIndexes <directory>");
+    Console.Error.WriteLine("Usage: UpdateIndexes <input-directory> [output-directory]");
+    Console.Error.WriteLine("  input-directory:  Directory containing release-notes data to read");
+    Console.Error.WriteLine("  output-directory: Directory to write generated index files (optional, defaults to input-directory)");
     return 1;
 }
 
-var root = args[0];
-if (!Directory.Exists(root))
+var inputDir = args[0];
+var outputDir = args.Length > 1 ? args[1] : inputDir;
+
+if (!Directory.Exists(inputDir))
 {
-    Console.Error.WriteLine($"Directory not found: {root}");
+    Console.Error.WriteLine($"Input directory not found: {inputDir}");
     return 1;
+}
+
+// Create output directory if it doesn't exist and it's different from input
+if (inputDir != outputDir && !Directory.Exists(outputDir))
+{
+    Directory.CreateDirectory(outputDir);
+    Console.WriteLine($"Created output directory: {outputDir}");
+}
+
+Console.WriteLine($"Input directory: {inputDir}");
+if (inputDir != outputDir)
+{
+    Console.WriteLine($"Output directory: {outputDir}");
 }
 
 // Reset skipped files counters
@@ -29,12 +45,12 @@ HistoryIndexFiles.ResetSkippedFilesCount();
 // Generate general release summaries
 // This will read all the major version directories and their patch releases
 // and produce a summary of the releases, including SDK bands and patch releases.
-var summaries = await Summary.GetReleaseSummariesAsync(root) ?? throw new InvalidOperationException("Failed to generate release summaries.");
+var summaries = await Summary.GetReleaseSummariesAsync(inputDir) ?? throw new InvalidOperationException("Failed to generate release summaries.");
 ReleaseHistory history = Summary.GetReleaseCalendar(summaries);
-Summary.PopulateCveInformation(history, root);
-await ReleaseIndexFiles.GenerateAsync(summaries, root, history);
-await SdkIndexFiles.GenerateAsync(summaries, root);
-await HistoryIndexFiles.GenerateAsync(root, history);
+Summary.PopulateCveInformation(history, inputDir);
+await ReleaseIndexFiles.GenerateAsync(summaries, inputDir, outputDir, history);
+await SdkIndexFiles.GenerateAsync(summaries, outputDir);
+await HistoryIndexFiles.GenerateAsync(inputDir, outputDir, history);
 
 // Display skipped files count
 var totalSkipped = ReleaseIndexFiles.SkippedFilesCount + HistoryIndexFiles.SkippedFilesCount;

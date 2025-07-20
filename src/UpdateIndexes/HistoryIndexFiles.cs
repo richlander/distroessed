@@ -29,9 +29,9 @@ public class HistoryIndexFiles
         {"README.md", new FileLink("README.md", ".NET Release Notes", LinkStyle.GitHub) },
     };
 
-    public static async Task GenerateAsync(string rootPath, ReleaseHistory releaseHistory)
+    public static async Task GenerateAsync(string inputPath, string outputPath, ReleaseHistory releaseHistory)
     {
-        var historyPath = Path.Combine(rootPath, "history");
+        var historyPath = Path.Combine(outputPath, "history");
 
         if (!Directory.Exists(historyPath))
         {
@@ -45,7 +45,7 @@ public class HistoryIndexFiles
     : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
 
 
-        var halLinkGenerator = new HalLinkGenerator(rootPath, urlGenerator);
+        var halLinkGenerator = new HalLinkGenerator(inputPath, urlGenerator);
 
         List<HistoryYearEntry> yearEntries = [];
 
@@ -118,7 +118,7 @@ public class HistoryIndexFiles
 
                 // Prepare month index path for links
                 var monthIndexPath = Path.Combine(monthPath, "index.json");
-                var monthIndexRelativePath = Path.GetRelativePath(rootPath, monthIndexPath);
+                var monthIndexRelativePath = Path.GetRelativePath(inputPath, monthIndexPath);
 
                 // Create simplified month summary for year index with proper self link and CVE links
                 var monthSummaryLinks = new Dictionary<string, HalLink>
@@ -134,7 +134,7 @@ public class HistoryIndexFiles
                 // Add CVE JSON link if CVE records exist
                 if (cveRecords?.Records.Count > 0)
                 {
-                    var cveJsonRelativePath = Path.GetRelativePath(rootPath, Path.Combine(monthPath, "cve.json"));
+                    var cveJsonRelativePath = Path.GetRelativePath(inputPath, Path.Combine(monthPath, "cve.json"));
 
                     monthSummaryLinks["cve-json"] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
                     {

@@ -73,11 +73,16 @@ public class ReleaseIndexFiles
     }
 
     // Generates index files for each major version directory and one root index file
-    public static async Task GenerateAsync(List<MajorReleaseSummary> summaries, string rootDir, ReleaseHistory? releaseHistory = null)
+    public static async Task GenerateAsync(List<MajorReleaseSummary> summaries, string inputDir, string outputDir, ReleaseHistory? releaseHistory = null)
     {
-        if (!Directory.Exists(rootDir))
+        if (!Directory.Exists(inputDir))
         {
-            throw new DirectoryNotFoundException($"Root directory does not exist: {rootDir}");
+            throw new DirectoryNotFoundException($"Input directory does not exist: {inputDir}");
+        }
+
+        if (!Directory.Exists(outputDir))
+        {
+            Directory.CreateDirectory(outputDir);
         }
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
@@ -92,11 +97,11 @@ public class ReleaseIndexFiles
             ? $"{Location.GitHubBaseUri}{relativePath}"
             : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
 
-        var halLinkGenerator = new HalLinkGenerator(rootDir, urlGenerator);
+        var halLinkGenerator = new HalLinkGenerator(inputDir, urlGenerator);
 
         // Look at all the major version directories
         // The presence of a releases.json file indicates this is a major version directory
-        foreach (var majorVersionDir in Directory.EnumerateDirectories(rootDir))
+        foreach (var majorVersionDir in Directory.EnumerateDirectories(inputDir))
         {
             var majorVersionDirName = Path.GetFileName(majorVersionDir);
 
@@ -109,7 +114,12 @@ public class ReleaseIndexFiles
             var generatedManifest = await ManifestGenerator.GenerateManifestAsync(majorVersionDir, majorVersionDirName, halLinkGenerator);
 
             // Write the generated manifest.json
-            var manifestPath = Path.Combine(majorVersionDir, "manifest.json");
+            var outputMajorVersionDir = Path.Combine(outputDir, majorVersionDirName);
+            if (!Directory.Exists(outputMajorVersionDir))
+            {
+                Directory.CreateDirectory(outputMajorVersionDir);
+            }
+            var manifestPath = Path.Combine(outputMajorVersionDir, "manifest.json");
             var manifestJson = JsonSerializer.Serialize(
                 generatedManifest,
                 ReleaseManifestSerializerContext.Default.ReleaseManifest);
@@ -136,7 +146,7 @@ public class ReleaseIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Generate patch version index; release-notes/8.0/index.json
-            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, rootDir), releaseHistory, lifecycle);
+            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, inputDir), releaseHistory, lifecycle);
 
             var auxLinks = halLinkGenerator.Generate(
                 majorVersionDir,
@@ -163,8 +173,8 @@ public class ReleaseIndexFiles
             }
 
             // write major version index.json if there are patch releases found
-            var majorIndexPath = Path.Combine(majorVersionDir, "index.json");
-            var relativeMajorIndexPath = Path.GetRelativePath(rootDir, majorIndexPath);
+            var majorIndexPath = Path.Combine(outputMajorVersionDir, "index.json");
+            var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, "index.json"));
 
             // Calculate version range for patch releases
             var patchVersions = summary.PatchReleases.Select(p => p.PatchVersion).ToList();
@@ -195,7 +205,7 @@ public class ReleaseIndexFiles
             var updatedPatchIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchIndexJson, schemaUri);
 
             // Write to file
-            var patchIndexPath = Path.Combine(majorVersionDir, "index.json");
+            var patchIndexPath = Path.Combine(outputMajorVersionDir, "index.json");
             var finalPatchIndexJson = (updatedPatchIndexJson ?? patchIndexJson) + '\n';
             
             if (HalJsonComparer.ShouldWriteFile(patchIndexPath, finalPatchIndexJson))
@@ -283,7 +293,7 @@ public class ReleaseIndexFiles
         }
 
         var rootLinks = halLinkGenerator.Generate(
-            rootDir,
+            inputDir,
             MainFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? ".NET Release" : fileLink.Title);
 
@@ -319,11 +329,11 @@ public class ReleaseIndexFiles
             }
         }
 
-        Console.WriteLine($"Found {rootLinks.Count} root links in {rootDir}");
+        Console.WriteLine($"Found {rootLinks.Count} root links in {inputDir}");
 
         // Create the major releases index; release-notes/index.json
-        var rootIndexPath = Path.Combine(rootDir, "index.json");
-        var rootIndexRelativePath = Path.GetRelativePath(rootDir, rootIndexPath);
+        var rootIndexPath = Path.Combine(outputDir, "index.json");
+        var rootIndexRelativePath = Path.GetRelativePath(inputDir, Path.Combine(inputDir, "index.json"));
 
         // Calculate version range for description
         var majorVersions = majorEntries.Select(e => e.Version).ToList();
@@ -355,7 +365,7 @@ public class ReleaseIndexFiles
         var updatedMajorIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(majorIndexJson, rootSchemaUri);
 
         // Write the major index file
-        var rootMajorIndexPath = Path.Combine(rootDir, "index.json");
+        var rootMajorIndexPath = Path.Combine(outputDir, "index.json");
         var finalMajorIndexJson = (updatedMajorIndexJson ?? majorIndexJson) + '\n';
         
         if (HalJsonComparer.ShouldWriteFile(rootMajorIndexPath, finalMajorIndexJson))

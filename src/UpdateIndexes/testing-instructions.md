@@ -21,12 +21,33 @@ You need to clone this repo. Clone it to a location that will not add to git his
 
 Clone command: `git clone https://github.com/richlander/core`
 
-The tool can be called with the cloned location, like the following.
+## Single Directory Mode (Original Behavior)
+
+The tool can be called with a single directory location, like the following. In this mode, input and output directories are the same:
 
 ```bash
-dotnet run _temp/core/release-notes`
+dotnet run ~/tmp/core/release-notes
 ```
 
-If making changes for a new root `index.json`, check: `_temp/core/release-notes/index.json`
+## Two Directory Mode (New Feature)
+
+The tool can now be called with separate input and output directories. This enables targeted testing with read-only input and allows multiple tests to run concurrently:
+
+```bash
+dotnet run ~/tmp/core/release-notes ~/tmp/test-output
+```
+
+In this mode:
+- Input directory: `~/tmp/core/release-notes` (read-only access)
+- Output directory: `~/tmp/test-output` (will be created if it doesn't exist)
+
+This approach allows you to:
+- Keep the original release-notes directory unchanged
+- Run multiple concurrent tests with different output directories
+- Test the tool's behavior without affecting the source data
+
+## Validation
+
+If making changes for a new root `index.json`, check: `~/tmp/core/release-notes/index.json`
 
 The paths are examples. Update that paths as appropriate.
