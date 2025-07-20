@@ -33,7 +33,7 @@ public class HistoryIndexFiles
             Directory.CreateDirectory(historyPath);
         }
 
-        var numericStringComparer = StringComparer.OrdinalIgnoreCase;
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
 
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod
     ? $"{Location.GitHubBaseUri}{relativePath}"

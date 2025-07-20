@@ -8,7 +8,7 @@ public class Summary
 {
     public static async Task<List<MajorReleaseSummary>> GetReleaseSummariesAsync(string rootDir)
     {
-        var numericStringComparer = StringComparer.OrdinalIgnoreCase;
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
         // Files to probe for to include as links
 
         // List of major version entries

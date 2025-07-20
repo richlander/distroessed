@@ -57,7 +57,7 @@ public class ReleaseIndexFiles
             throw new DirectoryNotFoundException($"Root directory does not exist: {rootDir}");
         }
 
-        var numericStringComparer = StringComparer.OrdinalIgnoreCase;
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
         List<ReleaseVersionIndexEntry> majorEntries = [];
 
         var summaryTable = summaries.ToDictionary(
