@@ -104,6 +104,25 @@ public class SdkIndexFiles
         var sdkPath = Path.Combine(sdkDir, "sdk.json");
         var sdkRelativePath = Path.GetRelativePath(rootDir, sdkPath);
         
+        // Find the latest feature band (most recent release date)
+        var latestBand = summary.SdkBands.OrderByDescending(b => b.LatestReleaseDate).FirstOrDefault();
+        string latestBandPath;
+        string latestBandRelativePath;
+        
+        if (latestBand != null)
+        {
+            var latestBandVersion = latestBand.Version[..5] + "xx"; // e.g., "10.0.xx"
+            var latestBandFileName = $"sdk-{latestBandVersion}.json";
+            latestBandPath = Path.Combine(sdkDir, latestBandFileName);
+            latestBandRelativePath = Path.GetRelativePath(rootDir, latestBandPath);
+        }
+        else
+        {
+            // Fallback to sdk.json if no bands found
+            latestBandPath = sdkPath;
+            latestBandRelativePath = sdkRelativePath;
+        }
+        
         var links = new Dictionary<string, HalLink>
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelativePath}")
@@ -112,10 +131,16 @@ public class SdkIndexFiles
                 Title = $".NET SDK {summary.MajorVersion}",
                 Type = MediaType.HalJson
             },
-            ["latest"] = new HalLink($"{Location.GitHubBaseUri}{sdkRelativePath}")
+            ["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestBandRelativePath}")
+            {
+                Relative = latestBandRelativePath,
+                Title = $".NET SDK {summary.MajorVersion} Latest Feature Band",
+                Type = MediaType.Json
+            },
+            ["stable-links"] = new HalLink($"{Location.GitHubBaseUri}{sdkRelativePath}")
             {
                 Relative = sdkRelativePath,
-                Title = $".NET SDK {summary.MajorVersion} Latest",
+                Title = $".NET SDK {summary.MajorVersion} Stable Links",
                 Type = MediaType.Json
             }
         };
