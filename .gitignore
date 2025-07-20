@@ -3,9 +3,6 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
-# repo-specific
-tools/
-
 # dotenv files
 .env
 
@@ -486,8 +483,10 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-# Temporary files and directories
-tmp-core/
-*.patch
-dotnet-install.sh
-scripts/
+# Repo-specific
+tools/
+
+# .NET installation scripts and tools (DO NOT COMMIT) - from dotnet-install-for-agents
+_temp/
+# .NET SDK installation directory (if installed locally)
+.dotnet/
