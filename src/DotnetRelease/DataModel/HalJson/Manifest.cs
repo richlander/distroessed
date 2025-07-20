@@ -20,7 +20,7 @@ public record ReleaseManifest(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Support lifecycle information including release type, phase, and dates")]
     public Lifecycle? Lifecycle { get; set; }
-    
+
     [property: JsonPropertyName("_metadata"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
@@ -29,8 +29,8 @@ public record ReleaseManifest(
 
 [Description("Partial manifest data for hand-maintained release information")]
 public record PartialManifest(
-    [Description("General Availability release date in ISO 8601 format")]
-    DateTimeOffset? GaDate,
+    [Description("Release date in ISO 8601 format")]
+    DateTimeOffset? ReleaseDate,
     [Description("End of Life date in ISO 8601 format")]
     DateTimeOffset? EolDate,
     [Description("Release support model (LTS or STS) - overrides computed value")]

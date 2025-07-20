@@ -9,11 +9,11 @@ public static class ManifestGenerator
     {
         var versionNumber = version;
         var versionLabel = $".NET {version}";
-        
+
         // Read partial manifest if it exists
         var partialManifestPath = Path.Combine(majorVersionDir, "_manifest.json");
         PartialManifest? partialManifest = null;
-        
+
         if (File.Exists(partialManifestPath))
         {
             try
@@ -37,9 +37,9 @@ public static class ManifestGenerator
 
         // Validate lifecycle data
         Lifecycle? lifecycle = null;
-        if (partialManifest?.GaDate.HasValue == true && partialManifest?.EolDate.HasValue == true)
+        if (partialManifest?.ReleaseDate.HasValue == true && partialManifest?.EolDate.HasValue == true)
         {
-            lifecycle = new Lifecycle(releaseType, supportPhase, partialManifest.GaDate.Value, partialManifest.EolDate.Value);
+            lifecycle = new Lifecycle(releaseType, supportPhase, partialManifest.ReleaseDate.Value, partialManifest.EolDate.Value);
         }
         else
         {

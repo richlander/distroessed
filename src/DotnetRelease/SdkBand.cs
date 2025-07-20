@@ -15,7 +15,7 @@ public record SdkBand
     {
         var version = major.ChannelVersion;
         var supportPhase = major.SupportPhase;
-        var supported = supportPhase is SupportPhase.Active or SupportPhase.Maintenance or SupportPhase.Preview or SupportPhase.GoLive;
+        var supported = supportPhase is SupportPhase.Active or SupportPhase.Maintenance or SupportPhase.Preview;
         var eolDate = major.EolDate;
         var releaseType = major.ReleaseType;
         var latestReleaseDate = major.LatestReleaseDate;

@@ -13,12 +13,10 @@ public class ReleaseIndexFiles
         {
             ["lts"] = "Long-Term Support – 3-year support window",
             ["sts"] = "Standard-Term Support – 18-month support window",
-            ["ga"] = "General Availability – Production-ready release",
+            ["release"] = "General Availability – Production-ready release",
             ["eol"] = "End of Life – No longer supported",
             ["preview"] = "Pre-release phase with previews and release candidates",
-            ["golive"] = "Production-ready but with limited support",
-            ["active"] = "Full support with regular updates and security fixes",
-            ["maintenance"] = "Security updates only, no new features"
+            ["active"] = "Full support with regular updates and security fixes"
         };
     }
 
@@ -165,11 +163,24 @@ public class ReleaseIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Add the major version entry to the list
-            // Set supported flag in lifecycle if it exists
-            if (lifecycle != null)
+            // Ensure we have lifecycle information, even if we need to create it with defaults
+            if (lifecycle == null)
             {
-                lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
+                // Create a default lifecycle with reasonable values based on version
+                var isEven = int.TryParse(majorVersionDirName.Split('.')[0], out int versionNumber) && versionNumber % 2 == 0;
+                var releaseType = isEven ? ReleaseType.LTS : ReleaseType.STS;
+                var phase = SupportPhase.Preview;
+
+                // Set dates based on version number - actual dates would come from _manifest.json
+                var currentYear = DateTimeOffset.UtcNow.Year;
+                var releaseDate = new DateTimeOffset(currentYear, 11, 14, 0, 0, 0, TimeSpan.Zero); // Default to November release
+                var eolDate = releaseDate.AddYears(isEven ? 3 : 1).AddMonths(isEven ? 0 : 6); // 3 years for LTS, 18 months for STS
+
+                lifecycle = new Lifecycle(releaseType, phase, releaseDate, eolDate);
             }
+
+            // Set supported flag
+            lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
 
             var majorEntry = new ReleaseVersionIndexEntry(
                 majorVersionDirName,
@@ -235,6 +246,16 @@ public class ReleaseIndexFiles
         var versionRange = $"{minMajorVersion}–{maxMajorVersion}";
 
         var description = $"Index of .NET versions {versionRange} (latest first); {Location.CacheFriendlyNote}";
+        // Create a root-level lifecycle
+        var rootLifecycle = new Lifecycle(
+            ReleaseType.LTS, // Default to LTS for root
+            SupportPhase.Active, // Always active
+            DateTimeOffset.UtcNow.AddYears(-1), // Default to 1 year ago release
+            DateTimeOffset.UtcNow.AddYears(10)) // Default to 10 years from now EOL
+        {
+            Supported = true // Always supported
+        };
+
         var majorIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
                 ".NET Release Version Index",
@@ -243,6 +264,7 @@ public class ReleaseIndexFiles
         {
             Glossary = CreateGlossary(),
             Embedded = new ReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
+            Lifecycle = rootLifecycle,
             Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };
 
@@ -352,11 +374,26 @@ public class ReleaseIndexFiles
             }
 
             // Create a copy of the major version lifecycle for each patch
-            Lifecycle? patchLifecycle = null;
+            Lifecycle patchLifecycle;
             if (majorVersionLifecycle != null)
             {
                 patchLifecycle = majorVersionLifecycle with { };
                 patchLifecycle.Supported = ReleaseStability.IsSupported(majorVersionLifecycle);
+            }
+            else
+            {
+                // Create a default lifecycle if the major version lifecycle is missing
+                var isEven = int.TryParse(summary.PatchVersion.Split('.')[0], out int versionNumber) && versionNumber % 2 == 0;
+                var releaseType = isEven ? ReleaseType.LTS : ReleaseType.STS;
+                var phase = SupportPhase.Active; // Assume active for patch releases
+
+                // Set dates based on release information
+                var releaseDateOnly = summary.ReleaseDate;
+                var releaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
+                var eolDate = releaseDate.AddYears(isEven ? 3 : 1).AddMonths(isEven ? 0 : 6); // 3 years for LTS, 18 months for STS
+
+                patchLifecycle = new Lifecycle(releaseType, phase, releaseDate, eolDate);
+                patchLifecycle.Supported = ReleaseStability.IsSupported(patchLifecycle);
             }
 
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)

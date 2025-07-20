@@ -94,13 +94,12 @@
           "description": "The support phases of a .NET release through its lifecycle",
           "enum": [
             "preview",
-            "go-live",
             "active",
             "maintenance",
             "eol"
           ]
         },
-        "ga-date": {
+        "release-date": {
           "type": "string",
           "format": "date-time"
         },
@@ -115,7 +114,7 @@
       "required": [
         "release-type",
         "phase",
-        "ga-date",
+        "release-date",
         "eol-date"
       ]
     },

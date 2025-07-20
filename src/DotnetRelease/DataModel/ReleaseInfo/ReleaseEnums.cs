@@ -9,8 +9,6 @@ public enum SupportPhase
 {
     [Description("Pre-release phase with previews and release candidates")]
     Preview,
-    [Description("Production-ready but with limited support")]
-    GoLive,
     [Description("Full support with regular updates and security fixes")]
     Active,
     [Description("Security updates only, no new features")]
@@ -31,16 +29,21 @@ public enum ReleaseType
 
 [Description("Lifecycle information for a .NET release")]
 public record Lifecycle(
-    [Description("Support model (LTS or STS)")]
+    [property: JsonPropertyName("release-type"),
+     Description("Support model (LTS or STS)")]
     ReleaseType ReleaseType,
-    [Description("Current lifecycle phase")]
+    [property: JsonPropertyName("phase"),
+     Description("Current lifecycle phase")]
     SupportPhase phase,
-    [Description("General Availability date when the release became stable")]
-    DateTimeOffset GaDate,
-    [Description("End of Life date when support ends")]
+    [property: JsonPropertyName("release-date"),
+     Description("Release date when the version became generally available")]
+    DateTimeOffset ReleaseDate,
+    [property: JsonPropertyName("eol-date"),
+     Description("End of Life date when support ends")]
     DateTimeOffset EolDate)
 {
-    [Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
+    [property: JsonPropertyName("supported"),
+     Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
     public bool Supported { get; set; } = false;
 };
 
@@ -54,7 +57,7 @@ public static class ReleaseStability
 {
     /// <summary>
     /// Determines if a release is stable (suitable for latest/latest-lts links).
-    /// Stable releases are those in Active, Maintenance, or GoLive phases.
+    /// Stable releases are those in Active or Maintenance phases.
     /// </summary>
     /// <param name="phase">The support phase to check</param>
     /// <returns>True if the release is stable, false otherwise</returns>
@@ -64,7 +67,6 @@ public static class ReleaseStability
         {
             SupportPhase.Active => true,
             SupportPhase.Maintenance => true,
-            SupportPhase.GoLive => true,
             SupportPhase.Preview => false,
             SupportPhase.Eol => false,
             _ => false
@@ -95,7 +97,7 @@ public static class ReleaseStability
         var checkDate = referenceDate ?? DateTimeOffset.UtcNow;
 
         // A release is supported if:
-        // 1. It's in a stable phase (Active, Maintenance, or GoLive)
+        // 1. It's in a stable phase (Active or Maintenance)
         // 2. It hasn't reached its EOL date
         return IsStable(lifecycle.phase) && checkDate < lifecycle.EolDate;
     }
