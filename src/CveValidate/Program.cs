@@ -25,7 +25,8 @@ if (cves.Records.Count == 0)
 }
 Console.WriteLine($"Date: {cves.Date}");
 Console.WriteLine($"Cve records: {cves.Records.Count}");
-Console.WriteLine($"Packages: {cves.Packages.Count}");
+Console.WriteLine($"Platform components: {cves.Platform.Sum(p => p.Value.Count)}");
+Console.WriteLine($"NuGet packages: {cves.Packages.Sum(p => p.Value.Count)}");
 Console.WriteLine($"Commits: {cves.Commits?.Count ?? 0}");
 Console.WriteLine();
 
@@ -47,7 +48,7 @@ foreach (var cve in cves.Records.OrderBy(c => c.Id))
     }
 
     Console.WriteLine($"CVE: {cve.Id}");
-    Console.WriteLine($"Description: {cve.Description}");
+    Console.WriteLine($"Description: {string.Join(" ", cve.Description)}");
     Console.WriteLine($"CVSS: {cve.Cvss}");
     Console.WriteLine($"Product: {cve.Product}");
     Console.WriteLine($"Platforms: {string.Join(", ", cve.Platforms ?? all)}");
@@ -57,16 +58,11 @@ foreach (var cve in cves.Records.OrderBy(c => c.Id))
 
 Console.WriteLine();
 
-foreach (var package in cves.Packages.OrderBy(p => p.Name))
+// Process platform components
+foreach (var platformGroup in cves.Platform.OrderBy(p => p.Key))
 {
-    if (package.Name is null || package.Affected is null)
-    {
-        Console.WriteLine($"Error: Package {package.Name ?? ""} is missing information");
-        continue;
-    }
-
-    Console.WriteLine($"Package: {package.Name}");
-    foreach (var affected in package.Affected)
+    Console.WriteLine($"Platform version: {platformGroup.Key}");
+    foreach (var affected in platformGroup.Value)
     {
         if (affected.CveId is null || affected.MaxVulnerable is null || affected.Fixed is null)
         {
@@ -74,11 +70,45 @@ foreach (var package in cves.Packages.OrderBy(p => p.Name))
             continue;
         }
 
+        Console.WriteLine($"Component: {affected.Component}");
         Console.WriteLine($"CVE: {affected.CveId}");
         Console.WriteLine($"MinVulnerable: {affected.MinVulnerable}");
         Console.WriteLine($"MaxVulnerable: {affected.MaxVulnerable}");
         Console.WriteLine($"Fixed: {affected.Fixed}");
-        Console.WriteLine($"MajorVersion: {affected.Family}");
+        Console.WriteLine($"Family: {affected.Family}");
+        Console.WriteLine($"Commits: {string.Join("; ", affected.Commits ?? none)}");
+
+        if (cves.Commits is not null && affected.Commits is not null && !affected.Commits.All(c => c.StartsWith("http")))
+        {
+            var commit = cves.Commits.FirstOrDefault(c => affected.Commits.Contains(c.Hash));
+            if (commit == null)
+            {
+                Console.WriteLine($"Error: Commit {string.Join(", ", affected.Commits)} not found in commits");
+            }
+        }
+
+        Console.WriteLine();
+    }
+}
+
+// Process NuGet packages
+foreach (var packageGroup in cves.Packages.OrderBy(p => p.Key))
+{
+    Console.WriteLine($"Package: {packageGroup.Key}");
+    foreach (var affected in packageGroup.Value)
+    {
+        if (affected.CveId is null || affected.MaxVulnerable is null || affected.Fixed is null)
+        {
+            Console.WriteLine($"Error: Affected {affected.CveId} is missing information");
+            continue;
+        }
+
+        Console.WriteLine($"Component: {affected.Component}");
+        Console.WriteLine($"CVE: {affected.CveId}");
+        Console.WriteLine($"MinVulnerable: {affected.MinVulnerable}");
+        Console.WriteLine($"MaxVulnerable: {affected.MaxVulnerable}");
+        Console.WriteLine($"Fixed: {affected.Fixed}");
+        Console.WriteLine($"Family: {affected.Family}");
         Console.WriteLine($"Commits: {string.Join("; ", affected.Commits ?? none)}");
 
         if (cves.Commits is not null && affected.Commits is not null && !affected.Commits.All(c => c.StartsWith("http")))
@@ -113,10 +143,12 @@ if (cves.Commits is not null)
         Console.WriteLine($"Org: {commit.Org}");
         Console.WriteLine($"Url: {commit.Url}");
 
-        var package = cves.Packages.FirstOrDefault(p => p.Affected.Any(a => a.Commits?.Contains(commit.Hash) ?? false));
-        if (package == null)
+        var foundInPlatform = cves.Platform.Values.SelectMany(p => p).Any(a => a.Commits?.Contains(commit.Hash) ?? false);
+        var foundInPackages = cves.Packages.Values.SelectMany(p => p).Any(a => a.Commits?.Contains(commit.Hash) ?? false);
+        var foundCommit = foundInPlatform || foundInPackages;
+        if (!foundCommit)
         {
-            Console.WriteLine($"Error: Commit {commit.Hash} not found in packages");
+            Console.WriteLine($"Error: Commit {commit.Hash} not found in platform or packages");
         }
 
         var commits = cves.Commits.Where(c => c.Hash == commit.Hash);

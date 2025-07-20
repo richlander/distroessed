@@ -8,8 +8,10 @@ public record CveRecords(
     string Date,
     [Description("List of detailed CVE vulnerability records")]
     IReadOnlyList<CveRecord> Records,
-    [Description("List of affected packages and their vulnerability details")]
-    IReadOnlyList<CvePackage> Packages)
+    [Description("Platform components grouped by .NET version")]
+    IReadOnlyDictionary<string, IReadOnlyList<CvePackageAffected>> Platform,
+    [Description("NuGet packages grouped by package name")]
+    IReadOnlyDictionary<string, IReadOnlyList<CvePackageAffected>> Packages)
 {
     [Description("Git commits that address these CVE vulnerabilities")]
     public IReadOnlyList<Commit>? Commits { get; set; }
@@ -54,14 +56,35 @@ public record CveRecordsSummary(
     [Description("List of CVE summary records")]
     IReadOnlyList<CveRecordSummary> Records);
 
-[Description("Package affected by CVE vulnerabilities")]
+[Description("Package affected by CVE vulnerabilities (in new schema format)")]
+public record CvePackageAffected(
+    [Description("CVE identifier that affects this package")]
+    string CveId,
+    [Description("Minimum vulnerable version")]
+    string MinVulnerable,
+    [Description("Maximum vulnerable version")]
+    string MaxVulnerable,
+    [Description("Version where the vulnerability was fixed")]
+    string Fixed,
+    [Description("Version family affected (e.g., '8.0', '9.0')")]
+    string Family,
+    [Description("Component name")]
+    string Component)
+{
+    [Description("Git commit hashes that fixed this CVE")]
+    public IReadOnlyList<string>? Commits { get; set; }
+    [Description("Specific binary files affected by the CVE")]
+    public IReadOnlyList<string>? Binaries { get; set; }
+}
+
+[Description("Package affected by CVE vulnerabilities (legacy format)")]
 public record CvePackage(
     [Description("Package name")]
     string Name,
     [Description("List of vulnerability details for this package")]
     IReadOnlyList<Affected> Affected);
 
-[Description("Vulnerability details for a specific package version range")]
+[Description("Vulnerability details for a specific package version range (legacy format)")]
 public record Affected(
     [Description("CVE identifier that affects this package")]
     string CveId,

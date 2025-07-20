@@ -12,6 +12,7 @@
         "manifest",
         "major-release",
         "patch-release",
+        "band",
         "content",
         "unknown"
       ]
@@ -114,6 +115,7 @@
                   "manifest",
                   "major-release",
                   "patch-release",
+                  "band",
                   "content",
                   "unknown"
                 ]

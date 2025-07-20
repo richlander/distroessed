@@ -1,62 +1,97 @@
 {
     "date": "2024-08-13",
-    "cves": [
+    "records": [
         {
             "id": "CVE-2024-38167",
-            "description": ".NET Information disclosure vulnerability",
+            "title": ".NET Information disclosure vulnerability",
+            "severity": "High",
             "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N/E:U/RL:O/RC:C",
             "product": ".NET",
-            "packages": [
-                {
-                    "name": "Microsoft.NETCore.App.Runtime-*",
-                    "min-vulnerable-version": "8.0.0",
-                    "max-vulnerable-version": "8.0.7",
-                    "fixed-version": "8.0.8"
-                }
+            "description": [
+                "A vulnerability in .NET allows for information disclosure when processing specially crafted requests."
             ],
-            "platforms": [
-                "all"
+            "mitigation": [
+                "Update to .NET 8.0.8 or later."
+            ],
+            "references": [
+                "https://github.com/dotnet/runtime/security/advisories"
             ]
         },
         {
             "id": "CVE-2024-38168",
-            "description": ".NET Denial of Service Vulnerability",
+            "title": ".NET Denial of Service Vulnerability",
+            "severity": "High",
             "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H/E:U/RL:O/RC:C",
             "product": "ASP.NET Core",
-            "packages": [
-                {
-                    "name": "Microsoft.AspNetCore.App.Runtime-*",
-                    "min-vulnerable-version": "8.0.0",
-                    "max-vulnerable-version": "8.0.7",
-                    "fixed-version": "8.0.8"
-                }
+            "description": [
+                "A denial of service vulnerability in ASP.NET Core when processing specially crafted requests."
+            ],
+            "mitigation": [
+                "Update to ASP.NET Core 8.0.8 or later."
             ],
             "platforms": [
                 "windows"
+            ],
+            "references": [
+                "https://github.com/dotnet/aspnetcore/security/advisories"
             ]
         }
     ],
     "commits": [
         {
-            "cve": "CVE-2024-38167",
-            "hash": "56cf645f455120395e5b62366921b21694510982",
-            "org": "dotnet",
             "repo": "runtime",
             "branch": "release/8.0",
+            "hash": "56cf645f455120395e5b62366921b21694510982",
+            "org": "dotnet",
             "url": "https://github.com/dotnet/runtime/commit/56cf645f455120395e5b62366921b21694510982"
         },
         {
-            "cve": "CVE-2024-38168",
-            "hash": "ffa0a028464e13d46aaec0c5ad8de0725a4d5aa5",
-            "org": "dotnet",
             "repo": "aspnetcore",
             "branch": "release/8.0",
+            "hash": "ffa0a028464e13d46aaec0c5ad8de0725a4d5aa5",
+            "org": "dotnet",
             "url": "https://github.com/dotnet/aspnetcore/commit/ffa0a028464e13d46aaec0c5ad8de0725a4d5aa5"
         }
     ],
-    "source": {
-        "name": "dotnet/upstream",
-        "commit-url": "https://github.com/{org}/{repo}/commit/{commit}",
-        "branch-url": "https://github.com/{org}/{repo}/tree/{branch}"
+    "platform": {
+        "8.0": [
+            {
+                "cve-id": "CVE-2024-38167",
+                "min-vulnerable": "8.0.0",
+                "max-vulnerable": "8.0.7",
+                "fixed": "8.0.8",
+                "family": "8.0",
+                "component": "Microsoft.NETCore.App.Runtime",
+                "commits": [
+                    "56cf645f455120395e5b62366921b21694510982"
+                ]
+            },
+            {
+                "cve-id": "CVE-2024-38168",
+                "min-vulnerable": "8.0.0",
+                "max-vulnerable": "8.0.7",
+                "fixed": "8.0.8",
+                "family": "8.0",
+                "component": "Microsoft.AspNetCore.App.Runtime",
+                "commits": [
+                    "ffa0a028464e13d46aaec0c5ad8de0725a4d5aa5"
+                ]
+            }
+        ]
+    },
+    "packages": {
+        "System.Security.Cryptography": [
+            {
+                "cve-id": "CVE-2024-38167",
+                "min-vulnerable": "8.0.0",
+                "max-vulnerable": "8.0.7",
+                "fixed": "8.0.8",
+                "family": "8.0",
+                "component": "System.Security.Cryptography",
+                "commits": [
+                    "56cf645f455120395e5b62366921b21694510982"
+                ]
+            }
+        ]
     }
- }
+}

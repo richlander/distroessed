@@ -73,16 +73,16 @@ public class CveReport
     public void WritePlatformTable(CveRecords cves, StreamWriter writer)
     {
         const string none = "No platform components with vulnerabilities reported.";
-        var platformPackages = cves.Packages.Where(p => Report.IsFramework(p.Name));
+        var platformPackages = ConvertPlatformToLegacyFormat(cves.Platform);
         WritePackageTableForType(platformPackages, writer, "Component", none);
     }
 
     public void WritePackageTable(CveRecords cves, StreamWriter writer)
     {
         const string none = "No packages with vulnerabilities reported.";
-        var platformPackages = cves.Packages.Where(p => !Report.IsFramework(p.Name));
+        var packagesList = ConvertPackagesToLegacyFormat(cves.Packages);
 
-        WritePackageTableForType(platformPackages, writer, "Package", none);
+        WritePackageTableForType(packagesList, writer, "Package", none);
     }
 
     public void WritePackageTableForType(IEnumerable<CvePackage> packages, StreamWriter writer, string type, string noneFound)
@@ -313,4 +313,53 @@ public class CveReport
     }
 
     private static string Join(IEnumerable<string>? strings, string separator = ", ") => strings is null ? "" : string.Join(separator, strings);
+
+    private IEnumerable<CvePackage> ConvertPlatformToLegacyFormat(IReadOnlyDictionary<string, IReadOnlyList<CvePackageAffected>> platform)
+    {
+        var result = new List<CvePackage>();
+        
+        foreach (var versionGroup in platform)
+        {
+            foreach (var componentGroup in versionGroup.Value.GroupBy(p => p.Component))
+            {
+                var affected = componentGroup.Select(p => new Affected(
+                    p.CveId, 
+                    p.MinVulnerable, 
+                    p.MaxVulnerable, 
+                    p.Fixed)
+                {
+                    Family = p.Family,
+                    Commits = p.Commits,
+                    Binaries = p.Binaries
+                }).ToList();
+
+                result.Add(new CvePackage(componentGroup.Key, affected));
+            }
+        }
+        
+        return result;
+    }
+
+    private IEnumerable<CvePackage> ConvertPackagesToLegacyFormat(IReadOnlyDictionary<string, IReadOnlyList<CvePackageAffected>> packages)
+    {
+        var result = new List<CvePackage>();
+        
+        foreach (var packageGroup in packages)
+        {
+            var affected = packageGroup.Value.Select(p => new Affected(
+                p.CveId, 
+                p.MinVulnerable, 
+                p.MaxVulnerable, 
+                p.Fixed)
+            {
+                Family = p.Family,
+                Commits = p.Commits,
+                Binaries = p.Binaries
+            }).ToList();
+
+            result.Add(new CvePackage(packageGroup.Key, affected));
+        }
+        
+        return result;
+    }
 }
