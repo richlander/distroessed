@@ -43,3 +43,12 @@ public partial class ReleaseHistoryIndexSerializerContext : JsonSerializerContex
 public partial class HistoryYearIndexSerializerContext : JsonSerializerContext
 {
 }
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    WriteIndented = true)]
+[JsonSerializable(typeof(SdkVersionIndex))]
+[JsonSerializable(typeof(SdkDownloadInfo))]
+public partial class SdkVersionIndexSerializerContext : JsonSerializerContext
+{
+}
