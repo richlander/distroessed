@@ -33,7 +33,7 @@ public class HistoryIndexFiles
             Directory.CreateDirectory(historyPath);
         }
 
-        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        var numericStringComparer = StringComparer.OrdinalIgnoreCase;
 
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod
     ? $"{Location.GitHubBaseUri}{relativePath}"
@@ -192,12 +192,12 @@ public class HistoryIndexFiles
                 var updatedMonthIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(monthIndexJson, monthSchemaUri);
 
                 // Write monthly index file
-                var monthIndexPath = Path.Combine(monthPath, "index.json");
+                var currentMonthIndexPath = Path.Combine(monthPath, "index.json");
                 var finalMonthIndexJson = (updatedMonthIndexJson ?? monthIndexJson) + '\n';
                 
-                if (HalJsonComparer.ShouldWriteFile(monthIndexPath, finalMonthIndexJson))
+                if (HalJsonComparer.ShouldWriteFile(currentMonthIndexPath, finalMonthIndexJson))
                 {
-                    using Stream monthStream = File.Create(monthIndexPath);
+                    using Stream monthStream = File.Create(currentMonthIndexPath);
                     using var monthWriter = new StreamWriter(monthStream);
                     await monthWriter.WriteAsync(finalMonthIndexJson);
                 }

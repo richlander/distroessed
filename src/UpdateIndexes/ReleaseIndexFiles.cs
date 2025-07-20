@@ -57,7 +57,7 @@ public class ReleaseIndexFiles
             throw new DirectoryNotFoundException($"Root directory does not exist: {rootDir}");
         }
 
-        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        var numericStringComparer = StringComparer.OrdinalIgnoreCase;
         List<ReleaseVersionIndexEntry> majorEntries = [];
 
         var summaryTable = summaries.ToDictionary(
@@ -311,12 +311,12 @@ public class ReleaseIndexFiles
         var updatedMajorIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(majorIndexJson, rootSchemaUri);
 
         // Write the major index file
-        var rootIndexPath = Path.Combine(rootDir, "index.json");
+        var rootMajorIndexPath = Path.Combine(rootDir, "index.json");
         var finalMajorIndexJson = (updatedMajorIndexJson ?? majorIndexJson) + '\n';
         
-        if (HalJsonComparer.ShouldWriteFile(rootIndexPath, finalMajorIndexJson))
+        if (HalJsonComparer.ShouldWriteFile(rootMajorIndexPath, finalMajorIndexJson))
         {
-            using Stream stream = File.Create(rootIndexPath);
+            using Stream stream = File.Create(rootMajorIndexPath);
             using var rootWriter = new StreamWriter(stream);
             await rootWriter.WriteAsync(finalMajorIndexJson);
         }
