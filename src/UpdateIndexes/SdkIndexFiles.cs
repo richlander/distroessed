@@ -38,7 +38,7 @@ public class SdkIndexFiles
 
         var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod
             ? $"{Location.GitHubBaseUri}{relativePath}"
-            : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
+            : LinkHelpers.GetGitHubPath(relativePath);
 
         var halLinkGenerator = new HalLinkGenerator(rootDir, urlGenerator);
 
