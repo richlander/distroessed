@@ -163,7 +163,7 @@ public class ReleaseIndexFiles
             if (IsVersionSdkSupported(majorVersionDirName))
             {
                 var sdkIndexPath = Path.Combine(majorVersionDir, "sdk", "index.json");
-                var relativeSdkIndexPath = Path.GetRelativePath(rootDir, sdkIndexPath);
+                var relativeSdkIndexPath = Path.GetRelativePath(outputDir, sdkIndexPath);
                 majorVersionLinks["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
                 {
                     Relative = relativeSdkIndexPath,
