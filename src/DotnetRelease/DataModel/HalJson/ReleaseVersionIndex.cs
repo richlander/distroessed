@@ -74,6 +74,8 @@ public enum ReleaseKind
     MajorRelease,
     [Description("Patch version content")]
     PatchRelease,
+    [Description("SDK feature band content")]
+    Band,
     [Description("General content document")]
     Content,
     [Description("Unspecified type")]

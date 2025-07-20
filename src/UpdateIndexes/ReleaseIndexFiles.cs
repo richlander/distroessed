@@ -55,6 +55,23 @@ public class ReleaseIndexFiles
 
     private readonly List<string> _leafFiles = ["releases.json", "release.json", "manifest.json"];
 
+    private static bool IsVersionSdkSupported(string version)
+    {
+        // SDK hive is only supported for .NET 8.0 and later
+        if (string.IsNullOrEmpty(version) || !version.Contains('.'))
+        {
+            return false;
+        }
+
+        var parts = version.Split('.');
+        if (parts.Length < 2 || !int.TryParse(parts[0], out var major))
+        {
+            return false;
+        }
+
+        return major >= 8;
+    }
+
     // Generates index files for each major version directory and one root index file
     public static async Task GenerateAsync(List<MajorReleaseSummary> summaries, string rootDir, ReleaseHistory? releaseHistory = null)
     {
@@ -130,6 +147,19 @@ public class ReleaseIndexFiles
             foreach (var auxLink in auxLinks)
             {
                 majorVersionLinks[auxLink.Key] = auxLink.Value;
+            }
+
+            // Add SDK links for supported versions (8.0+)
+            if (IsVersionSdkSupported(majorVersionDirName))
+            {
+                var sdkIndexPath = Path.Combine(majorVersionDir, "sdk", "index.json");
+                var relativeSdkIndexPath = Path.GetRelativePath(rootDir, sdkIndexPath);
+                majorVersionLinks["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
+                {
+                    Relative = relativeSdkIndexPath,
+                    Title = $".NET SDK {majorVersionDirName} Release Information",
+                    Type = MediaType.HalJson
+                };
             }
 
             // write major version index.json if there are patch releases found

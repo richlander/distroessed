@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using DotnetRelease;
 using UpdateIndexes;
@@ -33,6 +33,7 @@ var summaries = await Summary.GetReleaseSummariesAsync(root) ?? throw new Invali
 ReleaseHistory history = Summary.GetReleaseCalendar(summaries);
 Summary.PopulateCveInformation(history, root);
 await ReleaseIndexFiles.GenerateAsync(summaries, root, history);
+await SdkIndexFiles.GenerateAsync(summaries, root);
 await HistoryIndexFiles.GenerateAsync(root, history);
 
 // Display skipped files count
