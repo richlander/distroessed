@@ -484,9 +484,8 @@ $RECYCLE.BIN/
 *.swp
 
 # Repo-specific
-tools/
-
-# .NET installation scripts and tools (DO NOT COMMIT) - from dotnet-install-for-agents
-_temp/
-# .NET SDK installation directory (if installed locally)
 .dotnet/
+tools/
+_tools/
+_temp/
+_scripts/
