@@ -14,7 +14,7 @@ fi
 
 run_supported_os_md() {
     echo "$SOURCE_DIRECTORY"
-    ../tools/SupportedOsMd "$1" "$SOURCE_DIRECTORY"
+    ../_tools/SupportedOsMd "$1" "$SOURCE_DIRECTORY"
 }
 
 run_supported_os_md 8

@@ -23,9 +23,9 @@ if [ ! -d "$TARGET_PATH" ]; then
 fi
 
 # Step 1: Validate required binaries exist or build if needed
-REQUIRED_TOOLS=("GenerateJsonSchemas" "UpdateIndexes")
+REQUIRED_TOOLS=("GenerateJsonSchemas" "UpdateIndexes" "CveMarkdown")
 ARTIFACTS_DIR="./artifacts"
-TOOLS_DIR="./tools"
+TOOLS_DIR="./_tools"
 
 echo "Validating required binaries..."
 
@@ -90,11 +90,21 @@ cd ..
 
 # Step 4: Run UpdateIndexes with target path
 echo "Running UpdateIndexes to generate release indexes..."
-./tools/UpdateIndexes "$TARGET_PATH"
+./_tools/UpdateIndexes "$TARGET_PATH"
 if [ $? -ne 0 ]; then
     echo "Error: Failed to run UpdateIndexes"
     exit 1
 fi
+
+# Step 5: Generate CVE markdown files
+echo "Generating CVE markdown files..."
+TARGET_PATH_ABS=$(realpath "$TARGET_PATH")
+cd scripts
+./generate-cve-markdown.sh "$TARGET_PATH_ABS"
+if [ $? -ne 0 ]; then
+    echo "Warning: Some CVE markdown files failed to generate (continuing anyway)"
+fi
+cd ..
 
 echo "Successfully published indexes to: $TARGET_PATH"
 echo "Successfully published schemas to: $SCHEMAS_PATH"
