@@ -11,12 +11,12 @@ public class ReleaseIndexFiles
     {
         return new Dictionary<string, string>
         {
-            ["lts"] = "Long-Term Support – 3-year support window", 
+            ["lts"] = "Long-Term Support – 3-year support window",
             ["sts"] = "Standard-Term Support – 18-month support window",
             ["ga"] = "General Availability – Production-ready release",
             ["eol"] = "End of Life – No longer supported",
             ["preview"] = "Pre-release phase with previews and release candidates",
-            ["golive"] = "Production-ready but with limited support", 
+            ["golive"] = "Production-ready but with limited support",
             ["active"] = "Full support with regular updates and security fixes",
             ["maintenance"] = "Security updates only, no new features"
         };
@@ -86,14 +86,14 @@ public class ReleaseIndexFiles
 
             // Generate manifest.json from _manifest.json and computed data
             var generatedManifest = await ManifestGenerator.GenerateManifestAsync(majorVersionDir, majorVersionDirName, halLinkGenerator);
-            
+
             // Write the generated manifest.json
             var manifestPath = Path.Combine(majorVersionDir, "manifest.json");
             var manifestJson = JsonSerializer.Serialize(
-                generatedManifest, 
+                generatedManifest,
                 ReleaseManifestSerializerContext.Default.ReleaseManifest);
             await File.WriteAllTextAsync(manifestPath, manifestJson);
-            
+
             // Extract lifecycle from generated manifest
             var lifecycle = generatedManifest.Lifecycle;
             if (lifecycle == null)
@@ -165,14 +165,19 @@ public class ReleaseIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Add the major version entry to the list
+            // Set supported flag in lifecycle if it exists
+            if (lifecycle != null)
+            {
+                lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
+            }
+
             var majorEntry = new ReleaseVersionIndexEntry(
                 majorVersionDirName,
                 ReleaseKind.Index,
                 majorVersionWithinAllReleasesIndexLinks
                 )
-            { 
-                Lifecycle = lifecycle,
-                Supported = lifecycle != null && ReleaseStability.IsSupported(lifecycle)
+            {
+                Lifecycle = lifecycle
             };
 
             majorEntries.Add(majorEntry);
@@ -191,7 +196,7 @@ public class ReleaseIndexFiles
                 .Where(e => ReleaseStability.IsStable(e.Lifecycle))
                 .OrderByDescending(e => e.Version, numericStringComparer)
                 .FirstOrDefault();
-            
+
             if (latestRelease != null)
             {
                 rootLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
@@ -206,7 +211,7 @@ public class ReleaseIndexFiles
                 .Where(e => e.Lifecycle?.ReleaseType == ReleaseType.LTS && ReleaseStability.IsStable(e.Lifecycle))
                 .OrderByDescending(e => e.Version, numericStringComparer)
                 .FirstOrDefault();
-            
+
             if (latestLtsRelease != null)
             {
                 rootLinks["latest-lts"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
@@ -346,10 +351,18 @@ public class ReleaseIndexFiles
                 }).ToList();
             }
 
+            // Create a copy of the major version lifecycle for each patch
+            Lifecycle? patchLifecycle = null;
+            if (majorVersionLifecycle != null)
+            {
+                patchLifecycle = majorVersionLifecycle with { };
+                patchLifecycle.Supported = ReleaseStability.IsSupported(majorVersionLifecycle);
+            }
+
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
             {
                 CveRecords = cveRecords,
-                Supported = majorVersionLifecycle != null && ReleaseStability.IsSupported(majorVersionLifecycle)
+                Lifecycle = patchLifecycle
             };
             indexEntries.Add(indexEntry);
         }

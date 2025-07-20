@@ -38,7 +38,11 @@ public record Lifecycle(
     [Description("General Availability date when the release became stable")]
     DateTimeOffset GaDate,
     [Description("End of Life date when support ends")]
-    DateTimeOffset EolDate);
+    DateTimeOffset EolDate)
+{
+    [Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
+    public bool Supported { get; set; } = false;
+};
 
 public enum ProductComponent
 {
@@ -66,7 +70,7 @@ public static class ReleaseStability
             _ => false
         };
     }
-    
+
     /// <summary>
     /// Determines if a lifecycle is stable (suitable for latest/latest-lts links).
     /// </summary>
@@ -78,7 +82,7 @@ public static class ReleaseStability
     }
 
     /// <summary>
-    /// Determines if a release is currently supported based on its EOL date and lifecycle phase.
+    /// Determines if a release is currently supported based on its lifecycle phase and EOL date.
     /// </summary>
     /// <param name="lifecycle">The lifecycle to check</param>
     /// <param name="referenceDate">The date to check against (typically DateTime.UtcNow)</param>
@@ -89,8 +93,10 @@ public static class ReleaseStability
             return false;
 
         var checkDate = referenceDate ?? DateTimeOffset.UtcNow;
-        
-        // A release is supported if it's not in EOL phase and hasn't reached its EOL date
-        return lifecycle.phase != SupportPhase.Eol && checkDate < lifecycle.EolDate;
+
+        // A release is supported if:
+        // 1. It's in a stable phase (Active, Maintenance, or GoLive)
+        // 2. It hasn't reached its EOL date
+        return IsStable(lifecycle.phase) && checkDate < lifecycle.EolDate;
     }
 }

@@ -60,9 +60,6 @@ public record ReleaseVersionIndexEntry(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability records associated with this release")]
     public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
-
-    [Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
-    public bool Supported { get; set; } = false;
 }
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]

@@ -158,6 +158,9 @@
                   "eol-date": {
                     "type": "string",
                     "format": "date-time"
+                  },
+                  "supported": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -203,9 +206,6 @@
                     "title"
                   ]
                 }
-              },
-              "supported": {
-                "type": "boolean"
               }
             },
             "required": [
@@ -251,6 +251,9 @@
         "eol-date": {
           "type": "string",
           "format": "date-time"
+        },
+        "supported": {
+          "type": "boolean"
         }
       },
       "required": [
