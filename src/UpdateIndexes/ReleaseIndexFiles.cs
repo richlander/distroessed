@@ -7,6 +7,12 @@ namespace UpdateIndexes;
 
 public class ReleaseIndexFiles
 {
+    private static int _skippedFilesCount = 0;
+    
+    public static int SkippedFilesCount => _skippedFilesCount;
+    
+    public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
+    
     private static Dictionary<string, string> CreateGlossary()
     {
         return new Dictionary<string, string>
@@ -90,7 +96,15 @@ public class ReleaseIndexFiles
             var manifestJson = JsonSerializer.Serialize(
                 generatedManifest,
                 ReleaseManifestSerializerContext.Default.ReleaseManifest);
-            await File.WriteAllTextAsync(manifestPath, manifestJson);
+            
+            if (HalJsonComparer.ShouldWriteFile(manifestPath, manifestJson))
+            {
+                await File.WriteAllTextAsync(manifestPath, manifestJson);
+            }
+            else
+            {
+                _skippedFilesCount++;
+            }
 
             // Extract lifecycle from generated manifest
             var lifecycle = generatedManifest.Lifecycle;
@@ -151,10 +165,19 @@ public class ReleaseIndexFiles
             var updatedPatchIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchIndexJson, schemaUri);
 
             // Write to file
-            using Stream patchStream = File.Create(Path.Combine(majorVersionDir, "index.json"));
-            using var writer = new StreamWriter(patchStream);
-            await writer.WriteAsync(updatedPatchIndexJson ?? patchIndexJson);
-            await writer.WriteAsync('\n');
+            var patchIndexPath = Path.Combine(majorVersionDir, "index.json");
+            var finalPatchIndexJson = (updatedPatchIndexJson ?? patchIndexJson) + '\n';
+            
+            if (HalJsonComparer.ShouldWriteFile(patchIndexPath, finalPatchIndexJson))
+            {
+                using Stream patchStream = File.Create(patchIndexPath);
+                using var writer = new StreamWriter(patchStream);
+                await writer.WriteAsync(finalPatchIndexJson);
+            }
+            else
+            {
+                _skippedFilesCount++;
+            }
 
             // Same links as the major version index, but with a different base directory (to force different pathing)
             var majorVersionWithinAllReleasesIndexLinks = halLinkGenerator.Generate(
@@ -302,10 +325,19 @@ public class ReleaseIndexFiles
         var updatedMajorIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(majorIndexJson, rootSchemaUri);
 
         // Write the major index file
-        using Stream stream = File.Create(Path.Combine(rootDir, "index.json"));
-        using var rootWriter = new StreamWriter(stream);
-        await rootWriter.WriteAsync(updatedMajorIndexJson ?? majorIndexJson);
-        await rootWriter.WriteAsync('\n');
+        var rootMajorIndexPath = Path.Combine(rootDir, "index.json");
+        var finalMajorIndexJson = (updatedMajorIndexJson ?? majorIndexJson) + '\n';
+        
+        if (HalJsonComparer.ShouldWriteFile(rootMajorIndexPath, finalMajorIndexJson))
+        {
+            using Stream stream = File.Create(rootMajorIndexPath);
+            using var rootWriter = new StreamWriter(stream);
+            await rootWriter.WriteAsync(finalMajorIndexJson);
+        }
+        else
+        {
+            _skippedFilesCount++;
+        }
     }
 
     // Generates index containing each patch release in the major version directory

@@ -22,6 +22,10 @@ if (!Directory.Exists(root))
     return 1;
 }
 
+// Reset skipped files counters
+ReleaseIndexFiles.ResetSkippedFilesCount();
+HistoryIndexFiles.ResetSkippedFilesCount();
+
 // Generate general release summaries
 // This will read all the major version directories and their patch releases
 // and produce a summary of the releases, including SDK bands and patch releases.
@@ -30,5 +34,9 @@ ReleaseHistory history = Summary.GetReleaseCalendar(summaries);
 Summary.PopulateCveInformation(history, root);
 await ReleaseIndexFiles.GenerateAsync(summaries, root, history);
 await HistoryIndexFiles.GenerateAsync(root, history);
+
+// Display skipped files count
+var totalSkipped = ReleaseIndexFiles.SkippedFilesCount + HistoryIndexFiles.SkippedFilesCount;
+Console.WriteLine($"Skipped {totalSkipped} files because they did not change.");
 
 return 0;
