@@ -1,14 +1,14 @@
 using System.Globalization;
-using System.Net;
+using System.Text.Json;
 using DotnetRelease;
 
 namespace UpdateIndexes;
 
-public class Summary
+internal static class Summary
 {
     public static async Task<List<MajorReleaseSummary>> GetReleaseSummariesAsync(string rootDir)
     {
-        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        var numericStringComparer = new NaturalStringComparer();
         // Files to probe for to include as links
 
         // List of major version entries
@@ -176,5 +176,79 @@ public class Summary
                 }
             }
         }
+    }
+}
+
+/// <summary>
+/// A string comparer that handles natural ordering of strings containing numbers.
+/// This provides similar functionality to CompareOptions.NumericOrdering in .NET 10+.
+/// </summary>
+internal class NaturalStringComparer : IComparer<string>
+{
+    public int Compare(string? x, string? y)
+    {
+        if (x == y) return 0;
+        if (x == null) return -1;
+        if (y == null) return 1;
+
+        return CompareNatural(x, y);
+    }
+
+    private static int CompareNatural(string x, string y)
+    {
+        var xParts = SplitIntoNaturalParts(x);
+        var yParts = SplitIntoNaturalParts(y);
+
+        int minLength = Math.Min(xParts.Count, yParts.Count);
+        
+        for (int i = 0; i < minLength; i++)
+        {
+            var xPart = xParts[i];
+            var yPart = yParts[i];
+            
+            bool xIsNumber = int.TryParse(xPart, out int xNum);
+            bool yIsNumber = int.TryParse(yPart, out int yNum);
+            
+            if (xIsNumber && yIsNumber)
+            {
+                int result = xNum.CompareTo(yNum);
+                if (result != 0) return result;
+            }
+            else
+            {
+                int result = string.Compare(xPart, yPart, StringComparison.InvariantCulture);
+                if (result != 0) return result;
+            }
+        }
+        
+        return xParts.Count.CompareTo(yParts.Count);
+    }
+
+    private static List<string> SplitIntoNaturalParts(string input)
+    {
+        var parts = new List<string>();
+        var currentPart = new System.Text.StringBuilder();
+        bool lastWasDigit = false;
+
+        foreach (char c in input)
+        {
+            bool isDigit = char.IsDigit(c);
+            
+            if (isDigit != lastWasDigit && currentPart.Length > 0)
+            {
+                parts.Add(currentPart.ToString());
+                currentPart.Clear();
+            }
+            
+            currentPart.Append(c);
+            lastWasDigit = isDigit;
+        }
+
+        if (currentPart.Length > 0)
+        {
+            parts.Add(currentPart.ToString());
+        }
+
+        return parts;
     }
 }
