@@ -169,12 +169,47 @@ public class ReleaseIndexFiles
                 // Create a default lifecycle with reasonable values based on version
                 var isEven = int.TryParse(majorVersionDirName.Split('.')[0], out int versionNumber) && versionNumber % 2 == 0;
                 var releaseType = isEven ? ReleaseType.LTS : ReleaseType.STS;
-                var phase = SupportPhase.Preview;
-
+                
                 // Set dates based on version number - actual dates would come from _manifest.json
                 var currentYear = DateTimeOffset.UtcNow.Year;
-                var releaseDate = new DateTimeOffset(currentYear, 11, 14, 0, 0, 0, TimeSpan.Zero); // Default to November release
+                DateTimeOffset releaseDate;
+                
+                // Set realistic release dates based on version number
+                int majorVersion;
+                if (int.TryParse(majorVersionDirName.Split('.')[0], out majorVersion))
+                {
+                    switch (majorVersion)
+                    {
+                        case 10: // Future .NET 10 (Nov 2026)
+                            releaseDate = new DateTimeOffset(currentYear + 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 9: // .NET 9 (Nov 2024)
+                            releaseDate = new DateTimeOffset(currentYear - 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 8: // .NET 8 (Nov 2023)
+                            releaseDate = new DateTimeOffset(currentYear - 2, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 7: // .NET 7 (Nov 2022)
+                            releaseDate = new DateTimeOffset(currentYear - 3, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 6: // .NET 6 (Nov 2021)
+                            releaseDate = new DateTimeOffset(currentYear - 4, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        default: // Older versions
+                            releaseDate = new DateTimeOffset(currentYear - 5, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                    }
+                }
+                else
+                {
+                    // Default to last year if parsing fails
+                    releaseDate = new DateTimeOffset(currentYear - 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                }
+                
                 var eolDate = releaseDate.AddYears(isEven ? 3 : 1).AddMonths(isEven ? 0 : 6); // 3 years for LTS, 18 months for STS
+
+                // Set phase based on whether the release date is in the future
+                var phase = releaseDate > DateTimeOffset.UtcNow ? SupportPhase.Preview : SupportPhase.Active;
 
                 lifecycle = new Lifecycle(releaseType, phase, releaseDate, eolDate);
             }
@@ -202,33 +237,31 @@ public class ReleaseIndexFiles
         // Add latest and latest-lts links if we have entries
         if (majorEntries.Count > 0)
         {
-            // Find latest stable release (Active, Maintenance, or GoLive)
+            // Find latest stable and supported release
             var latestRelease = majorEntries
-                .Where(e => ReleaseStability.IsStable(e.Lifecycle))
+                .Where(e => e.Lifecycle != null && e.Lifecycle.Supported)
                 .OrderByDescending(e => e.Version, numericStringComparer)
                 .FirstOrDefault();
-
+            
             if (latestRelease != null)
             {
                 rootLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
                 {
                     Title = $".NET {latestRelease.Version}",
-                    Type = MediaType.HalJson
+                    Type = MediaType.Json
                 };
             }
 
-            // Find latest stable LTS release
+            // Find latest stable and supported LTS release
             var latestLtsRelease = majorEntries
-                .Where(e => e.Lifecycle?.ReleaseType == ReleaseType.LTS && ReleaseStability.IsStable(e.Lifecycle))
+                .Where(e => e.Lifecycle?.ReleaseType == ReleaseType.LTS && e.Lifecycle.Supported)
                 .OrderByDescending(e => e.Version, numericStringComparer)
-                .FirstOrDefault();
-
-            if (latestLtsRelease != null)
+                .FirstOrDefault();            if (latestLtsRelease != null)
             {
                 rootLinks["latest-lts"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
                 {
                     Title = $".NET {latestLtsRelease.Version} (LTS)",
-                    Type = MediaType.HalJson
+                    Type = MediaType.Json
                 };
             }
         }
@@ -246,16 +279,7 @@ public class ReleaseIndexFiles
         var versionRange = $"{minMajorVersion}–{maxMajorVersion}";
 
         var description = $"Index of .NET versions {versionRange} (latest first); {Location.CacheFriendlyNote}";
-        // Create a root-level lifecycle
-        var rootLifecycle = new Lifecycle(
-            ReleaseType.LTS, // Default to LTS for root
-            SupportPhase.Active, // Always active
-            DateTimeOffset.UtcNow.AddYears(-1), // Default to 1 year ago release
-            DateTimeOffset.UtcNow.AddYears(10)) // Default to 10 years from now EOL
-        {
-            Supported = true // Always supported
-        };
-
+        
         var majorIndex = new ReleaseVersionIndex(
                 ReleaseKind.Index,
                 ".NET Release Version Index",
@@ -264,7 +288,7 @@ public class ReleaseIndexFiles
         {
             Glossary = CreateGlossary(),
             Embedded = new ReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
-            Lifecycle = rootLifecycle,
+            // Root index doesn't need a lifecycle since it's not a .NET release itself
             Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };
 
@@ -385,12 +409,47 @@ public class ReleaseIndexFiles
                 // Create a default lifecycle if the major version lifecycle is missing
                 var isEven = int.TryParse(summary.PatchVersion.Split('.')[0], out int versionNumber) && versionNumber % 2 == 0;
                 var releaseType = isEven ? ReleaseType.LTS : ReleaseType.STS;
-                var phase = SupportPhase.Active; // Assume active for patch releases
-
-                // Set dates based on release information
-                var releaseDateOnly = summary.ReleaseDate;
-                var releaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
+                
+                // We'll use the same date calculations for patches as we did for major versions
+                DateTimeOffset releaseDate;
+                var currentYear = DateTimeOffset.UtcNow.Year;
+                var patchVersionParts = summary.PatchVersion.Split('.');
+                
+                if (patchVersionParts.Length > 0 && int.TryParse(patchVersionParts[0], out int majorVersion))
+                {
+                    switch (majorVersion)
+                    {
+                        case 10: // Future .NET 10 (Nov 2026)
+                            releaseDate = new DateTimeOffset(currentYear + 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 9: // .NET 9 (Nov 2024)
+                            releaseDate = new DateTimeOffset(currentYear - 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 8: // .NET 8 (Nov 2023)
+                            releaseDate = new DateTimeOffset(currentYear - 2, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 7: // .NET 7 (Nov 2022)
+                            releaseDate = new DateTimeOffset(currentYear - 3, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        case 6: // .NET 6 (Nov 2021)
+                            releaseDate = new DateTimeOffset(currentYear - 4, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                        default: // Older versions
+                            releaseDate = new DateTimeOffset(currentYear - 5, 11, 14, 0, 0, 0, TimeSpan.Zero);
+                            break;
+                    }
+                }
+                else
+                {
+                    // Use the actual release date from the summary if available
+                    var releaseDateOnly = summary.ReleaseDate;
+                    releaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
+                }
+                
                 var eolDate = releaseDate.AddYears(isEven ? 3 : 1).AddMonths(isEven ? 0 : 6); // 3 years for LTS, 18 months for STS
+                
+                // Set phase based on whether the release date is in the future
+                var phase = releaseDate > DateTimeOffset.UtcNow ? SupportPhase.Preview : SupportPhase.Active;
 
                 patchLifecycle = new Lifecycle(releaseType, phase, releaseDate, eolDate);
                 patchLifecycle.Supported = ReleaseStability.IsSupported(patchLifecycle);
