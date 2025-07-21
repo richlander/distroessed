@@ -29,8 +29,8 @@ repo-root/
 #### Create New Worktree
 ```bash
 # From repo root
-git worktree add _worktree/{branch-name} {branch-name}
-cd _worktree/{branch-name}
+git worktree add _worktree/{feature-name} {feature-name}
+cd _worktree/{feature-name}
 ```
 
 #### List Worktrees
@@ -41,7 +41,7 @@ git worktree list
 #### Remove Worktree
 ```bash
 # From repo root
-git worktree remove _worktree/{branch-name}
+git worktree remove _worktree/{feature-name}
 # Or if directory deleted manually:
 git worktree prune
 ```
@@ -49,7 +49,7 @@ git worktree prune
 #### Switch Between Worktrees
 ```bash
 # Move to different worktree
-cd _worktree/{other-branch}
+cd _worktree/{other-feature}
 # Return to main
 cd ../../
 ```
@@ -68,6 +68,17 @@ cd _worktree/{feature-name}
 # From within worktree
 git fetch origin
 git rebase origin/main
+# If conflicts occur, resolve them and continue:
+# git add <resolved-files>
+# git rebase --continue
+```
+
+#### Set Up Remote Tracking
+```bash
+# After creating first commit in worktree
+git push -u origin {feature-name}
+# Subsequent pushes can use:
+git push
 ```
 
 ### 4. Claude Code Automation
@@ -101,8 +112,9 @@ CC should provide a status command showing:
 1. Create worktree with new branch
 2. Work in isolation
 3. Regular commits in worktree
-4. When ready: push branch, create PR
-5. After merge: remove worktree
+4. Set up remote tracking: `git push -u origin {feature-name}`
+5. When ready: push branch, create PR
+6. After merge: remove worktree and delete remote branch
 
 #### Commit Management
 - Make frequent small commits in worktree
@@ -115,7 +127,8 @@ CC should provide a status command showing:
 1. CC detects main area, prompts for worktree
 2. Create: `git worktree add _worktree/feature-name -b feature-name`
 3. Work in `_worktree/feature-name/`
-4. Regular commits and pushes
+4. First push: `git push -u origin feature-name`
+5. Regular commits and pushes
 
 #### Switching Contexts
 1. From any worktree: `cd ../../_worktree/other-feature/`
@@ -132,8 +145,8 @@ CC should provide a status command showing:
 #### Corrupted Worktree
 ```bash
 # Remove and recreate
-git worktree remove _worktree/{name} --force
-git worktree add _worktree/{name} {branch-name}
+git worktree remove _worktree/{feature-name} --force
+git worktree add _worktree/{feature-name} {feature-name}
 ```
 
 #### Lost Worktree Reference
@@ -166,17 +179,20 @@ git worktree prune
 ### Essential Commands
 ```bash
 # Create worktree
-git worktree add _worktree/{name} -b {branch}
+git worktree add _worktree/{feature-name} -b {feature-name}
 
 # List worktrees  
 git worktree list
 
 # Remove worktree
-git worktree remove _worktree/{name}
+git worktree remove _worktree/{feature-name}
+
+# Set up remote tracking
+git push -u origin {feature-name}
 
 # Navigate
-cd _worktree/{name}  # Enter worktree
-cd ../../            # Return to root
+cd _worktree/{feature-name}  # Enter worktree
+cd ../../                    # Return to root
 ```
 
 ### CC Integration
