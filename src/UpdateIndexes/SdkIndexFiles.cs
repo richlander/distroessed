@@ -104,8 +104,12 @@ public class SdkIndexFiles
         var sdkPath = Path.Combine(sdkDir, "sdk.json");
         var sdkRelativePath = Path.GetRelativePath(rootDir, sdkPath);
         
-        // Find the latest feature band (most recent release date)
-        var latestBand = summary.SdkBands.OrderByDescending(b => b.LatestReleaseDate).FirstOrDefault();
+        // Find the latest feature band (prioritize active/preview, then most recent release date)
+        var latestBand = summary.SdkBands
+            .OrderByDescending(b => b.SupportPhase == SupportPhase.Active ? 2 : 
+                                   b.SupportPhase == SupportPhase.Preview ? 1 : 0)
+            .ThenByDescending(b => b.LatestReleaseDate)
+            .FirstOrDefault();
         string latestBandPath;
         string latestBandRelativePath;
         
@@ -174,7 +178,7 @@ public class SdkIndexFiles
                 supportPhase,
                 bandLinks)
             {
-                LatestReleaseDate = sdkBand.LatestReleaseDate
+                Lifecycle = CreateSdkBandLifecycle(sdkBand)
             };
 
             featureBandEntries.Add(featureBandEntry);
@@ -320,6 +324,29 @@ public class SdkIndexFiles
             SupportPhase.Preview => "preview",
             SupportPhase.Eol => "eol",
             _ => "unknown"
+        };
+    }
+
+    private static Lifecycle? CreateSdkBandLifecycle(SdkBand sdkBand)
+    {
+        // For SDK bands, we have limited lifecycle information
+        // We can use the support phase and latest release date
+        // But we don't have specific EOL dates or release types for individual bands
+        // Release type doesn't apply to feature bands, so we pass null
+        
+        var releaseDateTime = new DateTimeOffset(sdkBand.LatestReleaseDate.ToDateTime(TimeOnly.MinValue));
+        var approximateEolDate = sdkBand.SupportPhase == SupportPhase.Eol 
+            ? releaseDateTime.AddYears(1) // Already EOL
+            : releaseDateTime.AddYears(2); // Approximate future EOL
+        
+        return new Lifecycle(
+            null, // Release type doesn't apply to SDK feature bands
+            sdkBand.SupportPhase,
+            releaseDateTime,
+            approximateEolDate
+        )
+        {
+            Supported = sdkBand.SupportPhase is SupportPhase.Active or SupportPhase.Maintenance or SupportPhase.Preview
         };
     }
 

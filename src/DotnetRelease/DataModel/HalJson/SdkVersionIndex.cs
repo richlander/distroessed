@@ -56,8 +56,8 @@ public record SdkFeatureBandEntry(
     Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest release date for this feature band")]
-    public DateOnly? LatestReleaseDate { get; set; }
+     Description("Lifecycle information for this feature band")]
+    public Lifecycle? Lifecycle { get; set; }
 }
 
 /// <summary>

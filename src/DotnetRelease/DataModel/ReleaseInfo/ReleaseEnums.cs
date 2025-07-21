@@ -30,8 +30,9 @@ public enum ReleaseType
 [Description("Lifecycle information for a .NET release")]
 public record Lifecycle(
     [property: JsonPropertyName("release-type"),
-     Description("Support model (LTS or STS)")]
-    ReleaseType ReleaseType,
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Support model (LTS or STS), null for feature bands")]
+    ReleaseType? ReleaseType,
     [property: JsonPropertyName("phase"),
      Description("Current lifecycle phase")]
     SupportPhase phase,
