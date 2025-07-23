@@ -84,7 +84,7 @@ public class ReleaseIndexFiles
         }
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
-        List<ReleaseVersionIndexEntry> majorEntries = [];
+        List<MajorReleaseVersionIndexEntry> majorEntries = [];
 
         var summaryTable = summaries.ToDictionary(
             s => s.MajorVersion,
@@ -303,20 +303,14 @@ public class ReleaseIndexFiles
             // Set supported flag
             lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
 
-            // Convert full lifecycle to simplified lifecycle for consistency
-            PatchLifecycle? simplifiedLifecycle = null;
-            if (lifecycle != null)
-            {
-                simplifiedLifecycle = new PatchLifecycle(lifecycle.phase, lifecycle.ReleaseDate);
-            }
-
-            var majorEntry = new ReleaseVersionIndexEntry(
+            // Major version entries use full lifecycle (not simplified)
+            var majorEntry = new MajorReleaseVersionIndexEntry(
                 majorVersionDirName,
                 ReleaseKind.Index,
                 majorVersionWithinAllReleasesIndexLinks
                 )
             {
-                Lifecycle = simplifiedLifecycle
+                Lifecycle = lifecycle
             };
 
             majorEntries.Add(majorEntry);
@@ -342,7 +336,7 @@ public class ReleaseIndexFiles
 
             // Find latest stable and supported release
             var latestRelease = majorEntries
-                .Where(e => e.Lifecycle != null && ReleaseStability.IsStable(e.Lifecycle.Phase))
+                .Where(e => e.Lifecycle != null && ReleaseStability.IsStable(e.Lifecycle.phase))
                 .OrderByDescending(e => e.Version, numericStringComparer)
                 .FirstOrDefault();
             
@@ -359,7 +353,7 @@ public class ReleaseIndexFiles
             // Find latest stable LTS release (even major versions are LTS)
             var latestLtsRelease = majorEntries
                 .Where(e => e.Lifecycle != null && 
-                           ReleaseStability.IsStable(e.Lifecycle.Phase) &&
+                           ReleaseStability.IsStable(e.Lifecycle.phase) &&
                            int.TryParse(e.Version.Split('.')[0], out int majorVersion) && 
                            majorVersion % 2 == 0)
                 .OrderByDescending(e => e.Version, numericStringComparer)
@@ -398,22 +392,21 @@ public class ReleaseIndexFiles
 
         var description = $"Index of .NET versions {versionRange} (latest first); {Location.CacheFriendlyNote}";
         
-        var majorIndex = new ReleaseVersionIndex(
+        var majorIndex = new MajorReleaseVersionIndex(
                 ReleaseKind.Index,
                 ".NET Release Version Index",
                 description,
                 rootLinks)
         {
             Glossary = CreateGlossary(),
-            Embedded = new ReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
-            // Root index doesn't need a lifecycle since it's not a .NET release itself
+            Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
             Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };
 
         // Serialize to string first to add schema reference
         var majorIndexJson = JsonSerializer.Serialize(
             majorIndex,
-            ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
+            ReleaseVersionIndexSerializerContext.Default.MajorReleaseVersionIndex);
 
         // Add schema reference
         var rootSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-version-index.json";

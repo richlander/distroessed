@@ -4,10 +4,22 @@ using System.Text.Json.Serialization;
 namespace DotnetRelease;
 
 /// <summary>
-/// Provides an index of .NET releases organized by version hierarchy (major → patch releases).
-/// Follows the HAL+JSON specification for hypermedia navigation.
+/// Base interface for .NET release version indexes.
 /// </summary>
-[Description("Index of .NET releases organized by version hierarchy, supporting navigation from major versions to patch releases")]
+public interface IReleaseVersionIndex
+{
+    ReleaseKind Kind { get; }
+    string Title { get; }
+    string Description { get; }
+    Dictionary<string, HalLink> Links { get; }
+    Dictionary<string, string>? Glossary { get; set; }
+    GenerationMetadata? Metadata { get; set; }
+}
+
+/// <summary>
+/// Legacy type for backward compatibility - prefer MajorReleaseVersionIndex or PatchReleaseVersionIndex
+/// </summary>
+[Description("Legacy index type - use MajorReleaseVersionIndex or PatchReleaseVersionIndex instead")]
 public record ReleaseVersionIndex(
     [Description("Type of release document, always 'index' for version-based indexes")]
     ReleaseKind Kind,
@@ -17,7 +29,7 @@ public record ReleaseVersionIndex(
     string Description,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
-    Dictionary<string, HalLink> Links)
+    Dictionary<string, HalLink> Links) : IReleaseVersionIndex
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Glossary of .NET terminology and abbreviations")]
@@ -38,12 +50,12 @@ public record ReleaseVersionIndex(
     public GenerationMetadata? Metadata { get; set; }
 }
 
-[Description("Container for embedded release entries in a version index")]
+[Description("Container for embedded release entries in a version index (legacy)")]
 public record ReleaseVersionIndexEmbedded(
     [Description("List of release entries with version information and navigation links")]
     List<ReleaseVersionIndexEntry> Releases);
 
-[Description("Individual release entry within a version index, containing version metadata and navigation links")]
+[Description("Individual release entry within a version index, containing version metadata and navigation links (legacy)")]
 public record ReleaseVersionIndexEntry(
     [Description("Version identifier (e.g., '8.0' for major version, '8.0.1' for patch version)")]
     string Version,

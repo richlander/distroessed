@@ -1,5 +1,5 @@
 {
-  "description": "Index of .NET releases organized by version hierarchy, supporting navigation from major versions to patch releases",
+  "description": "Legacy index type - use MajorReleaseVersionIndex or PatchReleaseVersionIndex instead",
   "type": [
     "object",
     "null"
@@ -84,7 +84,7 @@
       }
     },
     "_embedded": {
-      "description": "Container for embedded release entries in a version index",
+      "description": "Container for embedded release entries in a version index (legacy)",
       "type": [
         "object",
         "null"
@@ -96,7 +96,7 @@
             "null"
           ],
           "items": {
-            "description": "Individual release entry within a version index, containing version metadata and navigation links",
+            "description": "Individual release entry within a version index, containing version metadata and navigation links (legacy)",
             "type": [
               "object",
               "null"

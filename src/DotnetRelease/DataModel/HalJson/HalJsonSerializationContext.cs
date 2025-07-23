@@ -5,7 +5,12 @@ namespace DotnetRelease;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
+[JsonSerializable(typeof(MajorReleaseVersionIndex))]
+[JsonSerializable(typeof(PatchReleaseVersionIndex))]
 [JsonSerializable(typeof(ReleaseVersionIndex))]
+[JsonSerializable(typeof(MajorReleaseVersionIndexEntry))]
+[JsonSerializable(typeof(PatchReleaseVersionIndexEntry))]
+[JsonSerializable(typeof(ReleaseVersionIndexEntry))]
 [JsonSerializable(typeof(Lifecycle))]
 [JsonSerializable(typeof(PatchLifecycle))]
 [JsonSerializable(typeof(CveRecordSummary))]

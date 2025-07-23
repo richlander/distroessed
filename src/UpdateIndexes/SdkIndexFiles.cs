@@ -160,6 +160,10 @@ public class SdkIndexFiles
 
         // Create SDK patch release entries (second embedded section)
         var sdkReleaseEntries = new List<ReleaseVersionIndexEntry>();
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+        
+        // Collect all SDK components first, then sort by SDK version
+        var sdkComponents = new List<(PatchReleaseSummary PatchRelease, ReleaseComponent SdkComponent)>();
         
         foreach (var patchRelease in summary.PatchReleases)
         {
@@ -167,60 +171,70 @@ public class SdkIndexFiles
             {
                 if (component.Name.Equals("sdk", StringComparison.OrdinalIgnoreCase))
                 {
-                    var releaseLinks = new Dictionary<string, HalLink>();
-                    
-                    // Link to runtime release.json file
-                    if (!string.IsNullOrEmpty(patchRelease.ReleaseJsonPath))
-                    {
-                        var releaseJsonRelativePath = Path.GetRelativePath(rootDir, patchRelease.ReleaseJsonPath);
-                        releaseLinks[HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{releaseJsonRelativePath}")
-                        {
-                            Relative = releaseJsonRelativePath,
-                            Title = $"{patchRelease.PatchVersion} Release Information",
-                            Type = MediaType.Json
-                        };
-                    }
-
-                    // Link to SDK-specific markdown if available, otherwise runtime markdown
-                    var sdkMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{component.Version}.md");
-                    var runtimeMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{patchRelease.PatchVersion}.md");
-                    
-                    string markdownPath;
-                    if (File.Exists(sdkMarkdownPath))
-                    {
-                        markdownPath = sdkMarkdownPath;
-                    }
-                    else if (File.Exists(runtimeMarkdownPath))
-                    {
-                        markdownPath = runtimeMarkdownPath;
-                    }
-                    else
-                    {
-                        markdownPath = runtimeMarkdownPath; // Use expected path even if file doesn't exist
-                    }
-                    
-                    var markdownRelativePath = Path.GetRelativePath(rootDir, markdownPath);
-                    releaseLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{markdownRelativePath}")
-                    {
-                        Relative = markdownRelativePath,
-                        Title = $"Release Notes",
-                        Type = MediaType.Markdown
-                    };
-
-                    // Create patch lifecycle (no release-type)
-                    var patchLifecycle = CreatePatchLifecycle(SupportPhase.Active, patchRelease.ReleaseDate);
-
-                    var sdkReleaseEntry = new ReleaseVersionIndexEntry(
-                        component.Version,
-                        ReleaseKind.PatchRelease,
-                        releaseLinks)
-                    {
-                        Lifecycle = new PatchLifecycle(patchLifecycle.phase, patchLifecycle.ReleaseDate)
-                    };
-
-                    sdkReleaseEntries.Add(sdkReleaseEntry);
+                    sdkComponents.Add((patchRelease, component));
                 }
             }
+        }
+        
+        // Sort SDK components by SDK version descending (newest first)
+        var sortedSdkComponents = sdkComponents
+            .OrderByDescending(sdk => sdk.SdkComponent.Version, numericStringComparer)
+            .ToList();
+        
+        foreach (var (patchRelease, component) in sortedSdkComponents)
+        {
+            var releaseLinks = new Dictionary<string, HalLink>();
+            
+            // Link to runtime release.json file
+            if (!string.IsNullOrEmpty(patchRelease.ReleaseJsonPath))
+            {
+                var releaseJsonRelativePath = Path.GetRelativePath(rootDir, patchRelease.ReleaseJsonPath);
+                releaseLinks[HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{releaseJsonRelativePath}")
+                {
+                    Relative = releaseJsonRelativePath,
+                    Title = $"{patchRelease.PatchVersion} Release Information",
+                    Type = MediaType.Json
+                };
+            }
+
+            // Link to SDK-specific markdown if available, otherwise runtime markdown
+            var sdkMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{component.Version}.md");
+            var runtimeMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{patchRelease.PatchVersion}.md");
+            
+            string markdownPath;
+            if (File.Exists(sdkMarkdownPath))
+            {
+                markdownPath = sdkMarkdownPath;
+            }
+            else if (File.Exists(runtimeMarkdownPath))
+            {
+                markdownPath = runtimeMarkdownPath;
+            }
+            else
+            {
+                markdownPath = runtimeMarkdownPath; // Use expected path even if file doesn't exist
+            }
+            
+            var markdownRelativePath = Path.GetRelativePath(rootDir, markdownPath);
+            releaseLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{markdownRelativePath}")
+            {
+                Relative = markdownRelativePath,
+                Title = $"Release Notes",
+                Type = MediaType.Markdown
+            };
+
+            // Create patch lifecycle (no release-type)
+            var patchLifecycle = CreatePatchLifecycle(SupportPhase.Active, patchRelease.ReleaseDate);
+
+            var sdkReleaseEntry = new ReleaseVersionIndexEntry(
+                component.Version,
+                ReleaseKind.PatchRelease,
+                releaseLinks)
+            {
+                Lifecycle = new PatchLifecycle(patchLifecycle.phase, patchLifecycle.ReleaseDate)
+            };
+
+            sdkReleaseEntries.Add(sdkReleaseEntry);
         }
 
         // Create the main SDK index with both embedded sections
