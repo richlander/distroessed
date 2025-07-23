@@ -36,6 +36,16 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             {
                 name = "release-history-index";
             }
+            // Special case for manifest.json to use correct key name
+            else if (filename == "manifest.json")
+            {
+                name = "release-manifest";
+            }
+            // Special case for README.md to use correct key name
+            else if (filename == "README.md")
+            {
+                name = "release-readme";
+            }
             var fileType = MediaType.GetFileType(filename);
 
             string? selfKey = null;

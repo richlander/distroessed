@@ -37,9 +37,9 @@ public class ReleaseIndexFiles
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
     {
         {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
-        {"releases.json", new FileLink("releases.json", "Releases", LinkStyle.Prod) },
-        {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
-        {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) }
+        {"manifest.json", new FileLink("manifest.json", "Release manifest", LinkStyle.Prod) },
+        {"releases.json", new FileLink("releases.json", "Complete (large file) release information for all patch releases", LinkStyle.Prod) },
+        {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
@@ -138,6 +138,7 @@ public class ReleaseIndexFiles
                 Console.WriteLine($"Warning: {majorVersionDirName} - Lifecycle is null");
             }
 
+            // Generate base links from PatchFileMappings first  
             var majorVersionLinks = halLinkGenerator.Generate(
                 majorVersionDir,
                 PatchFileMappings.Values,
@@ -146,29 +147,53 @@ public class ReleaseIndexFiles
             // Generate patch version index; release-notes/8.0/index.json
             var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, inputDir), releaseHistory, lifecycle);
 
+            // Generate aux links
             var auxLinks = halLinkGenerator.Generate(
                 majorVersionDir,
                 AuxFileMappings.Values,
                 (fileLink, key) => fileLink.Title);
 
-            // Merge aux links into major version links
-            foreach (var auxLink in auxLinks)
+            // Reorder links to follow spec: HAL+JSON first, then JSON, then markdown
+            var orderedMajorVersionLinks = new Dictionary<string, HalLink>();
+            
+            // 1. Add HAL+JSON links from base mappings first
+            foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == MediaType.HalJson))
             {
-                majorVersionLinks[auxLink.Key] = auxLink.Value;
+                orderedMajorVersionLinks[link.Key] = link.Value;
             }
 
-            // Add SDK links for supported versions (8.0+)
+            // 2. Add SDK links for supported versions (8.0+) - these are HAL+JSON
             if (IsVersionSdkSupported(majorVersionDirName))
             {
                 var sdkIndexPath = Path.Combine(majorVersionDir, "sdk", "index.json");
                 var relativeSdkIndexPath = Path.GetRelativePath(outputDir, sdkIndexPath);
-                majorVersionLinks["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
+                orderedMajorVersionLinks["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
                 {
                     Relative = relativeSdkIndexPath,
                     Title = $".NET SDK {majorVersionDirName} Release Information",
                     Type = MediaType.HalJson
                 };
             }
+
+            // 3. Add JSON-only links from base mappings
+            foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
+            {
+                orderedMajorVersionLinks[link.Key] = link.Value;
+            }
+
+            // 4. Add JSON-only links from aux mappings
+            foreach (var link in auxLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
+            {
+                orderedMajorVersionLinks[link.Key] = link.Value;
+            }
+
+            // 5. Add markdown links from aux mappings
+            foreach (var link in auxLinks.Where(kvp => kvp.Value.Type == MediaType.Markdown))
+            {
+                orderedMajorVersionLinks[link.Key] = link.Value;
+            }
+
+            majorVersionLinks = orderedMajorVersionLinks;
 
             // write major version index.json if there are patch releases found
             var majorIndexPath = Path.Combine(outputMajorVersionDir, "index.json");
