@@ -97,35 +97,12 @@ public class SdkIndexFiles
     private static async Task GenerateSdkMainIndex(MajorReleaseSummary summary, string sdkDir, HalLinkGenerator halLinkGenerator)
     {
         var indexPath = Path.Combine(sdkDir, "index.json");
-
-        // Create links to SDK-related content
         var rootDir = Path.GetDirectoryName(Path.GetDirectoryName(sdkDir)) ?? throw new InvalidOperationException("Unable to determine root directory");
         var indexRelativePath = Path.GetRelativePath(rootDir, indexPath);
+        
+        // Create main links
         var sdkPath = Path.Combine(sdkDir, "sdk.json");
         var sdkRelativePath = Path.GetRelativePath(rootDir, sdkPath);
-        
-        // Find the latest feature band (prioritize active/preview, then most recent release date)
-        var latestBand = summary.SdkBands
-            .OrderByDescending(b => b.SupportPhase == SupportPhase.Active ? 2 : 
-                                   b.SupportPhase == SupportPhase.Preview ? 1 : 0)
-            .ThenByDescending(b => b.LatestReleaseDate)
-            .FirstOrDefault();
-        string latestBandPath;
-        string latestBandRelativePath;
-        
-        if (latestBand != null)
-        {
-            var latestBandVersion = latestBand.Version[..5] + "xx"; // e.g., "10.0.xx"
-            var latestBandFileName = $"sdk-{latestBandVersion}.json";
-            latestBandPath = Path.Combine(sdkDir, latestBandFileName);
-            latestBandRelativePath = Path.GetRelativePath(rootDir, latestBandPath);
-        }
-        else
-        {
-            // Fallback to sdk.json if no bands found
-            latestBandPath = sdkPath;
-            latestBandRelativePath = sdkRelativePath;
-        }
         
         var links = new Dictionary<string, HalLink>
         {
@@ -135,12 +112,6 @@ public class SdkIndexFiles
                 Title = $".NET SDK {summary.MajorVersion}",
                 Type = MediaType.HalJson
             },
-            ["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestBandRelativePath}")
-            {
-                Relative = latestBandRelativePath,
-                Title = $".NET SDK {summary.MajorVersion} Latest Feature Band",
-                Type = MediaType.Json
-            },
             ["stable-links"] = new HalLink($"{Location.GitHubBaseUri}{sdkRelativePath}")
             {
                 Relative = sdkRelativePath,
@@ -149,7 +120,7 @@ public class SdkIndexFiles
             }
         };
 
-        // Create feature band entries from the summary
+        // Create feature band entries (first embedded section)
         var featureBandEntries = new List<SdkFeatureBandEntry>();
         
         foreach (var sdkBand in summary.SdkBands)
@@ -171,6 +142,9 @@ public class SdkIndexFiles
                 }
             };
 
+            // Create patch lifecycle for feature band (no release-type)
+            var bandLifecycle = CreatePatchLifecycle(sdkBand.SupportPhase, sdkBand.LatestReleaseDate);
+
             var featureBandEntry = new SdkFeatureBandEntry(
                 ReleaseKind.Band,
                 bandVersion,
@@ -178,12 +152,78 @@ public class SdkIndexFiles
                 supportPhase,
                 bandLinks)
             {
-                Lifecycle = CreateSdkBandLifecycle(sdkBand)
+                Lifecycle = bandLifecycle
             };
 
             featureBandEntries.Add(featureBandEntry);
         }
 
+        // Create SDK patch release entries (second embedded section)
+        var sdkReleaseEntries = new List<ReleaseVersionIndexEntry>();
+        
+        foreach (var patchRelease in summary.PatchReleases)
+        {
+            foreach (var component in patchRelease.Components)
+            {
+                if (component.Name.Equals("sdk", StringComparison.OrdinalIgnoreCase))
+                {
+                    var releaseLinks = new Dictionary<string, HalLink>();
+                    
+                    // Link to runtime release.json file
+                    if (!string.IsNullOrEmpty(patchRelease.ReleaseJsonPath))
+                    {
+                        var releaseJsonRelativePath = Path.GetRelativePath(rootDir, patchRelease.ReleaseJsonPath);
+                        releaseLinks[HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{releaseJsonRelativePath}")
+                        {
+                            Relative = releaseJsonRelativePath,
+                            Title = $"{patchRelease.PatchVersion} Release Information",
+                            Type = MediaType.Json
+                        };
+                    }
+
+                    // Link to SDK-specific markdown if available, otherwise runtime markdown
+                    var sdkMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{component.Version}.md");
+                    var runtimeMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{patchRelease.PatchVersion}.md");
+                    
+                    string markdownPath;
+                    if (File.Exists(sdkMarkdownPath))
+                    {
+                        markdownPath = sdkMarkdownPath;
+                    }
+                    else if (File.Exists(runtimeMarkdownPath))
+                    {
+                        markdownPath = runtimeMarkdownPath;
+                    }
+                    else
+                    {
+                        markdownPath = runtimeMarkdownPath; // Use expected path even if file doesn't exist
+                    }
+                    
+                    var markdownRelativePath = Path.GetRelativePath(rootDir, markdownPath);
+                    releaseLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{markdownRelativePath}")
+                    {
+                        Relative = markdownRelativePath,
+                        Title = $"Release Notes",
+                        Type = MediaType.Markdown
+                    };
+
+                    // Create patch lifecycle (no release-type)
+                    var patchLifecycle = CreatePatchLifecycle(SupportPhase.Active, patchRelease.ReleaseDate);
+
+                    var sdkReleaseEntry = new ReleaseVersionIndexEntry(
+                        component.Version,
+                        ReleaseKind.PatchRelease,
+                        releaseLinks)
+                    {
+                        Lifecycle = patchLifecycle
+                    };
+
+                    sdkReleaseEntries.Add(sdkReleaseEntry);
+                }
+            }
+        }
+
+        // Create the main SDK index with both embedded sections
         var sdkIndex = new SdkVersionIndex(
             ReleaseKind.Index,
             "sdk",
@@ -192,7 +232,7 @@ public class SdkIndexFiles
             GetMajorVersionSupportPhase(summary.SupportPhase),
             links)
         {
-            Embedded = featureBandEntries.Count > 0 ? new SdkVersionIndexEmbedded(featureBandEntries) : null,
+            Embedded = new SdkVersionIndexEmbedded(featureBandEntries, sdkReleaseEntries),
             Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };
 
@@ -327,26 +367,19 @@ public class SdkIndexFiles
         };
     }
 
-    private static Lifecycle? CreateSdkBandLifecycle(SdkBand sdkBand)
+    private static Lifecycle CreatePatchLifecycle(SupportPhase phase, DateOnly releaseDate)
     {
-        // For SDK bands, we have limited lifecycle information
-        // We can use the support phase and latest release date
-        // But we don't have specific EOL dates or release types for individual bands
-        // Release type doesn't apply to feature bands, so we pass null
-        
-        var releaseDateTime = new DateTimeOffset(sdkBand.LatestReleaseDate.ToDateTime(TimeOnly.MinValue));
-        var approximateEolDate = sdkBand.SupportPhase == SupportPhase.Eol 
-            ? releaseDateTime.AddYears(1) // Already EOL
-            : releaseDateTime.AddYears(2); // Approximate future EOL
+        // Create patch lifecycle (no release-type, simpler structure per spec)
+        var releaseDateTime = new DateTimeOffset(releaseDate.ToDateTime(TimeOnly.MinValue));
         
         return new Lifecycle(
-            null, // Release type doesn't apply to SDK feature bands
-            sdkBand.SupportPhase,
+            null, // No release type for patch versions per spec
+            phase,
             releaseDateTime,
-            approximateEolDate
+            releaseDateTime // Use same date for both since we don't track EOL for patches
         )
         {
-            Supported = sdkBand.SupportPhase is SupportPhase.Active or SupportPhase.Maintenance or SupportPhase.Preview
+            Supported = phase is SupportPhase.Active or SupportPhase.Maintenance or SupportPhase.Preview
         };
     }
 

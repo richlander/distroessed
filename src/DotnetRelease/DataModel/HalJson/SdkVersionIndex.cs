@@ -34,11 +34,14 @@ public record SdkVersionIndex(
     public GenerationMetadata? Metadata { get; set; }
 }
 
-[Description("Container for embedded SDK feature band entries")]
+[Description("Container for embedded SDK feature band entries and patch releases")]
 public record SdkVersionIndexEmbedded(
     [property: JsonPropertyName("sdk-feature-bands"),
      Description("List of SDK feature band entries with version information and navigation links")]
-    List<SdkFeatureBandEntry> SdkFeatureBands);
+    List<SdkFeatureBandEntry> SdkFeatureBands,
+    [property: JsonPropertyName("releases"),
+     Description("List of SDK patch release entries with version information and navigation links")]
+    List<ReleaseVersionIndexEntry> Releases);
 
 [Description("Individual SDK feature band entry containing version metadata and navigation links")]
 public record SdkFeatureBandEntry(

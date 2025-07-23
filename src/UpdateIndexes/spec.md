@@ -120,6 +120,35 @@ The .NET 10 `release` object within the `releases` array can be thought of multi
 
 I subscribe to this last definition. There is a (virtuously) loose definition of where data can and should be presented. There is no expectation that all the data be resident in HAL+JSON documents. It is fine and expected for a link to offer a plain JSON or Markdown that an AI or other tool is expected to process.
 
+## Lifecycle
+
+Lifecycle is a key concept across all release notes.
+
+Major version:
+
+```json
+        "lifecycle": {
+          "release-type": "sts",
+          "phase": "eol",
+          "release-date": "2019-09-23T00:00:00\u002B00:00",
+          "eol-date": "2020-03-03T00:00:00\u002B00:00",
+          "supported": false
+        }
+```
+
+Patch version:
+
+```json
+        "lifecycle": {
+          "phase": "maintenance",
+          "release-date": "2019-09-23T00:00:00\u002B00:00",
+        }
+```
+
+For patch version, it is useful to see when a given set of patch versioned transitioned from `active` to `maintenance`.
+
+We will need to two types for that. The property name can be uniform.
+
 ## Version hive
 
 The version hive describes the domain of .NET versions.
@@ -164,27 +193,104 @@ It documents and offers three SDK versions.
 - 8.0.315
 - 8.0.118
 
-These are from 3 ddifferent features bands, 8.0.1xx, 8.0.3xx, and 8.0.4xx. We can conclude that 8.0.2xx is out of support and no longer produced.
-
-Each major .NET version should have an `sdk` directory with and index.json that describes the available feature bands, including their support status. Each feature band should have its own directory, like `8.0.1xx`. This directory should include an index.json file that lists all of the patches for that feature band, like 8.0.118.
-
-These are the files in the `8.0/8.0.18` directory.
+We can take a look around the repo to learn a bit more:
 
 ```bash
-$ ~/git/core/release-notes$ ls 8.0/8.0.18
-8.0.118.md  8.0.18.md  8.0.315.md  release.json
+rich@merritt:~/git/core/release-notes/8.0/8.0.18$ ls -1
+8.0.118.md
+8.0.18.md
+8.0.315.md
+release.json
+rich@merritt:~/git/core/release-notes/8.0/8.0.18$ grep -l 412 *
+8.0.18.md
+release.json
+rich@merritt:~/git/core/release-notes/8.0/8.0.18$ cd ..
+rich@merritt:~/git/core/release-notes/8.0$ find . | grep 412
+rich@merritt:~/git/core/release-notes/8.0$ find . | grep 315
+./8.0.18/8.0.315.md
 ```
 
-The `8.0.118.md` and `8.0.315.md` files are obvious. There is no matching `8.0.412` file. That's because this SDK is the latest and is included with the runtime file in `8.0.18`.
+This demonstrates a few things:
 
-The following files are expected (these are all examples):
+- These were 3 different features bands for that release: 8.0.1xx, 8.0.3xx, and 8.0.4xx.
+- We can conclude that 8.0.2xx is out of support and no longer produced.
+- The latest feature band information is integrated into the runtime release notes file.
+- This is ironic because the latest feature band is the most important because it gets the worst treatment (no individual file).
+- It looks like we're using the runtime version directory for "what shipped this month" even though there is no month information to be seen.
+- The runtime version directory is the only place where SDK release notes show up. That means if you have an SDK version as your search currency, you need to go hunting within the runtime releases to fine it.
+- This scheme seems to be optimized for people that read the runtime release notes and want a matching SDK. It seems to serve all other usage patterns poorly.
+- This scheme seems to serve LLMs particularly poorly. They might conclude that (A) SDKs always get a release notes file, or that SDK information (for any version) is always present in the runtime release notes file.
+- I've learned that LLMs perform poorly (or worse) in systems that courage assumptions that turn out to be unreliable.
 
-- `8.0/index.json` -- Describes a major release. Links to `8.0/sdk/index.json` with a descriptive link about .NET 8.0 SDK release information.
-- `8.0/sdk/index.json` -- Describes a major release, but specific to SDK releases and includes feature bands as its release objects. Links to `index.json` files in the feature band directories for the major release. Each feature band has the same lifecycle content as the major releases in the root index.json.
-- `8.0/sdk/8.0.1xx/index.json` -- Describes a feature band and includes specific SDK patch releases within that feature band as its release objects. Links to index.json files in a patch directory. Each release object links to a markdown release file, like the ones listed above.
-- `8.0/sdk/8.0.1xx/8.0.118/index.json` -- Describes an SDK patch release and the markdown release file that describes it. Also links to the index.json file for the runtime that it is associated with like `8.0/8.0.18/index.json`.
+### SDK index
 
-There are convenience short-links for SDKs.
+Let's turn to a plan.
+
+Each major .NET version should have an `sdk` directory with an `index.json`. It should have a `self` link to itself. It should also have a `stable-links` property that links to the `sdk.json` short-links file (more on that later).
+
+It should have two sections within `_embedded`.
+
+There should be a `feature-bands` propery that describes the features bands available and links to short-links file for that feature-band.
+
+Feature band objects should look like this:
+
+```json
+      {
+        "kind": "feature-band",
+        "version": "8.0.1xx",
+        "label": ".NET SDK 8.0.1xx",
+        "support-phase": "active",
+        "_links": {
+          "self": {
+            "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/8.0/sdk/sdk-8.0.1xx.json",
+            "relative": "8.0/sdk/sdk-8.0.1xx.json",
+            "title": ".NET SDK 8.0.1xx",
+            "type": "application/json"
+          },
+          "lifecycle": {
+            "phase": "active",
+            "release-date": "2024-11-08T00:00:00\u002B00:00",
+          }          
+        },
+```
+
+The patch release lifecycle type should be used.
+
+There should also be a `releases` property for patch releases.
+
+SDK patch release objects should look like this:
+
+```json
+      {
+        "version": "8.0.118",
+        "kind": "patch-release",
+        "_links": {
+          "self": {
+            "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/8.0/8.0.118/release.json",
+            "relative": "8.0.18/release.json",
+            "title": "8.0.18 Release Information",
+            "type": "application/json"
+          },
+          "release-notes-markdown": {
+            "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/8.0/8.0.18/8.0.118.md",
+            "relative": "8.0/8.0.18/8.0.118.md",
+            "title": "CVE Information (Markdown)",
+            "type": "application/markdown"
+          },
+          "lifecycle": {
+            "phase": "active",
+            "release-date": "2025-06-12T00:00:00\u002B00:00",
+          }                    
+        },
+```
+
+The `_self` link for each entry should reference the `release.json` file in the runtime directory for that release. It should also link to release notes in the runtime directory, like `8.0/8.0.18/8.0.118.md`. If the expected file cannot be found, it should link to the runtime release notes, like `8.0/8.0.18/8.0.18.md`.
+
+The patch release lifecycle type should be used.
+
+### SDK feature band links
+
+There are convenience short-links for SDKs. That's what's linked to above the `self` link in feature bands and for the `stable-links` property.
 
 Here is an example of file that descibes them:
 
@@ -229,3 +335,7 @@ There are link files per feature band. `sdk.json` offers links to the latest fea
 I also index.json in that directory with some earlier thinking on what a root index.json could look like. It doesn't entirely agree with the requirements above or match `8.0/index.json`. We need to merge the ideas.
 
 So far, I've focused on 8.0. We need to apply this scheme to other versions. However, the links only work for 8.0+. We should not include them in the code we generate for .NET 7 and earlier. Everything else can be applied for all versions.
+
+### Future
+
+At a later time, the team should start publishing SDK release notes to the `sdk` directory instead of the runtime version directories. For example, `8.0/8.0.18` should contain a `README.md` that links to all the relevent files like `8.0/8.0.18/8.0.18.md` and `8.0/sdk/8.0.412/8.0.412.md`. We're not there yet. We'll make more changes once that happens.
