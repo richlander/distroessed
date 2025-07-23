@@ -78,7 +78,7 @@
       ]
     },
     "lifecycle": {
-      "description": "Lifecycle information for a .NET release",
+      "description": "Lifecycle information for a .NET major release",
       "type": [
         "object",
         "null"

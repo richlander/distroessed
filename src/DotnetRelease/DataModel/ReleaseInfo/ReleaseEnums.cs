@@ -27,7 +27,7 @@ public enum ReleaseType
     STS,
 }
 
-[Description("Lifecycle information for a .NET release")]
+[Description("Lifecycle information for a .NET major release")]
 public record Lifecycle(
     [property: JsonPropertyName("release-type"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
@@ -47,6 +47,15 @@ public record Lifecycle(
      Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
     public bool Supported { get; set; } = false;
 };
+
+[Description("Simplified lifecycle information for a .NET patch release")]
+public record PatchLifecycle(
+    [property: JsonPropertyName("phase"),
+     Description("Current lifecycle phase")]
+    SupportPhase Phase,
+    [property: JsonPropertyName("release-date"),
+     Description("Release date when the patch version became generally available")]
+    DateTimeOffset ReleaseDate);
 
 public enum ProductComponent
 {

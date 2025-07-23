@@ -130,19 +130,12 @@
                 }
               },
               "lifecycle": {
-                "description": "Lifecycle information for a .NET release",
+                "description": "Simplified lifecycle information for a .NET patch release",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
-                  "release-type": {
-                    "enum": [
-                      "lts",
-                      "sts",
-                      null
-                    ]
-                  },
                   "phase": {
                     "description": "The support phases of a .NET release through its lifecycle",
                     "enum": [
@@ -155,20 +148,11 @@
                   "release-date": {
                     "type": "string",
                     "format": "date-time"
-                  },
-                  "eol-date": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "supported": {
-                    "type": "boolean"
                   }
                 },
                 "required": [
-                  "release-type",
                   "phase",
-                  "release-date",
-                  "eol-date"
+                  "release-date"
                 ]
               },
               "cve-records": {
@@ -222,7 +206,7 @@
       ]
     },
     "lifecycle": {
-      "description": "Lifecycle information for a .NET release",
+      "description": "Lifecycle information for a .NET major release",
       "type": [
         "object",
         "null"

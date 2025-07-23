@@ -303,13 +303,20 @@ public class ReleaseIndexFiles
             // Set supported flag
             lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
 
+            // Convert full lifecycle to simplified lifecycle for consistency
+            PatchLifecycle? simplifiedLifecycle = null;
+            if (lifecycle != null)
+            {
+                simplifiedLifecycle = new PatchLifecycle(lifecycle.phase, lifecycle.ReleaseDate);
+            }
+
             var majorEntry = new ReleaseVersionIndexEntry(
                 majorVersionDirName,
                 ReleaseKind.Index,
                 majorVersionWithinAllReleasesIndexLinks
                 )
             {
-                Lifecycle = lifecycle
+                Lifecycle = simplifiedLifecycle
             };
 
             majorEntries.Add(majorEntry);
@@ -335,7 +342,7 @@ public class ReleaseIndexFiles
 
             // Find latest stable and supported release
             var latestRelease = majorEntries
-                .Where(e => e.Lifecycle != null && e.Lifecycle.Supported)
+                .Where(e => e.Lifecycle != null && ReleaseStability.IsStable(e.Lifecycle.Phase))
                 .OrderByDescending(e => e.Version, numericStringComparer)
                 .FirstOrDefault();
             
@@ -349,9 +356,12 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // Find latest stable and supported LTS release
+            // Find latest stable LTS release (even major versions are LTS)
             var latestLtsRelease = majorEntries
-                .Where(e => e.Lifecycle?.ReleaseType == ReleaseType.LTS && e.Lifecycle.Supported)
+                .Where(e => e.Lifecycle != null && 
+                           ReleaseStability.IsStable(e.Lifecycle.Phase) &&
+                           int.TryParse(e.Version.Split('.')[0], out int majorVersion) && 
+                           majorVersion % 2 == 0)
                 .OrderByDescending(e => e.Version, numericStringComparer)
                 .FirstOrDefault();
                 
@@ -514,63 +524,29 @@ public class ReleaseIndexFiles
                 }).ToList();
             }
 
-            // Create a copy of the major version lifecycle for each patch
-            Lifecycle patchLifecycle;
+            // Create simplified lifecycle for patch releases (per spec: only phase and release-date)
+            SupportPhase patchPhase;
+            DateTimeOffset patchReleaseDate;
+
             if (majorVersionLifecycle != null)
             {
-                patchLifecycle = majorVersionLifecycle with { };
-                patchLifecycle.Supported = ReleaseStability.IsSupported(majorVersionLifecycle);
+                // Inherit phase from major version lifecycle
+                patchPhase = majorVersionLifecycle.phase;
+                // Use actual patch release date from summary
+                var releaseDateOnly = summary.ReleaseDate;
+                patchReleaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
             }
             else
             {
-                // Create a default lifecycle if the major version lifecycle is missing
-                var isEven = int.TryParse(summary.PatchVersion.Split('.')[0], out int versionNumber) && versionNumber % 2 == 0;
-                var releaseType = isEven ? ReleaseType.LTS : ReleaseType.STS;
-                
-                // We'll use the same date calculations for patches as we did for major versions
-                DateTimeOffset releaseDate;
-                var currentYear = DateTimeOffset.UtcNow.Year;
-                var patchVersionParts = summary.PatchVersion.Split('.');
-                
-                if (patchVersionParts.Length > 0 && int.TryParse(patchVersionParts[0], out int majorVersion))
-                {
-                    switch (majorVersion)
-                    {
-                        case 10: // Future .NET 10 (Nov 2026)
-                            releaseDate = new DateTimeOffset(currentYear + 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 9: // .NET 9 (Nov 2024)
-                            releaseDate = new DateTimeOffset(currentYear - 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 8: // .NET 8 (Nov 2023)
-                            releaseDate = new DateTimeOffset(currentYear - 2, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 7: // .NET 7 (Nov 2022)
-                            releaseDate = new DateTimeOffset(currentYear - 3, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 6: // .NET 6 (Nov 2021)
-                            releaseDate = new DateTimeOffset(currentYear - 4, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        default: // Older versions
-                            releaseDate = new DateTimeOffset(currentYear - 5, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                    }
-                }
-                else
-                {
-                    // Use the actual release date from the summary if available
-                    var releaseDateOnly = summary.ReleaseDate;
-                    releaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
-                }
-                
-                var eolDate = releaseDate.AddYears(isEven ? 3 : 1).AddMonths(isEven ? 0 : 6); // 3 years for LTS, 18 months for STS
+                // Fallback: determine phase and use summary release date
+                var releaseDateOnly = summary.ReleaseDate;
+                patchReleaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
                 
                 // Set phase based on whether the release date is in the future
-                var phase = releaseDate > DateTimeOffset.UtcNow ? SupportPhase.Preview : SupportPhase.Active;
-
-                patchLifecycle = new Lifecycle(releaseType, phase, releaseDate, eolDate);
-                patchLifecycle.Supported = ReleaseStability.IsSupported(patchLifecycle);
+                patchPhase = patchReleaseDate > DateTimeOffset.UtcNow ? SupportPhase.Preview : SupportPhase.Active;
             }
+
+            var patchLifecycle = new PatchLifecycle(patchPhase, patchReleaseDate);
 
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
             {

@@ -215,7 +215,7 @@ public class SdkIndexFiles
                         ReleaseKind.PatchRelease,
                         releaseLinks)
                     {
-                        Lifecycle = patchLifecycle
+                        Lifecycle = new PatchLifecycle(patchLifecycle.phase, patchLifecycle.ReleaseDate)
                     };
 
                     sdkReleaseEntries.Add(sdkReleaseEntry);

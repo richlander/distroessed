@@ -54,8 +54,9 @@ public record ReleaseVersionIndexEntry(
     Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Lifecycle information for this specific release")]
-    public Lifecycle? Lifecycle { get; set; }
+     JsonPropertyName("lifecycle"),
+     Description("Lifecycle information (phase and release-date)")]
+    public PatchLifecycle? Lifecycle { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability records associated with this release")]

@@ -64,10 +64,25 @@ public static class ReleasesReport
 
     private static async Task<ReleaseInfo> ProcessRelease(ReleaseVersionIndexEntry release, string coreRepoPath)
     {
+        // Convert PatchLifecycle to full Lifecycle for compatibility
+        Lifecycle? fullLifecycle = null;
+        if (release.Lifecycle != null)
+        {
+            // Infer release type from version (even = LTS, odd = STS)
+            var isLts = int.TryParse(release.Version.Split('.')[0], out int majorVersion) && majorVersion % 2 == 0;
+            var releaseType = isLts ? ReleaseType.LTS : ReleaseType.STS;
+            
+            // Calculate EOL date based on release type (LTS = 3 years, STS = 18 months)
+            var eolDate = release.Lifecycle.ReleaseDate.AddYears(isLts ? 3 : 0).AddMonths(isLts ? 0 : 18);
+            
+            fullLifecycle = new Lifecycle(releaseType, release.Lifecycle.Phase, release.Lifecycle.ReleaseDate, eolDate);
+            fullLifecycle.Supported = ReleaseStability.IsSupported(fullLifecycle);
+        }
+
         var releaseInfo = new ReleaseInfo
         {
             Version = release.Version,
-            Lifecycle = release.Lifecycle
+            Lifecycle = fullLifecycle
         };
 
         // Try to get latest patch version from version-specific index.json

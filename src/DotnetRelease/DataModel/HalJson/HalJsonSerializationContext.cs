@@ -7,6 +7,7 @@ namespace DotnetRelease;
     WriteIndented = true)]
 [JsonSerializable(typeof(ReleaseVersionIndex))]
 [JsonSerializable(typeof(Lifecycle))]
+[JsonSerializable(typeof(PatchLifecycle))]
 [JsonSerializable(typeof(CveRecordSummary))]
 public partial class ReleaseVersionIndexSerializerContext : JsonSerializerContext
 {
