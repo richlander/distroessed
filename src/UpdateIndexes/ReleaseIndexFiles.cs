@@ -29,11 +29,9 @@ public class ReleaseIndexFiles
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
         {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
-        {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) },
-        {"manifest.json", new FileLink("manifest.json", "Manifest", LinkStyle.Prod) },
-        {"usage.md", new FileLink("usage.md", "Usage", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"terminology.md", new FileLink("terminology.md", "Terminology", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"history/index.json", new FileLink("history/index.json", "Historical Release and CVE Records", LinkStyle.Prod) }
+        {"history/index.json", new FileLink("history/index.json", "Historical Release and CVE Records", LinkStyle.Prod) },
+        {"usage.md", new FileLink("usage.md", "Instructions for navigating the .NET release HAL+JSON information graph", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"terminology.md", new FileLink("terminology.md", "Terminology used to describe the .NET release notes domain", LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
@@ -292,14 +290,24 @@ public class ReleaseIndexFiles
             majorEntries.Add(majorEntry);
         }
 
+        // Generate base links from MainFileMappings first
         var rootLinks = halLinkGenerator.Generate(
             inputDir,
             MainFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? ".NET Release" : fileLink.Title);
 
-        // Add latest and latest-lts links if we have entries
+        // Insert dynamic HAL+JSON links after release-history-index but before markdown files
         if (majorEntries.Count > 0)
         {
+            // Create a new ordered dictionary to maintain proper ordering
+            var orderedRootLinks = new Dictionary<string, HalLink>();
+            
+            // Add HAL+JSON links first
+            foreach (var link in rootLinks.Where(kvp => kvp.Value.Type == MediaType.HalJson))
+            {
+                orderedRootLinks[link.Key] = link.Value;
+            }
+
             // Find latest stable and supported release
             var latestRelease = majorEntries
                 .Where(e => e.Lifecycle != null && e.Lifecycle.Supported)
@@ -308,10 +316,11 @@ public class ReleaseIndexFiles
             
             if (latestRelease != null)
             {
-                rootLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
+                orderedRootLinks["latest-release"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
                 {
-                    Title = $".NET {latestRelease.Version}",
-                    Type = MediaType.Json
+                    Relative = $"{latestRelease.Version}/index.json",
+                    Title = $"Latest .NET release (.NET {latestRelease.Version})",
+                    Type = MediaType.HalJson
                 };
             }
 
@@ -319,14 +328,25 @@ public class ReleaseIndexFiles
             var latestLtsRelease = majorEntries
                 .Where(e => e.Lifecycle?.ReleaseType == ReleaseType.LTS && e.Lifecycle.Supported)
                 .OrderByDescending(e => e.Version, numericStringComparer)
-                .FirstOrDefault();            if (latestLtsRelease != null)
+                .FirstOrDefault();
+                
+            if (latestLtsRelease != null)
             {
-                rootLinks["latest-lts"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
+                orderedRootLinks["latest-lts-release"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
                 {
-                    Title = $".NET {latestLtsRelease.Version} (LTS)",
-                    Type = MediaType.Json
+                    Relative = $"{latestLtsRelease.Version}/index.json",
+                    Title = $"Latest .NET LTS release (.NET {latestLtsRelease.Version})",
+                    Type = MediaType.HalJson
                 };
             }
+
+            // Add non-HAL+JSON links (markdown files) after
+            foreach (var link in rootLinks.Where(kvp => kvp.Value.Type != MediaType.HalJson))
+            {
+                orderedRootLinks[link.Key] = link.Value;
+            }
+
+            rootLinks = orderedRootLinks;
         }
 
         Console.WriteLine($"Found {rootLinks.Count} root links in {inputDir}");
