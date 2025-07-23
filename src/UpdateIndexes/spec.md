@@ -339,3 +339,35 @@ So far, I've focused on 8.0. We need to apply this scheme to other versions. How
 ### Future
 
 At a later time, the team should start publishing SDK release notes to the `sdk` directory instead of the runtime version directories. For example, `8.0/8.0.18` should contain a `README.md` that links to all the relevent files like `8.0/8.0.18/8.0.18.md` and `8.0/sdk/8.0.412/8.0.412.md`. We're not there yet. We'll make more changes once that happens.
+
+## Cross-referencing
+
+The `index.json` files serve as some form of index and the root of a hypermedia information graph. This means that they needs to cross-reference other resources to make them discoverable.
+
+The order of the files should be:
+
+- "self" link should always be self-referenctial, to the `index.json` file
+- HAL+JSON files (like `index.json)
+- JSON-only files
+- JSON + markdown pairs, with the JSON file first (like `supported-os.*`)
+- Markdown-only files (like README.md)
+
+I will use the following format for the cross-referencing lists.
+
+Format: propertyname; filename; title text
+
+`release-notes/index.json:
+
+- "usage"; `usage.md`; Instructions for navigating the .NET release HAL+JSON information graph
+- "terminology"; `terminology.md`; Terminology used to describe the .NET release notes domain
+- "release-history-index"; `history/index.json`; Historical Release and CVE Records
+- "latest-release"; `9.0/index.json`; Latest .NET release (.NET 9.0)
+- "latest-lts-release"; `8.0/index.json`; Latest .NET LTS release (.NET 8.0)
+
+Note: "latest-release" and "latest-lts-release" specify examples of the path/filename. They always have to be calculated. They others are static.
+
+`8.0/index.json`:
+
+- "supported-os"; `supported-os.json`; "Supported OSes for .NET 8"
+- "release-manifest"; `manifest.json`; "Release manifest for .NET 8"
+- "release-readme"; `readm
