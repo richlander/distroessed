@@ -398,6 +398,15 @@ public class ReleaseIndexFiles
                 };
             }
 
+            // Add stable-sdk-downloads template link
+            orderedRootLinks["stable-sdk-downloads"] = new HalLink($"{Location.GitHubBaseUri}{{version}}/sdk/sdk.json")
+            {
+                Relative = "{version}/sdk/sdk.json",
+                Title = "Stable SDK download links (template: replace {version} with version number)",
+                Type = MediaType.HalJson,
+                Templated = true
+            };
+
             // Add non-HAL+JSON links (markdown files) after
             foreach (var link in rootLinks.Where(kvp => kvp.Value.Type != MediaType.HalJson))
             {
