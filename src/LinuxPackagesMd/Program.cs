@@ -77,8 +77,7 @@ writtenFile.Close();
 static void WritePackageOverview(StreamWriter writer, OSPackagesOverview packageOverview, Link links)
 {
     ReadOnlySpan<string> packageLabels = ["Id", "Name", "Required scenarios", "Notes"];
-    int[] packageColumns = [16, 12, 16, 32];
-    Table packageTable = new(Writer.GetWriter(writer), packageColumns);
+    using Table packageTable = new(Writer.GetWriter(writer));
   
     packageTable.WriteHeader(packageLabels);
 

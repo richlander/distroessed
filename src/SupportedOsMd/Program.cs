@@ -150,7 +150,6 @@ static void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
 static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
 {
     ReadOnlySpan<string> labels = ["OS", "Versions", "Architectures", "Lifecycle"];
-    int[] lengths = [32, 30, 24, 24];
     int linkCount = 0;
     bool first = true;
 
@@ -165,7 +164,7 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             writer.WriteLine();
         }
 
-        Table table = new(Writer.GetWriter(writer), lengths);
+        using Table table = new(Writer.GetWriter(writer));
         Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
         writer.WriteLine();
@@ -237,8 +236,7 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
 static void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
 {
     string[] columnLabels = ["Libc", "Version", "Architectures", "Source"];
-    int[] columnLengths = [16, 10, 24, 16];
-    Table table = new(Writer.GetWriter(writer), columnLengths);
+    using Table table = new(Writer.GetWriter(writer));
     table.WriteHeader(columnLabels);
 
     foreach (SupportLibc libc in supportedLibc)
@@ -286,8 +284,7 @@ static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFami
     }
 
     string[] labels = ["OS", "Version", "Date"];
-    int[] lengths = [24, 16, 24];
-    Table table = new(Writer.GetWriter(writer), lengths);
+    using Table table = new(Writer.GetWriter(writer));
 
     table.WriteHeader(labels);
 
