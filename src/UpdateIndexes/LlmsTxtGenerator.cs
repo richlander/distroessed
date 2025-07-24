@@ -60,6 +60,7 @@ public static class LlmsTxtGenerator
         sb.AppendLine("- **Specific release**: `/release-notes/{version}/{patch}/release.json` (e.g., 8.0/8.0.17/release.json)");
         sb.AppendLine("- **CVEs by month**: `/release-notes/archives/{year}/{month}/cve.json` (e.g., archives/2025/06/cve.json)");
         sb.AppendLine("- **OS support**: `/release-notes/{version}/supported-os.json`");
+        sb.AppendLine("- **SDK downloads**: Use stable-sdk-downloads template or direct: [8.0 SDK downloads](https://raw.githubusercontent.com/richlander/core/main/release-notes/8.0/sdk/sdk.json)");
         sb.AppendLine();
 
         // Data Format section (static content)
@@ -137,6 +138,7 @@ public static class LlmsTxtGenerator
             "about" => "Support policy",
             "newest-release" => "Latest release", 
             "lts-release" => "Latest LTS",
+            "stable-sdk-downloads" => "Stable SDK downloads",
             _ => relation.Replace("-", " ").ToTitleCase()
         };
     }
@@ -153,8 +155,9 @@ public static class LlmsTxtGenerator
             "glossary" => 3,
             "newest-release" => 4,
             "lts-release" => 5,
-            "archives" => 6,
-            "about" => 7,
+            "stable-sdk-downloads" => 6,
+            "archives" => 7,
+            "about" => 8,
             _ => 999
         };
     }

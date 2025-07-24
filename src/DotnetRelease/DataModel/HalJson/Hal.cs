@@ -20,6 +20,10 @@ public record HalLink(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("MIME type of the linked resource")]
     public string? Type { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Indicates that the href is a URI template (RFC 6570)")]
+    public bool? Templated { get; set; }
 }
 
 public class HalTerms

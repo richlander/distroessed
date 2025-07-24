@@ -64,6 +64,12 @@
               "string",
               "null"
             ]
+          },
+          "templated": {
+            "type": [
+              "boolean",
+              "null"
+            ]
           }
         },
         "required": [
@@ -72,15 +78,33 @@
       }
     },
     "glossary": {
+      "description": "Glossary containing both term definitions and related navigation links",
       "type": [
         "object",
         "null"
       ],
-      "additionalProperties": {
-        "type": [
-          "string",
-          "null"
-        ]
+      "properties": {
+        "_links": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "$ref": "#/properties/_links/additionalProperties"
+          }
+        },
+        "terms": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       }
     },
     "_embedded": {
