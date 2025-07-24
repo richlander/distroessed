@@ -11,9 +11,18 @@ using UpdateIndexes;
 if (args.Length == 0)
 {
     Console.Error.WriteLine("Usage: UpdateIndexes <input-directory> [output-directory]");
+    Console.Error.WriteLine("       UpdateIndexes --test-llms-template");
     Console.Error.WriteLine("  input-directory:  Directory containing release-notes data to read");
     Console.Error.WriteLine("  output-directory: Directory to write generated index files (optional, defaults to input-directory)");
+    Console.Error.WriteLine("  --test-llms-template: Run llms.txt template test");
     return 1;
+}
+
+// Check for test mode
+if (args.Length == 1 && args[0] == "--test-llms-template")
+{
+    LlmsTxtGeneratorTest.RunTest();
+    return 0;
 }
 
 var inputDir = args[0];

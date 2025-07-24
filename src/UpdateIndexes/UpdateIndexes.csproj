@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="../DotnetRelease/DotnetRelease.csproj" />
     <ProjectReference Include="..\JsonSchemaInjector\JsonSchemaInjector.csproj" />
+    <ProjectReference Include="..\MarkdownTemplate\MarkdownTemplate.csproj" />
   </ItemGroup>
 
 </Project>

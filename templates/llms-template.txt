@@ -1,0 +1,20 @@
+# {{title}}
+> {{description}}
+
+## Getting Started
+{{getting-started-links}}
+
+## Key Data Sources
+{{key-data-sources-links}}
+
+## Common Queries
+- **Version patches**: `/release-notes/{version}/index.json` (e.g., 8.0/index.json)
+- **Specific release**: `/release-notes/{version}/{patch}/release.json` (e.g., 8.0/8.0.17/release.json)
+- **CVEs by month**: `/release-notes/archives/{year}/{month}/cve.json` (e.g., archives/2025/06/cve.json)
+- **OS support**: `/release-notes/{version}/supported-os.json`
+- **SDK downloads**: Use stable-sdk-downloads template or direct: [8.0 SDK downloads](https://raw.githubusercontent.com/richlander/core/main/release-notes/8.0/sdk/sdk.json)
+
+## Data Format
+- **JSON files**: Authoritative structured data (use these primarily)
+- **Markdown files**: Human-readable fallback content
+- **HAL navigation**: Follow `_links` for resource discovery and traversal

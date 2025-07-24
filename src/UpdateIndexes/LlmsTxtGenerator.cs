@@ -1,10 +1,11 @@
 using System.Text;
 using DotnetRelease;
+using MarkdownHelpers;
 
 namespace UpdateIndexes;
 
 /// <summary>
-/// Generates llms.txt content from HAL+JSON links using a subscription model.
+/// Generates llms.txt content from HAL+JSON links using a subscription model and markdown templates.
 /// The "Getting Started" section subscribes to specific semantic relations,
 /// and everything else goes to "Key Data Sources".
 /// </summary>
@@ -26,6 +27,69 @@ public static class LlmsTxtGenerator
     };
 
     public static string Generate(Dictionary<string, HalLink> links, string title = ".NET Release Metadata", string description = "Structured, machine-readable .NET release data designed for AI assistants and automated tooling.")
+    {
+        // Find the template file relative to the application base directory
+        var templatePath = Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..", "..", "..", "templates", "llms-template.txt");
+
+        if (!File.Exists(templatePath))
+        {
+            // Fallback to original string-based generation if template not found
+            return GenerateFallback(links, title, description);
+        }
+
+        var template = new MarkdownTemplate
+        {
+            Processor = (key, writer) =>
+            {
+                switch (key)
+                {
+                    case "title":
+                        writer.Write(title);
+                        break;
+                    case "description":
+                        writer.Write(description);
+                        break;
+                    case "getting-started-links":
+                        WriteLinksSection(writer, links, GettingStartedSubscriptions, true);
+                        break;
+                    case "key-data-sources-links":
+                        WriteLinksSection(writer, links, GettingStartedSubscriptions, false);
+                        break;
+                    default:
+                        writer.Write($"{{{{unknown-token:{key}}}}}");
+                        break;
+                }
+            }
+        };
+
+        using var templateReader = new StreamReader(templatePath);
+        using var outputStream = new MemoryStream();
+        using var streamWriter = new StreamWriter(outputStream);
+        
+        template.Process(templateReader, streamWriter);
+        streamWriter.Flush();
+        
+        outputStream.Position = 0;
+        using var resultReader = new StreamReader(outputStream);
+        return resultReader.ReadToEnd();
+    }
+
+    private static void WriteLinksSection(StreamWriter writer, Dictionary<string, HalLink> links, HashSet<string> gettingStartedSubscriptions, bool isGettingStarted)
+    {
+        var filteredLinks = isGettingStarted 
+            ? GetSubscribedLinks(links, gettingStartedSubscriptions)
+            : GetRemainingLinks(links, gettingStartedSubscriptions);
+
+        foreach (var (relation, link) in filteredLinks.OrderBy(kvp => GetSortOrder(kvp.Key)))
+        {
+            var linkDescription = GetLinkDescription(relation, link);
+            writer.WriteLine($"- [{linkDescription}]({link.Href}): {link.Title ?? linkDescription}");
+        }
+    }
+
+    private static string GenerateFallback(Dictionary<string, HalLink> links, string title, string description)
     {
         var sb = new StringBuilder();
         
