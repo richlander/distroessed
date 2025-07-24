@@ -1,120 +1,90 @@
-# distroessed
+# Distroessed - .NET Release Data Management Tools
 
-Managing distro versions is distressing.
+This repository contains a collection of applications and libraries for managing, generating, and processing .NET release data, security advisories (CVEs), and documentation.
 
-We can join [.NET support information](https://github.com/dotnet/core/pull/9294) with [endOflife.date](https://endoflife.date/) to help us find head and tail releases that we should consider acting on.
+## Applications
 
-This is what the tool produces as output.
+### Core Index Generation
+- **UpdateIndexes** - Primary tool that generates HAL+JSON release indexes, llms.txt files, and cross-references all release data
+- **GenerateJsonSchemas** - Creates JSON schemas for all data models to enable validation and tooling support
 
-```bash
-$ dotnet run
-**Android**
- Android
-  Releases active : 4
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+### CVE (Security Advisory) Processing
+- **CveIndex** - Generates monthly CVE index files from release notes directory structure
+- **CveIndexMarkdown** - Creates markdown versions of CVE index files for human consumption  
+- **CveMarkdown** - Converts individual CVE JSON files to markdown using templates
+- **CveValidate** - Validates CVE data consistency and completeness
+- **CheckCvesForReleases** - Cross-references CVEs against release data to ensure accuracy
 
-**Apple**
- iOS
-  Releases active : 3
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+### Release Documentation Generation
+- **UpdateReleasesMarkdown** - Generates and updates release notes markdown files
+- **SupportedOsMd** - Creates supported OS documentation from structured data
+- **LinuxPackagesMd** - Generates Linux package information documentation
+- **ReleaseReport** - Creates comprehensive release reports and statistics
 
- iPadOS
-  Releases active : 3
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+### Data Access and Utilities
+- **Distroessed** - CLI tool for querying supported OS information by .NET version
+- **DotnetInfo** - Fetches and displays active major release information from official APIs
+- **MarkdownTemplateTest** - Testing utility for markdown template processing
 
- macOS
-  Releases active : 3
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+### Development Tools
+- **Test** - General testing and development utility
+- **DistroessedExceptional** - Specialized testing tool (purpose needs clarification)
 
- tvOS
-  No data found at endoflife.date
+## Libraries
 
-**Linux**
- Alpine
-  Releases active : 4
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+### Core Data Models
+- **DotnetRelease** - Central library containing all data models, serialization contexts, and core business logic
+  - HAL+JSON data models for hypermedia APIs
+  - Legacy data models for backward compatibility  
+  - Release information models and enums
+  - CVE and security advisory models
+  - OS package and support matrix models
 
- Debian
-  Releases active : 2
-  Unsupported active releases: 1
-  Releases EOL soon: 1
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  11
-  Releases that are EOL within 2 months:
-  11
+### Utility Libraries
+- **FileHelpers** - Adaptive path handling for local files, web URLs, and cross-platform compatibility
+- **MarkdownHelpers** - Utilities for markdown generation including tables, links, and formatting
+- **MarkdownTemplate** - Template processing engine for generating markdown from templates
+- **JsonSchemaInjector** - Adds JSON schema references to generated JSON files
+- **EndOfLifeDate** - Date calculations and utilities for .NET release lifecycle management
 
- Fedora
-  Releases active : 2
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+## Consolidation Opportunities
 
- openSUSE Leap
-  Releases active : 2
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+Based on the analysis, several consolidation opportunities exist:
 
- Red Hat Enterprise Linux
-  Releases active : 3
-  Unsupported active releases: 1
-  Releases EOL soon: 1
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  7
-  Releases that are EOL within 2 months:
-  7
+### CVE Tool Consolidation
+The CVE-related applications could potentially be consolidated:
+- **CveIndex** and **CveIndexMarkdown** share similar logic and could be merged into a single tool with output format options
+- **CveMarkdown** and **CveValidate** could be combined into a comprehensive CVE processing tool
+- **CheckCvesForReleases** could be integrated into the main CVE validation workflow
 
- SUSE Enterprise Linux
-  Releases active : 2
-  Unsupported active releases: 2
-  Releases EOL soon: 0
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  15.5
-  12.5
+### Documentation Generation Consolidation  
+Several documentation generators could be unified:
+- **UpdateReleasesMarkdown**, **SupportedOsMd**, and **LinuxPackagesMd** all generate markdown from structured data
+- These could become modules within a single documentation generation tool
 
- Ubuntu
-  Releases active : 4
-  Unsupported active releases: 1
-  Releases EOL soon: 1
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  23.10
-  Releases that are EOL within 2 months:
-  23.10
+### Testing Tool Consolidation
+- **Test** and **MarkdownTemplateTest** could be merged
+- **DistroessedExceptional** purpose should be clarified - may be redundant
 
-**Windows**
- Nano Server
-  No data found at endoflife.date
+### Potential Unified Architecture
+Consider creating:
+1. **DotnetReleaseManager** - Unified CLI with subcommands for all major operations
+2. **DotnetReleaseGenerator** - Consolidated documentation and index generation
+3. **DotnetReleaseCve** - Unified CVE processing pipeline
 
- Windows
-  Releases active : 11
-  Unsupported active releases: 3
-  Releases EOL soon: 0
-  Supported inactive releases: 0
-  Releases that are active but not supported:
-  10-21h2-iot-lts
-  11-21h2-e
-  10-1507-e-lts
+## Getting Started
 
- Windows Server
-  Releases active : 4
-  Unsupported active releases: 0
-  Releases EOL soon: 0
-  Supported inactive releases: 0
+1. Build the solution: `dotnet build src/src.sln`
+2. Run the main index generation: `UpdateIndexes <release-notes-directory>`
+3. Generate schemas: `GenerateJsonSchemas <target-directory>`
+4. Process CVEs: `CveIndex <release-notes-directory>`
 
- Windows Server Core
-  No data found at endoflife.date
-```
+## Architecture Notes
+
+The system follows a pipeline architecture:
+1. **Data Collection** - Tools read from various sources (file system, web APIs)
+2. **Processing** - Core libraries transform and validate data
+3. **Generation** - Applications output indexes, documentation, and reports
+4. **Validation** - Tools ensure data consistency and completeness
+
+The **DotnetRelease** library serves as the central hub, providing shared data models and business logic across all applications.
