@@ -94,11 +94,20 @@ If `_worktree/` not in .gitignore:
 - **In `_worktree/{name}`**: Show current worktree status
 - **Elsewhere**: Navigate back to appropriate location
 
+#### File Editing Hygiene
+When working in a worktree:
+- **ALWAYS verify file paths before editing** - Ensure paths start with `_worktree/{name}/`
+- **Example CORRECT path**: `/Users/rich/git/distroessed/_worktree/feature-name/src/DotnetRelease/DataModel/HalJson/Hal.cs`
+- **Example WRONG path**: `/Users/rich/git/distroessed/src/DotnetRelease/DataModel/HalJson/Hal.cs`
+- **Before any file edit**, confirm you're editing within the worktree, not the main repository
+- **If you accidentally edit main repository files**, stop immediately and inform the user
+
 ### Safety Checks
 - **Always ask before branch operations**: merges, rebases, pushes
 - Warn before switching with uncommitted changes
 - Confirm before removing worktrees
 - Verify branch status before major operations
+- **CRITICAL: Only edit files within the active worktree directory** - Never edit files in the main repository when working in a worktree
 
 ## Project-Specific Context
 
