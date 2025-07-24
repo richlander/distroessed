@@ -51,27 +51,28 @@ public static class CveReport
     {
         // CVE table
         string[] cveLabels = ["CVE", "Description", "Product", "Platforms", "CVSS"];
-        int[] cveLengths = [16, 20, 16, 16, 20];
-        Table cveTable = new(Writer.GetWriter(writer), cveLengths);
+        Table cveTable = new(Writer.GetWriter(writer));
 
         cveTable.WriteHeader(cveLabels);
 
         foreach (Cve cve in cves.Cves)
-        {cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
+        {
+            cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
             cveTable.WriteColumn(cve.Description);
             cveTable.WriteColumn(cve.Product);
             cveTable.WriteColumn(Join(cve.Platforms));
             cveTable.WriteColumn(cve?.Cvss ?? "");
             cveTable.EndRow();
         }
+        
+        cveTable.Render();
     }
 
     public static void WritePackageTable(CveSet cves, StreamWriter writer)
     {
         // Package version table
         string[] packageLabels = ["CVE", "Package", "Min Version", "Max Version", "Fixed Version"];
-        int[] packageLengths = [16, 16, 12, 12, 16];
-        Table packageTable = new(Writer.GetWriter(writer), packageLengths);
+        Table packageTable = new(Writer.GetWriter(writer));
 
         packageTable.WriteHeader(packageLabels);
 
@@ -87,6 +88,8 @@ public static class CveReport
                 packageTable.EndRow();
             }
         }
+        
+        packageTable.Render();
     }
 
     public static void WriteCommitTable(CveSet cves, StreamWriter writer)
@@ -98,8 +101,7 @@ public static class CveReport
 
         // Commits table
         string[] commitLabels = ["CVE", "Branch", "Commit"];
-        int[] commitLengths = [30, 20, 60];
-        Table commitTable = new(Writer.GetWriter(writer), commitLengths);
+        Table commitTable = new(Writer.GetWriter(writer));
 
         commitTable.WriteHeader(commitLabels);
 
@@ -110,6 +112,8 @@ public static class CveReport
             commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url));
             commitTable.EndRow();
         }
+        
+        commitTable.Render();
 
         writer.WriteLine();
 

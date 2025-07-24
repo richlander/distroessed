@@ -77,8 +77,7 @@ writtenFile.Close();
 static void WritePackageOverview(StreamWriter writer, OSPackagesOverview packageOverview, Link links)
 {
     ReadOnlySpan<string> packageLabels = ["Id", "Name", "Required scenarios", "Notes"];
-    int[] packageColumns = [16, 12, 16, 32];
-    Table packageTable = new(Writer.GetWriter(writer), packageColumns);
+    Table packageTable = new(Writer.GetWriter(writer));
   
     packageTable.WriteHeader(packageLabels);
 
@@ -102,6 +101,8 @@ static void WritePackageOverview(StreamWriter writer, OSPackagesOverview package
         packageTable.WriteColumn(buffer.ToString());
         packageTable.EndRow();
     }
+    
+    packageTable.Render();
 
     foreach (var refLink in links.GetReferenceLinkAnchors())
     {
