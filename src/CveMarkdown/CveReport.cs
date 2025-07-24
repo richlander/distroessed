@@ -51,8 +51,7 @@ public static class CveReport
     {
         // CVE table
         string[] cveLabels = ["CVE", "Description", "Product", "Platforms", "CVSS"];
-        int[] cveLengths = [16, 20, 16, 16, 20];
-        Table cveTable = new(Writer.GetWriter(writer), cveLengths);
+        using Table cveTable = new(Writer.GetWriter(writer));
 
         cveTable.WriteHeader(cveLabels);
 
@@ -70,8 +69,7 @@ public static class CveReport
     {
         // Package version table
         string[] packageLabels = ["CVE", "Package", "Min Version", "Max Version", "Fixed Version"];
-        int[] packageLengths = [16, 16, 12, 12, 16];
-        Table packageTable = new(Writer.GetWriter(writer), packageLengths);
+        using Table packageTable = new(Writer.GetWriter(writer));
 
         packageTable.WriteHeader(packageLabels);
 
@@ -98,8 +96,7 @@ public static class CveReport
 
         // Commits table
         string[] commitLabels = ["CVE", "Branch", "Commit"];
-        int[] commitLengths = [30, 20, 60];
-        Table commitTable = new(Writer.GetWriter(writer), commitLengths);
+        using Table commitTable = new(Writer.GetWriter(writer));
 
         commitTable.WriteHeader(commitLabels);
 
