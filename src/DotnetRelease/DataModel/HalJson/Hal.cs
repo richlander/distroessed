@@ -45,7 +45,7 @@ public class MediaType
     {
         "index.json",
         "manifest.json",
-        "history/index.json",
+        "archives/index.json",
     };
 
     public static string GetFileType(string filename)

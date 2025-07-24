@@ -1,7 +1,24 @@
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
+
+/// <summary>
+/// Glossary structure that combines terminology definitions with related navigation links.
+/// </summary>
+[Description("Glossary containing both term definitions and related navigation links")]
+public record GlossaryWithLinks
+{
+    [JsonPropertyName("_links"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("HAL+JSON links for glossary-related resources")]
+    public Dictionary<string, HalLink>? Links { get; set; }
+    
+    [JsonPropertyName("terms"),
+     Description("Term definitions (key-value pairs where key is the term and value is the definition)")]
+    public Dictionary<string, string> Terms { get; set; } = new();
+}
 
 /// <summary>
 /// Base interface for .NET release version indexes.
@@ -12,7 +29,7 @@ public interface IReleaseVersionIndex
     string Title { get; }
     string Description { get; }
     Dictionary<string, HalLink> Links { get; }
-    Dictionary<string, string>? Glossary { get; set; }
+    GlossaryWithLinks? Glossary { get; set; }
     GenerationMetadata? Metadata { get; set; }
 }
 
@@ -32,8 +49,8 @@ public record ReleaseVersionIndex(
     Dictionary<string, HalLink> Links) : IReleaseVersionIndex
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Glossary of .NET terminology and abbreviations")]
-    public Dictionary<string, string>? Glossary { get; set; }
+     Description("Glossary of .NET terminology and abbreviations with related links")]
+    public GlossaryWithLinks? Glossary { get; set; }
 
     [JsonPropertyName("_embedded"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),

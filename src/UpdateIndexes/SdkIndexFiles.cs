@@ -188,7 +188,8 @@ public class SdkIndexFiles
             // Link to runtime release.json file
             if (!string.IsNullOrEmpty(patchRelease.ReleaseJsonPath))
             {
-                var releaseJsonRelativePath = Path.GetRelativePath(rootDir, patchRelease.ReleaseJsonPath);
+                // Use the ReleaseJsonPath directly since it's already the correct relative path for URLs
+                var releaseJsonRelativePath = patchRelease.ReleaseJsonPath;
                 releaseLinks[HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{releaseJsonRelativePath}")
                 {
                     Relative = releaseJsonRelativePath,

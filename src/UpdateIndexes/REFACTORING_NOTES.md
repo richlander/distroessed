@@ -10,7 +10,7 @@
 ### 2. HalLinkGenerator Assumptions
 - Assumes the first file in the collection is always "self", which breaks when filtering/reordering
 - The `isSelf` flag logic in `HalLinkGenerator.cs:42-46` is brittle
-- Special case handling for "history/index.json" is hardcoded
+- Special case handling for "archives/index.json" is hardcoded
 
 ### 3. Dictionary Key Naming Inconsistencies
 - Relationship between `MainFileMappings` keys, filenames, and final link property names is confusing

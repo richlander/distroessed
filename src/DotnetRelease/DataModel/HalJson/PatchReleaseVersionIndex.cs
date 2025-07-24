@@ -20,8 +20,8 @@ public record PatchReleaseVersionIndex(
     Dictionary<string, HalLink> Links) : IReleaseVersionIndex
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Glossary of .NET terminology and abbreviations")]
-    public Dictionary<string, string>? Glossary { get; set; }
+     Description("Glossary of .NET terminology and abbreviations with related links")]
+    public GlossaryWithLinks? Glossary { get; set; }
 
     [JsonPropertyName("_embedded"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),

@@ -80,9 +80,9 @@ The HAL+JSON object models follow the [HAL specification](https://datatracker.ie
 - `_embedded.releases`: Release version summaries
 
 **Hierarchy**:
-1. **Root History Index** (`/history/index.json`): Lists years with .NET releases
-2. **Year Index** (`/history/2025/index.json`): Lists months and releases for 2025
-3. **Month Index** (`/history/2025/02/index.json`): Detailed releases for February 2025
+1. **Root History Index** (`/archives/index.json`): Lists years with .NET releases
+2. **Year Index** (`/archives/2025/index.json`): Lists months and releases for 2025
+3. **Month Index** (`/archives/2025/02/index.json`): Detailed releases for February 2025
 
 **Example**:
 ```json
@@ -217,9 +217,9 @@ For applications that need to explore releases by version:
 
 For applications that need chronological access:
 
-1. Start with history index (`/history/index.json`)
-2. Navigate to specific year (`/history/2025/index.json`)
-3. Access monthly details (`/history/2025/02/index.json`)
+1. Start with history index (`/archives/index.json`)
+2. Navigate to specific year (`/archives/2025/index.json`)
+3. Access monthly details (`/archives/2025/02/index.json`)
 
 ### Cross-References
 

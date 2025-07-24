@@ -14,7 +14,7 @@ if (!Directory.Exists(inputDir) && (inputDir.EndsWith("release-notes/") || input
     inputDir = Path.GetDirectoryName(inputDir) ?? throw new InvalidOperationException("Invalid release notes directory path.");
 }
 
-var historyDir = Path.Combine(inputDir, "monthly");
+var historyDir = Path.Combine(inputDir, "archives");
 if (!Directory.Exists(historyDir))
 {
     Console.Error.WriteLine($"Directory '{historyDir}' does not exist.");

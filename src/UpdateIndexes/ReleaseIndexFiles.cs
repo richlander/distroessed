@@ -13,25 +13,51 @@ public class ReleaseIndexFiles
     
     public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
     
-    private static Dictionary<string, string> CreateGlossary()
+    private static GlossaryWithLinks CreateGlossary(Dictionary<string, HalLink>? glossaryLinks = null)
     {
-        return new Dictionary<string, string>
+        return new GlossaryWithLinks
         {
-            ["lts"] = "Long-Term Support – 3-year support window",
-            ["sts"] = "Standard-Term Support – 18-month support window",
-            ["release"] = "General Availability – Production-ready release",
-            ["eol"] = "End of Life – No longer supported",
-            ["preview"] = "Pre-release phase with previews and release candidates",
-            ["active"] = "Full support with regular updates and security fixes"
+            Links = glossaryLinks,
+            Terms = new Dictionary<string, string>
+            {
+                ["lts"] = "Long-Term Support – 3-year support window",
+                ["sts"] = "Standard-Term Support – 18-month support window",
+                ["release"] = "General Availability – Production-ready release",
+                ["eol"] = "End of Life – No longer supported",
+                ["preview"] = "Pre-release phase with previews and release candidates",
+                ["active"] = "Full support with regular updates and security fixes"
+            }
         };
+    }
+
+    private static (Dictionary<string, HalLink> remainingLinks, Dictionary<string, HalLink>? glossaryLinks) ExtractGlossaryLinks(Dictionary<string, HalLink> allLinks)
+    {
+        var glossaryLinks = new Dictionary<string, HalLink>();
+        var remainingLinks = new Dictionary<string, HalLink>();
+
+        foreach (var (key, link) in allLinks)
+        {
+            // Check if this is a glossary-related link
+            if (key.StartsWith("glossary"))
+            {
+                glossaryLinks[key] = link;
+            }
+            else
+            {
+                remainingLinks[key] = link;
+            }
+        }
+
+        return (remainingLinks, glossaryLinks.Count > 0 ? glossaryLinks : null);
     }
 
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
-        {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
-        {"history/index.json", new FileLink("history/index.json", "Historical Release and CVE Records", LinkStyle.Prod) },
-        {"usage.md", new FileLink("usage.md", "Instructions for navigating the .NET release HAL+JSON information graph", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"terminology.md", new FileLink("terminology.md", "Terminology used to describe the .NET release notes domain", LinkStyle.Prod | LinkStyle.GitHub) }
+        {"index.json", new FileLink("index.json", ".NET Release Index", LinkStyle.Prod) },
+        {"usage.md", new FileLink("usage.md", "Usage Guide", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"glossary.md", new FileLink("glossary.md", "Glossary", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"archives/index.json", new FileLink("archives/index.json", "Security Advisories", LinkStyle.Prod) },
+        {"support.md", new FileLink("support.md", "Support Policy", LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
@@ -195,6 +221,9 @@ public class ReleaseIndexFiles
 
             majorVersionLinks = orderedMajorVersionLinks;
 
+            // Extract glossary links from majorVersionLinks
+            var (remainingMajorVersionLinks, glossaryLinksForPatch) = ExtractGlossaryLinks(majorVersionLinks);
+
             // write major version index.json if there are patch releases found
             var majorIndexPath = Path.Combine(outputMajorVersionDir, "index.json");
             var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, "index.json"));
@@ -210,9 +239,9 @@ public class ReleaseIndexFiles
                 ReleaseKind.Index,
                 $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Patch Release Index",
                 patchDescription,
-                majorVersionLinks)
+                remainingMajorVersionLinks)
             {
-                Glossary = CreateGlossary(),
+                Glossary = CreateGlossary(glossaryLinksForPatch),
                 Embedded = patchEntries.Count > 0 ? new ReleaseVersionIndexEmbedded(patchEntries) : null,
                 Lifecycle = lifecycle,
                 Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
@@ -342,7 +371,7 @@ public class ReleaseIndexFiles
             
             if (latestRelease != null)
             {
-                orderedRootLinks["latest-release"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
+                orderedRootLinks["newest-release"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
                 {
                     Relative = $"{latestRelease.Version}/index.json",
                     Title = $"Latest .NET release (.NET {latestRelease.Version})",
@@ -361,10 +390,10 @@ public class ReleaseIndexFiles
                 
             if (latestLtsRelease != null)
             {
-                orderedRootLinks["latest-lts-release"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
+                orderedRootLinks["lts-release"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
                 {
                     Relative = $"{latestLtsRelease.Version}/index.json",
-                    Title = $"Latest .NET LTS release (.NET {latestLtsRelease.Version})",
+                    Title = $"LTS release (.NET {latestLtsRelease.Version})",
                     Type = MediaType.HalJson
                 };
             }
@@ -392,13 +421,16 @@ public class ReleaseIndexFiles
 
         var description = $"Index of .NET versions {versionRange} (latest first); {Location.CacheFriendlyNote}";
         
+        // Extract glossary links from rootLinks
+        var (remainingRootLinks, glossaryLinksForRoot) = ExtractGlossaryLinks(rootLinks);
+        
         var majorIndex = new MajorReleaseVersionIndex(
                 ReleaseKind.Index,
                 ".NET Release Version Index",
                 description,
-                rootLinks)
+                remainingRootLinks)
         {
-            Glossary = CreateGlossary(),
+            Glossary = CreateGlossary(glossaryLinksForRoot),
             Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
             Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
         };
@@ -421,6 +453,21 @@ public class ReleaseIndexFiles
             using Stream stream = File.Create(rootMajorIndexPath);
             using var rootWriter = new StreamWriter(stream);
             await rootWriter.WriteAsync(finalMajorIndexJson);
+        }
+        else
+        {
+            _skippedFilesCount++;
+        }
+
+        // Generate llms.txt file from the root links
+        var llmsTxtContent = LlmsTxtGenerator.Generate(rootLinks);
+        // Write llms.txt to repo root (parent of release-notes directory)
+        var repoRoot = Directory.GetParent(outputDir)?.FullName ?? outputDir;
+        var llmsTxtPath = Path.Combine(repoRoot, "llms.txt");
+        
+        if (HalJsonComparer.ShouldWriteFile(llmsTxtPath, llmsTxtContent))
+        {
+            await File.WriteAllTextAsync(llmsTxtPath, llmsTxtContent);
         }
         else
         {
@@ -488,7 +535,7 @@ public class ReleaseIndexFiles
                     !string.IsNullOrEmpty(day.CveJson))
                 {
                     // Add CVE JSON link
-                    var cveJsonRelativePath = $"history/{day.CveJson}";
+                    var cveJsonRelativePath = $"archives/{day.CveJson}";
                     links["cve-json"] = new HalLink(IndexHelpers.GetProdPath(cveJsonRelativePath))
                     {
                         Relative = cveJsonRelativePath,
@@ -498,7 +545,7 @@ public class ReleaseIndexFiles
 
                     // Add CVE Markdown link
                     var cveMdPath = day.CveJson.Replace(".json", ".md");
-                    var cveMdRelativePath = $"history/{cveMdPath}";
+                    var cveMdRelativePath = $"archives/{cveMdPath}";
                     links["cve-markdown"] = new HalLink(IndexHelpers.GetGitHubPath(cveMdRelativePath))
                     {
                         Relative = cveMdRelativePath,

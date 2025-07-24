@@ -31,7 +31,7 @@ public class HistoryIndexFiles
 
     public static async Task GenerateAsync(string inputPath, string outputPath, ReleaseHistory releaseHistory)
     {
-        var historyPath = Path.Combine(outputPath, "history");
+        var historyPath = Path.Combine(outputPath, "archives");
 
         if (!Directory.Exists(historyPath))
         {

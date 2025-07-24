@@ -26,7 +26,7 @@ if (!File.Exists(releaseIndex))
 }
 
 DateOnly firstDate = DateOnly.Parse("2023-11-14");
-string historyDir = Path.Combine(inputDir, "monthly");
+string historyDir = Path.Combine(inputDir, "archives");
 Stream releaseIndexStream = File.OpenRead(releaseIndex);
 var majorReleasesIndex = await ReleaseNotes.GetMajorReleasesIndex(releaseIndexStream) ?? throw new InvalidOperationException("Failed to load major releases index.");
 Dictionary<string, List<Release>> releasesByDate = [];

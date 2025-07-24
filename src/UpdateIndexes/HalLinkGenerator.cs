@@ -31,10 +31,22 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             string extension = Path.GetExtension(filename).ToLowerInvariant();
             bool isMarkdown = ".md".Equals(extension, StringComparison.OrdinalIgnoreCase);
             
-            // Special case for history/index.json to use correct key name
-            if (filename == "history/index.json")
+            // Map files to semantic HAL+JSON relations
+            if (filename == "archives/index.json")
             {
-                name = "release-history-index";
+                name = "archives";
+            }
+            else if (filename == "usage.md")
+            {
+                name = "help";
+            }
+            else if (filename == "glossary.md")
+            {
+                name = "glossary";
+            }
+            else if (filename == "support.md")
+            {
+                name = "about";
             }
             // Special case for manifest.json to use correct key name
             else if (filename == "manifest.json")

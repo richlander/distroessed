@@ -360,7 +360,7 @@ Format: propertyname; filename; title text
 
 - "usage"; `usage.md`; Instructions for navigating the .NET release HAL+JSON information graph
 - "terminology"; `terminology.md`; Terminology used to describe the .NET release notes domain
-- "release-history-index"; `history/index.json`; Historical Release and CVE Records
+- "release-history-index"; `archives/index.json`; Historical Release and CVE Records
 - "latest-release"; `9.0/index.json`; Latest .NET release (.NET 9.0)
 - "latest-lts-release"; `8.0/index.json`; Latest .NET LTS release (.NET 8.0)
 
