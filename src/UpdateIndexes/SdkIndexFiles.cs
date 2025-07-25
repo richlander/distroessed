@@ -126,7 +126,6 @@ public class SdkIndexFiles
         foreach (var sdkBand in summary.SdkBands)
         {
             var bandVersion = sdkBand.Version[..5] + "xx"; // e.g., "8.0.1xx"
-            var supportPhase = GetSdkSupportPhase(sdkBand.SupportPhase);
             
             var bandFileName = $"sdk-{bandVersion}.json";
             var bandFilePath = Path.Combine(sdkDir, bandFileName);
@@ -149,7 +148,6 @@ public class SdkIndexFiles
                 ReleaseKind.Band,
                 bandVersion,
                 $".NET SDK {bandVersion}",
-                supportPhase,
                 bandLinks)
             {
                 Lifecycle = bandLifecycle
@@ -232,7 +230,7 @@ public class SdkIndexFiles
                 ReleaseKind.PatchRelease,
                 releaseLinks)
             {
-                Lifecycle = new PatchLifecycle(patchLifecycle.phase, patchLifecycle.ReleaseDate)
+                Lifecycle = new PatchLifecycle(patchLifecycle.Phase, patchLifecycle.ReleaseDate)
             };
 
             sdkReleaseEntries.Add(sdkReleaseEntry);
@@ -244,7 +242,6 @@ public class SdkIndexFiles
             "sdk",
             summary.MajorVersion,
             $".NET SDK {summary.MajorVersion}",
-            GetMajorVersionSupportPhase(summary.SupportPhase),
             links)
         {
             Embedded = new SdkVersionIndexEmbedded(featureBandEntries, sdkReleaseEntries),
@@ -273,13 +270,11 @@ public class SdkIndexFiles
             var filePath = Path.Combine(sdkDir, fileName);
 
             var sdkFiles = GenerateSdkFilesList(bandXX);
-            var supportPhase = GetSdkSupportPhase(sdkBand.SupportPhase);
 
             var sdkDownloadInfo = new SdkDownloadInfo(
                 "sdk",
                 bandXX,
                 $".NET SDK {bandXX}",
-                supportPhase,
                 "sha512",
                 sdkFiles);
 
@@ -302,13 +297,11 @@ public class SdkIndexFiles
         if (latestBand != null)
         {
             var sdkFiles = GenerateSdkFilesList(summary.MajorVersion);
-            var supportPhase = GetMajorVersionSupportPhase(summary.SupportPhase);
 
             var latestSdkInfo = new SdkDownloadInfo(
                 "sdk",
                 summary.MajorVersion,
                 $".NET SDK {summary.MajorVersion}",
-                supportPhase,
                 "sha512",
                 sdkFiles);
 
@@ -370,43 +363,13 @@ public class SdkIndexFiles
         return (type, "unknown", "unknown", "unknown");
     }
 
-    private static string GetSdkSupportPhase(SupportPhase phase)
-    {
-        return phase switch
-        {
-            SupportPhase.Active => "active",
-            SupportPhase.Maintenance => "active", // Treat maintenance as active for SDK
-            SupportPhase.Preview => "preview",
-            SupportPhase.Eol => "eol",
-            _ => "unknown"
-        };
-    }
 
-    private static Lifecycle CreatePatchLifecycle(SupportPhase phase, DateOnly releaseDate)
+    private static PatchLifecycle CreatePatchLifecycle(SupportPhase phase, DateOnly releaseDate)
     {
-        // Create patch lifecycle (no release-type, simpler structure per spec)
+        // Create patch lifecycle with only phase and release-date per spec
         var releaseDateTime = new DateTimeOffset(releaseDate.ToDateTime(TimeOnly.MinValue));
         
-        return new Lifecycle(
-            null, // No release type for patch versions per spec
-            phase,
-            releaseDateTime,
-            releaseDateTime // Use same date for both since we don't track EOL for patches
-        )
-        {
-            Supported = phase is SupportPhase.Active or SupportPhase.Maintenance or SupportPhase.Preview
-        };
+        return new PatchLifecycle(phase, releaseDateTime);
     }
 
-    private static string GetMajorVersionSupportPhase(SupportPhase phase)
-    {
-        return phase switch
-        {
-            SupportPhase.Active => "active",
-            SupportPhase.Maintenance => "active",
-            SupportPhase.Preview => "preview", 
-            SupportPhase.Eol => "eol",
-            _ => "unknown"
-        };
-    }
 }

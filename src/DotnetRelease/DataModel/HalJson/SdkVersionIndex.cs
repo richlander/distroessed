@@ -17,8 +17,6 @@ public record SdkVersionIndex(
     string Version,
     [Description("Descriptive label for the SDK version")]
     string Label,
-    [Description("Current support phase (active, eol, preview)")]
-    string SupportPhase,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links)
@@ -51,16 +49,13 @@ public record SdkFeatureBandEntry(
     string Version,
     [Description("Descriptive label for the feature band")]
     string Label,
-    [property: JsonPropertyName("support-phase"),
-     Description("Current support phase of this feature band (active, eol, preview)")]
-    string SupportPhase,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this feature band's content")]
     Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Lifecycle information for this feature band")]
-    public Lifecycle? Lifecycle { get; set; }
+    public PatchLifecycle? Lifecycle { get; set; }
 }
 
 /// <summary>
@@ -74,9 +69,6 @@ public record SdkDownloadInfo(
     string Version,
     [Description("Descriptive label")]
     string Label,
-    [property: JsonPropertyName("support-phase"),
-     Description("Current support phase")]
-    string SupportPhase,
     [property: JsonPropertyName("hash-algorithm"),
      Description("Hash algorithm used for file verification")]
     string HashAlgorithm,
