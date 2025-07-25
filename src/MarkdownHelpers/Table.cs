@@ -7,8 +7,6 @@ public class Table
     private readonly StringBuilder _output = new();
     private readonly List<string[]> _rows = new();
     private string[] _headers = Array.Empty<string>();
-    private string[] _currentRow = Array.Empty<string>();
-    private int _currentColumn = 0;
     private int _columnCount = 0;
     private List<int>[] _columnLengths = Array.Empty<List<int>>();
     private bool _headerWritten = false;
@@ -40,93 +38,73 @@ public class Table
         }
     }
     
-    public Table()
+    
+    // New unified API with params support
+    public Table AddHeader(params string[] columns) 
     {
-    }
-
-    public Table NewRow()
-    {
-        if (!_headerWritten)
-        {
-            throw new InvalidOperationException("Header must be written before starting a new row. Call WriteHeader first.");
-        }
-        
-        if (_currentColumn != _columnCount && _currentColumn > 0)
-        {
-            throw new InvalidOperationException($"Current row is incomplete. Expected {_columnCount} columns, but only {_currentColumn} were written.");
-        }
-        
-        // Complete current row if we have data
-        if (_currentColumn > 0)
-        {
-            _rows.Add(_currentRow);
-        }
-        
-        // Start new row
-        _currentRow = new string[_columnCount];
-        _currentColumn = 0;
+        CompleteHeader(columns);
         return this;
     }
-
-    public void WriteHeader(ReadOnlySpan<string> labels)
+    
+    public Table AddRow(params string[] columns) 
+    {
+        CompleteRow(columns);
+        return this;
+    }
+    
+    // Internal methods
+    private void InitializeColumns(int columnCount)
     {
         if (_headerWritten)
-        {
-            throw new InvalidOperationException("Header has already been written. WriteHeader can only be called once.");
-        }
-        
-        if (labels.Length == 0)
-        {
-            throw new ArgumentException("Header must have at least one column.", nameof(labels));
-        }
-        
-        _columnCount = labels.Length;
-        _headers = new string[_columnCount];
+            throw new InvalidOperationException("Cannot change column count after header is written.");
+            
+        _columnCount = columnCount;
         _columnLengths = new List<int>[_columnCount];
-        
-        for (int i = 0; i < labels.Length; i++)
+        for (int i = 0; i < _columnCount; i++)
         {
-            _headers[i] = labels[i] ?? string.Empty;
             _columnLengths[i] = new List<int>();
         }
-        _currentRow = new string[_columnCount];
+    }
+    
+    private void CompleteHeader(string[] headerData)
+    {
+        if (_headerWritten)
+            throw new InvalidOperationException("Header has already been written.");
+            
+        if (headerData.Length == 0)
+            throw new ArgumentException("Header must have at least one column.");
+            
+        InitializeColumns(headerData.Length);
+        _headers = new string[_columnCount];
+        Array.Copy(headerData, _headers, _columnCount);
         _headerWritten = true;
     }
-
-    public Table WriteColumn(string text)
+    
+    private void CompleteRow(string[] rowData)
     {
         if (!_headerWritten)
+            throw new InvalidOperationException("Header must be written before adding rows.");
+            
+        if (rowData.Length != _columnCount)
+            throw new ArgumentException($"Row must have exactly {_columnCount} columns, but {rowData.Length} were provided.");
+            
+        // Record column lengths for width calculation
+        for (int i = 0; i < _columnCount; i++)
         {
-            throw new InvalidOperationException("Header must be written before writing columns. Call WriteHeader first.");
+            _columnLengths[i].Add(rowData[i].Length);
         }
-        if (_currentColumn >= _columnCount)
-        {
-            throw new ArgumentOutOfRangeException(nameof(_currentColumn), $"Too many columns. Expected {_columnCount}, but trying to write column {_currentColumn + 1}.");
-        }
-        string cellText = text ?? string.Empty;
-        _currentRow[_currentColumn] = cellText;
-        _columnLengths[_currentColumn].Add(cellText.Length);
-        _currentColumn++;
-        return this;
+        
+        var row = new string[_columnCount];
+        Array.Copy(rowData, row, _columnCount);
+        _rows.Add(row);
     }
+
     
     public override string ToString()
     {
         if (_columnCount == 0)
             return string.Empty;
             
-        // Complete any incomplete row
-        if (_currentColumn > 0)
-        {
-            // Fill missing columns with empty strings
-            for (int i = _currentColumn; i < _columnCount; i++)
-            {
-                _currentRow[i] = string.Empty;
-            }
-            _rows.Add(_currentRow);
-            _currentColumn = 0;
-        }
-        
         var columnWidths = CalculateColumnWidths();
         
         _output.Clear();
@@ -144,11 +122,6 @@ public class Table
         return _output.ToString();
     }
     
-    private void Render()
-    {
-        // Legacy method - kept for potential internal use
-        ToString();
-    }
     
     private int[] CalculateColumnWidths()
     {
@@ -178,12 +151,12 @@ public class Table
                 continue;
             }
             
-            // Sort the already-collected lengths
-            var sortedLengths = new List<int>(contentLengths);
-            sortedLengths.Sort();
+            // Sort the already-collected lengths (avoid copying by sorting in place)
+            var sortedLengths = contentLengths.ToArray();
+            Array.Sort(sortedLengths);
             
             // 2. Length of the configured percentile row content
-            int percentileIndex = Math.Min((int)Math.Ceiling(sortedLengths.Count * PercentileThreshold) - 1, sortedLengths.Count - 1);
+            int percentileIndex = Math.Min((int)Math.Ceiling(sortedLengths.Length * PercentileThreshold) - 1, sortedLengths.Length - 1);
             percentileIndex = Math.Max(0, percentileIndex); // Ensure non-negative
             int percentileLength = sortedLengths[percentileIndex];
             
