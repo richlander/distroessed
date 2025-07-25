@@ -45,9 +45,9 @@ public static class LlmsTxtGeneratorTest
                     Type = "application/hal+json"
                 }
             },
-            { "stable-sdk-downloads", new HalLink("https://raw.githubusercontent.com/richlander/core/main/{version}/sdk/sdk.json")
+            { "sdk-downloads", new HalLink("https://raw.githubusercontent.com/richlander/core/main/{version}/sdk/sdk.json")
                 {
-                    Title = "Stable SDK download links (template: replace {version} with version number)",
+                    Title = ".NET SDK download links (template: replace {version} with version number)",
                     Type = "application/hal+json",
                     Templated = true
                 }

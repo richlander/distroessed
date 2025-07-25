@@ -398,11 +398,11 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // Add stable-sdk-downloads template link
-            orderedRootLinks["stable-sdk-downloads"] = new HalLink($"{Location.GitHubBaseUri}{{version}}/sdk/sdk.json")
+            // Add sdk-downloads template link
+            orderedRootLinks["sdk-downloads"] = new HalLink($"{Location.GitHubBaseUri}{{version}}/sdk/sdk.json")
             {
                 Relative = "{version}/sdk/sdk.json",
-                Title = "Stable SDK download links (template: replace {version} with version number)",
+                Title = ".NET SDK download links (template: replace {version} with version number)",
                 Type = MediaType.HalJson,
                 Templated = true
             };
