@@ -49,25 +49,27 @@ public class CveReport
     {
         // CVE table
         string[] cveLabels = ["ID", "Title", "Severity", "Product", "Platforms", "CVSS"];
-        int[] cveLengths = [20, 20, 16, 16, 16, 32];
-        Table cveTable = new(Writer.GetWriter(writer), cveLengths);
+        Table cveTable = new();
         string[] all = ["All"];
 
-        cveTable.WriteHeader(cveLabels);
+        cveTable.AddHeader(cveLabels);
 
         foreach (CveRecord cve in cves.Records.OrderBy(c => c.Id))
         {
             string link = cve.References is { Count: > 0 } ? cve.References[0] : Report.MakeCveLink(cve);
             _links.Add(cve.Id, link);
 
-            cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
-            cveTable.WriteColumn(cve.Title);
-            cveTable.WriteColumn(cve?.Severity ?? "");
-            cveTable.WriteColumn(cve?.Product ?? "");
-            cveTable.WriteColumn(Join(cve?.Platforms ?? all));
-            cveTable.WriteColumn(cve?.Cvss ?? "");
-            cveTable.EndRow();
+            cveTable.AddRow(
+                $"[{cve.Id}][{cve.Id}]",
+                cve.Title,
+                cve?.Severity ?? "",
+                cve?.Product ?? "",
+                Join(cve?.Platforms ?? all),
+                cve?.Cvss ?? ""
+            );
         }
+        
+        writer.Write(cveTable);
     }
 
     public void WritePlatformTable(CveRecords cves, StreamWriter writer)
@@ -89,10 +91,8 @@ public class CveReport
     {
         // Package version table
         string[] packageLabels = [type, "Min Version", "Max Version", "Fixed Version", "CVE", "Source fix"];
-        int[] packageLengths = [16, 16, 12, 12, 16, 12];
-        Table packageTable = new(Writer.GetWriter(writer), packageLengths);
+        Table packageTable = new();
         string[] none = ["Unknown"];
-
 
         if (packages.Count() == 0)
         {
@@ -100,7 +100,7 @@ public class CveReport
             return;
         }
 
-        packageTable.WriteHeader(packageLabels);
+        packageTable.AddHeader(packageLabels);
 
         foreach (var package in packages.OrderBy(p => p.Name))
         {
@@ -120,15 +120,8 @@ public class CveReport
 
             foreach (var affected in package.Affected.OrderBy(a => a.Family).ThenBy(a => a.CveId))
             {
-                if (index == 0)
-                {
-                    packageTable.WriteColumn(packageString);
-                    index++;
-                }
-                else
-                {
-                    packageTable.WriteColumn("");
-                }
+                string packageName = index == 0 ? packageString : "";
+                index++;
 
                 string fixedString = "";
 
@@ -152,18 +145,21 @@ public class CveReport
                     {
                         var abbrevHash = Report.GetAbbreviatedCommitHash(commit);
                         commitString += $"[{abbrevHash}][{abbrevHash}] ";
-
                     }
                 }
 
-                packageTable.WriteColumn($">={affected.MinVulnerable}");
-                packageTable.WriteColumn($"<={affected.MaxVulnerable}");
-                packageTable.WriteColumn(fixedString);
-                packageTable.WriteColumn(affected.CveId);
-                packageTable.WriteColumn(commitString);
-                packageTable.EndRow();
+                packageTable.AddRow(
+                    packageName,
+                    $">={affected.MinVulnerable}",
+                    $"<={affected.MaxVulnerable}",
+                    fixedString,
+                    affected.CveId,
+                    commitString
+                );
             }
         }
+        
+        writer.Write(packageTable);
     }
 
     public void WriteCommitTable(CveRecords cves, StreamWriter writer)
@@ -175,10 +171,9 @@ public class CveReport
 
         // Commits table
         string[] commitLabels = ["Repo", "Branch", "Commit"];
-        int[] commitLengths = [30, 20, 60];
-        Table commitTable = new(Writer.GetWriter(writer), commitLengths);
+        Table commitTable = new();
 
-        commitTable.WriteHeader(commitLabels);
+        commitTable.AddHeader(commitLabels);
 
         foreach (Commit commit in cves.Commits.OrderBy(c => c.Org).ThenBy(c => c.Repo).ThenBy(c => c.Branch).ThenBy(c => c.Hash))
         {
@@ -203,11 +198,10 @@ public class CveReport
                 commitLink = $"[{abbrevHash}][{abbrevHash}]";
             }
 
-            commitTable.WriteColumn(repoLink);
-            commitTable.WriteColumn(branchLink);
-            commitTable.WriteColumn(commitLink);
-            commitTable.EndRow();
+            commitTable.AddRow(repoLink, branchLink, commitLink);
         }
+        
+        writer.Write(commitTable);
 
         writer.WriteLine();
     }
