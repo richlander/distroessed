@@ -8,6 +8,8 @@ public class Table
     private string[] _currentRow = Array.Empty<string>();
     private int _currentColumn = 0;
     private int _columnCount = 0;
+    private List<int>[] _columnLengths = Array.Empty<List<int>>();
+    private bool _headerWritten = false;
     
     public bool UseOuterPipes { get; set; } = true;
     public int MaxTableWidth { get; set; } = (int)(80 * 0.75); // Default to 75% of 80 characters
@@ -42,22 +44,37 @@ public class Table
 
     public void WriteHeader(ReadOnlySpan<string> labels)
     {
+        if (_headerWritten)
+        {
+            throw new InvalidOperationException("Header has already been written. WriteHeader can only be called once.");
+        }
+        
         _columnCount = labels.Length;
         _headers = new string[_columnCount];
+        _columnLengths = new List<int>[_columnCount];
+        
         for (int i = 0; i < labels.Length; i++)
         {
             _headers[i] = labels[i];
+            _columnLengths[i] = new List<int>();
         }
         _currentRow = new string[_columnCount];
+        _headerWritten = true;
     }
 
     public void WriteColumn(string text)
     {
+        if (!_headerWritten)
+        {
+            throw new InvalidOperationException("Header must be written before writing columns. Call WriteHeader first.");
+        }
         if (_currentColumn >= _columnCount)
         {
             throw new ArgumentException($"Too many columns. Expected {_columnCount}, but trying to write column {_currentColumn + 1}.");
         }
-        _currentRow[_currentColumn] = text ?? string.Empty;
+        string cellText = text ?? string.Empty;
+        _currentRow[_currentColumn] = cellText;
+        _columnLengths[_currentColumn].Add(cellText.Length);
         _currentColumn++;
     }
     
@@ -98,12 +115,8 @@ public class Table
             // 1. Header length (sets the min)
             int headerLength = _headers[col].Length;
             
-            // 2. Get all content lengths (excluding header)
-            var contentLengths = new List<int>();
-            foreach (var row in _rows)
-            {
-                contentLengths.Add(row[col].Length);
-            }
+            // 2. Get content lengths (already collected during WriteColumn)
+            var contentLengths = _columnLengths[col];
             
             if (contentLengths.Count == 0)
             {
@@ -111,18 +124,20 @@ public class Table
                 continue;
             }
             
-            contentLengths.Sort();
+            // Sort the already-collected lengths
+            var sortedLengths = new List<int>(contentLengths);
+            sortedLengths.Sort();
             
             // 2. Length of the configured percentile row content
-            int percentileIndex = (int)(contentLengths.Count * PercentileThreshold);
-            percentileIndex = Math.Min(percentileIndex, contentLengths.Count - 1);
-            int percentileLength = contentLengths[percentileIndex];
+            int percentileIndex = (int)(sortedLengths.Count * PercentileThreshold);
+            percentileIndex = Math.Min(percentileIndex, sortedLengths.Count - 1);
+            int percentileLength = sortedLengths[percentileIndex];
             
             // 3. Length of the longest row that is only within tolerance of the percentile
             double tolerance = percentileLength * ToleranceMultiplier;
             int maxWithinToleranceLength = percentileLength;
             
-            foreach (int length in contentLengths)
+            foreach (int length in sortedLengths)
             {
                 if (length <= tolerance)
                 {
@@ -130,7 +145,7 @@ public class Table
                 }
                 else
                 {
-                    break; // contentLengths is sorted, so we can stop here
+                    break; // sortedLengths is sorted, so we can stop here
                 }
             }
             
