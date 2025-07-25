@@ -95,11 +95,11 @@ static void WritePackageOverview(StreamWriter writer, OSPackagesOverview package
 
 
         var pkgLink = links.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
-        packageTable.NewRow();
-        packageTable.WriteColumn(pkgLink);
-        packageTable.WriteColumn(package.Name);
-        packageTable.WriteColumn(string.Join(" ; ", package.RequiredScenarios ?? []));
-        packageTable.WriteColumn(buffer.ToString());
+        packageTable.NewRow()
+                    .WriteColumn(pkgLink)
+                    .WriteColumn(package.Name)
+                    .WriteColumn(string.Join(" ; ", package.RequiredScenarios ?? []))
+                    .WriteColumn(buffer.ToString());
     }
     
     writer.Write(packageTable);

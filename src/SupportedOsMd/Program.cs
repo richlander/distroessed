@@ -193,14 +193,14 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             }
 
             var distroLink = familyLinks.AddIndexReferenceLink(distro.Name, distro.Link);
-            table.NewRow();
-            table.WriteColumn(distroLink);
-            table.WriteColumn(versions);
-            table.WriteColumn(Join(distro.Architectures));
             var lifecycleLink = distro.Lifecycle is null ? "None" :
                 familyLinks.AddIndexReferenceLink("Lifecycle", distro.Lifecycle);
 
-            table.WriteColumn(lifecycleLink);
+            table.NewRow()
+                 .WriteColumn(distroLink)
+                 .WriteColumn(versions)
+                 .WriteColumn(Join(distro.Architectures))
+                 .WriteColumn(lifecycleLink);
             linkCount = familyLinks.Index;
 
             if (distro.Notes is { Count: > 0 })
@@ -243,11 +243,11 @@ static void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLi
 
     foreach (SupportLibc libc in supportedLibc)
     {
-        table.NewRow();
-        table.WriteColumn(libc.Name);
-        table.WriteColumn(libc.Version);
-        table.WriteColumn(Join(libc.Architectures));
-        table.WriteColumn(libc.Source);
+        table.NewRow()
+             .WriteColumn(libc.Name)
+             .WriteColumn(libc.Version)
+             .WriteColumn(Join(libc.Architectures))
+             .WriteColumn(libc.Source);
     }
     
     writer.Write(table);
@@ -302,10 +302,10 @@ static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFami
             distroVersion = SupportedOS.PrettyifyWindowsVersion(distroVersion);
         }
 
-        table.NewRow();
-        table.WriteColumn(distroName);
-        table.WriteColumn(distroVersion);
-        table.WriteColumn(eol);
+        table.NewRow()
+             .WriteColumn(distroName)
+             .WriteColumn(distroVersion)
+             .WriteColumn(eol);
     }
     
     writer.Write(table);

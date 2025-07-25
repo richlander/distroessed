@@ -57,12 +57,12 @@ public static class CveReport
 
         foreach (Cve cve in cves.Cves)
         {
-            cveTable.NewRow();
-            cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
-            cveTable.WriteColumn(cve.Description);
-            cveTable.WriteColumn(cve.Product);
-            cveTable.WriteColumn(Join(cve.Platforms));
-            cveTable.WriteColumn(cve?.Cvss ?? "");
+            cveTable.NewRow()
+                    .WriteColumn($"[{cve.Id}][{cve.Id}]")
+                    .WriteColumn(cve.Description)
+                    .WriteColumn(cve.Product)
+                    .WriteColumn(Join(cve.Platforms))
+                    .WriteColumn(cve?.Cvss ?? "");
         }
         
         writer.Write(cveTable);
@@ -80,12 +80,12 @@ public static class CveReport
         {
             foreach (var package in cve.Packages)
             {
-                packageTable.NewRow();
-                packageTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
-                packageTable.WriteColumn(Report.MakePackageString(package.Name));
-                packageTable.WriteColumn($">={package.MinVulnerableVersion}");
-                packageTable.WriteColumn($"<={package.MaxVulnerableVersion}");
-                packageTable.WriteColumn(package.FixedVersion);
+                packageTable.NewRow()
+                           .WriteColumn($"[{cve.Id}][{cve.Id}]")
+                           .WriteColumn(Report.MakePackageString(package.Name))
+                           .WriteColumn($">={package.MinVulnerableVersion}")
+                           .WriteColumn($"<={package.MaxVulnerableVersion}")
+                           .WriteColumn(package.FixedVersion);
             }
         }
         
@@ -107,10 +107,10 @@ public static class CveReport
 
         foreach (Commit commit in cves.Commits)
         {
-            commitTable.NewRow();
-            commitTable.WriteColumn($"[{commit.Cve}][{commit.Cve}]");
-            commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Branch, cves.Source.BranchUrl, null));
-            commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url));
+            commitTable.NewRow()
+                       .WriteColumn($"[{commit.Cve}][{commit.Cve}]")
+                       .WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Branch, cves.Source.BranchUrl, null))
+                       .WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url));
         }
         
         writer.Write(commitTable);
