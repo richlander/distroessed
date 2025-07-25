@@ -11,6 +11,8 @@ public class Table
     
     public bool UseOuterPipes { get; set; } = true;
     public int MaxTableWidth { get; set; } = (int)(80 * 0.75); // Default to 75% of 80 characters
+    public double PercentileThreshold { get; set; } = 0.5; // Default to 50th percentile (median)
+    public double ToleranceMultiplier { get; set; } = 1.2; // Default to 20% tolerance
     
     public Table(IWriter writer)
     {
@@ -86,30 +88,59 @@ public class Table
     {
         if (_columnCount == 0) return Array.Empty<int>();
         
-        // Calculate widths for reasonable alignment without forcing extreme outliers
+        // Algorithm: We need three numbers for each column:
+        // - Header length (sets the min)
+        // - Length of the configured percentile row content
+        // - Length of the longest row that is only within tolerance of the percentile
+        // Take the max of those and that's our default width for the outer pipe.
+        // All rows should align with that unless they go longer.
+        // If the row content is already past the default width, it should add one pad space and stop immediately.
+        
         var alignmentWidths = new int[_columnCount];
         
         for (int col = 0; col < _columnCount; col++)
         {
-            var lengths = new List<int>();
+            // 1. Header length (sets the min)
+            int headerLength = _headers[col].Length;
             
-            // Include header
-            lengths.Add(_headers[col].Length);
-            
-            // Include all content lengths
+            // 2. Get all content lengths (excluding header)
+            var contentLengths = new List<int>();
             foreach (var row in _rows)
             {
-                lengths.Add(row[col].Length);
+                contentLengths.Add(row[col].Length);
             }
             
-            lengths.Sort();
+            if (contentLengths.Count == 0)
+            {
+                alignmentWidths[col] = headerLength;
+                continue;
+            }
             
-            // Use 75th percentile as the "reasonable" width for alignment
-            // This prevents extreme outliers from forcing wide columns on everyone
-            int percentileIndex = (int)(lengths.Count * 0.75);
-            percentileIndex = Math.Min(percentileIndex, lengths.Count - 1);
+            contentLengths.Sort();
             
-            alignmentWidths[col] = lengths[percentileIndex];
+            // 2. Length of the configured percentile row content
+            int percentileIndex = (int)(contentLengths.Count * PercentileThreshold);
+            percentileIndex = Math.Min(percentileIndex, contentLengths.Count - 1);
+            int percentileLength = contentLengths[percentileIndex];
+            
+            // 3. Length of the longest row that is only within tolerance of the percentile
+            double tolerance = percentileLength * ToleranceMultiplier;
+            int maxWithinToleranceLength = percentileLength;
+            
+            foreach (int length in contentLengths)
+            {
+                if (length <= tolerance)
+                {
+                    maxWithinToleranceLength = length;
+                }
+                else
+                {
+                    break; // contentLengths is sorted, so we can stop here
+                }
+            }
+            
+            // Take the max of the three numbers
+            alignmentWidths[col] = Math.Max(headerLength, Math.Max(percentileLength, maxWithinToleranceLength));
         }
         
         return alignmentWidths;
@@ -117,64 +148,85 @@ public class Table
     
     private void WriteTableRow(string[] row, int[] columnWidths)
     {
+        int realLength = 0;  // How much space we've actually used
+        int specLength = 0;  // How much space we're supposed to use
+        
         for (int col = 0; col < _columnCount; col++)
         {
+            int preSpace = 0;
             if (col > 0 || UseOuterPipes)
             {
                 _writer.Write("| ");
+                preSpace = 2;
             }
             
             string text = row[col];
             _writer.Write(text);
             
             bool isLastColumn = col == _columnCount - 1;
+            bool writeEndPipe = isLastColumn && UseOuterPipes;
+            bool endWithText = isLastColumn && !UseOuterPipes;
             
-            // For non-last columns, pad to alignment width if content is shorter
-            // If content is longer, just add the separator space and continue
-            if (!isLastColumn)
+            if (endWithText)
             {
-                int padding = columnWidths[col] - text.Length;
-                if (padding > 0)
-                {
-                    _writer.WriteRepeatCharacter(' ', padding);
-                }
-                _writer.Write(" ");
+                continue; // No padding needed for last column without outer pipes
             }
-            else if (UseOuterPipes)
+            
+            int postSpace = writeEndPipe ? 2 : 1; // " |" vs " "
+            
+            // Track lengths like the original implementation
+            realLength += preSpace + text.Length + postSpace;
+            specLength += preSpace + columnWidths[col] + postSpace;
+            
+            // Only pad if we haven't exceeded the expected width (like original)
+            int remaining = specLength - realLength;
+            if (remaining > 0)
             {
-                // For last column with outer pipes, pad if shorter than alignment width
-                int padding = columnWidths[col] - text.Length;
-                if (padding > 0)
-                {
-                    _writer.WriteRepeatCharacter(' ', padding);
-                }
-                _writer.Write(" |");
+                _writer.WriteRepeatCharacter(' ', remaining);
+                realLength += remaining;
             }
+            
+            _writer.Write(writeEndPipe ? " |" : " ");
         }
         _writer.WriteLine();
     }
     
     private void WriteHeaderSeparator(int[] columnWidths)
     {
+        int realLength = 0;  // How much space we've actually used
+        int specLength = 0;  // How much space we're supposed to use
+        
         for (int col = 0; col < _columnCount; col++)
         {
+            int preSpace = 0;
             if (col > 0 || UseOuterPipes)
             {
                 _writer.Write("| ");
+                preSpace = 2;
             }
             
+            // Start with the calculated column width (which includes our three-number algorithm)
             _writer.WriteRepeatCharacter('-', columnWidths[col]);
             
             bool isLastColumn = col == _columnCount - 1;
-            if (!isLastColumn || UseOuterPipes)
+            bool writeEndPipe = isLastColumn && UseOuterPipes;
+            bool endWithText = isLastColumn && !UseOuterPipes;
+            
+            if (endWithText)
             {
-                _writer.Write(" ");
+                continue; // No padding needed for last column without outer pipes
             }
             
-            if (isLastColumn && UseOuterPipes)
-            {
-                _writer.Write("|");
-            }
+            int postSpace = writeEndPipe ? 2 : 1; // " |" vs " "
+            
+            // Track lengths using the calculated column width
+            realLength += preSpace + columnWidths[col] + postSpace;
+            specLength += preSpace + columnWidths[col] + postSpace;
+            
+            // For header separator, realLength and specLength should always match
+            // since we're using the calculated width directly
+            
+            _writer.Write(writeEndPipe ? " |" : " ");
         }
         _writer.WriteLine();
     }
