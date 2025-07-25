@@ -53,17 +53,12 @@ public class Table
 
     public void WriteColumn(string text)
     {
-        ThrowIfTooManyColumns(_currentColumn);
+        if (_currentColumn >= _columnCount)
+        {
+            throw new ArgumentException($"Too many columns. Expected {_columnCount}, but trying to write column {_currentColumn + 1}.");
+        }
         _currentRow[_currentColumn] = text ?? string.Empty;
         _currentColumn++;
-    }
-
-    private void ThrowIfTooManyColumns(int columnIndex)
-    {
-        if (columnIndex >= _columnCount)
-        {
-            throw new ArgumentException($"Too many columns. Expected {_columnCount}, but trying to write column {columnIndex + 1}.");
-        }
     }
     
     public void Render()
