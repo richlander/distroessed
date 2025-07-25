@@ -51,28 +51,28 @@ public static class CveReport
     {
         // CVE table
         string[] cveLabels = ["CVE", "Description", "Product", "Platforms", "CVSS"];
-        Table cveTable = new(Writer.GetWriter(writer));
+        Table cveTable = new();
 
         cveTable.WriteHeader(cveLabels);
 
         foreach (Cve cve in cves.Cves)
         {
+            cveTable.NewRow();
             cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
             cveTable.WriteColumn(cve.Description);
             cveTable.WriteColumn(cve.Product);
             cveTable.WriteColumn(Join(cve.Platforms));
             cveTable.WriteColumn(cve?.Cvss ?? "");
-            cveTable.EndRow();
         }
         
-        cveTable.Render();
+        writer.Write(cveTable);
     }
 
     public static void WritePackageTable(CveSet cves, StreamWriter writer)
     {
         // Package version table
         string[] packageLabels = ["CVE", "Package", "Min Version", "Max Version", "Fixed Version"];
-        Table packageTable = new(Writer.GetWriter(writer));
+        Table packageTable = new();
 
         packageTable.WriteHeader(packageLabels);
 
@@ -80,16 +80,16 @@ public static class CveReport
         {
             foreach (var package in cve.Packages)
             {
+                packageTable.NewRow();
                 packageTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
                 packageTable.WriteColumn(Report.MakePackageString(package.Name));
                 packageTable.WriteColumn($">={package.MinVulnerableVersion}");
                 packageTable.WriteColumn($"<={package.MaxVulnerableVersion}");
                 packageTable.WriteColumn(package.FixedVersion);
-                packageTable.EndRow();
             }
         }
         
-        packageTable.Render();
+        writer.Write(packageTable);
     }
 
     public static void WriteCommitTable(CveSet cves, StreamWriter writer)
@@ -101,19 +101,19 @@ public static class CveReport
 
         // Commits table
         string[] commitLabels = ["CVE", "Branch", "Commit"];
-        Table commitTable = new(Writer.GetWriter(writer));
+        Table commitTable = new();
 
         commitTable.WriteHeader(commitLabels);
 
         foreach (Commit commit in cves.Commits)
         {
+            commitTable.NewRow();
             commitTable.WriteColumn($"[{commit.Cve}][{commit.Cve}]");
             commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Branch, cves.Source.BranchUrl, null));
             commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url));
-            commitTable.EndRow();
         }
         
-        commitTable.Render();
+        writer.Write(commitTable);
 
         writer.WriteLine();
 

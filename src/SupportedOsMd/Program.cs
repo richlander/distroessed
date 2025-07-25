@@ -164,7 +164,7 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             writer.WriteLine();
         }
 
-        Table table = new(Writer.GetWriter(writer));
+        Table table = new();
         Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
         writer.WriteLine();
@@ -193,6 +193,7 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             }
 
             var distroLink = familyLinks.AddIndexReferenceLink(distro.Name, distro.Link);
+            table.NewRow();
             table.WriteColumn(distroLink);
             table.WriteColumn(versions);
             table.WriteColumn(Join(distro.Architectures));
@@ -200,7 +201,6 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
                 familyLinks.AddIndexReferenceLink("Lifecycle", distro.Lifecycle);
 
             table.WriteColumn(lifecycleLink);
-            table.EndRow();
             linkCount = familyLinks.Index;
 
             if (distro.Notes is { Count: > 0 })
@@ -212,7 +212,7 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             }
         }
         
-        table.Render();
+        writer.Write(table);
 
         if (notes.Count > 0)
         {
@@ -238,19 +238,19 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
 static void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
 {
     string[] columnLabels = ["Libc", "Version", "Architectures", "Source"];
-    Table table = new(Writer.GetWriter(writer));
+    Table table = new();
     table.WriteHeader(columnLabels);
 
     foreach (SupportLibc libc in supportedLibc)
     {
+        table.NewRow();
         table.WriteColumn(libc.Name);
         table.WriteColumn(libc.Version);
         table.WriteColumn(Join(libc.Architectures));
         table.WriteColumn(libc.Source);
-        table.EndRow();
     }
     
-    table.Render();
+    writer.Write(table);
 }
 
 static void WriteNotesSection(StreamWriter writer, IList<string> notes)
@@ -288,7 +288,7 @@ static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFami
     }
 
     string[] labels = ["OS", "Version", "Date"];
-    Table table = new(Writer.GetWriter(writer));
+    Table table = new();
 
     table.WriteHeader(labels);
 
@@ -302,13 +302,13 @@ static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFami
             distroVersion = SupportedOS.PrettyifyWindowsVersion(distroVersion);
         }
 
+        table.NewRow();
         table.WriteColumn(distroName);
         table.WriteColumn(distroVersion);
         table.WriteColumn(eol);
-        table.EndRow();
     }
     
-    table.Render();
+    writer.Write(table);
 }
 
 static string GetEolTextForCycle(SupportCycle? cycle)

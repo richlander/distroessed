@@ -77,7 +77,7 @@ writtenFile.Close();
 static void WritePackageOverview(StreamWriter writer, OSPackagesOverview packageOverview, Link links)
 {
     ReadOnlySpan<string> packageLabels = ["Id", "Name", "Required scenarios", "Notes"];
-    Table packageTable = new(Writer.GetWriter(writer));
+    Table packageTable = new();
   
     packageTable.WriteHeader(packageLabels);
 
@@ -95,14 +95,14 @@ static void WritePackageOverview(StreamWriter writer, OSPackagesOverview package
 
 
         var pkgLink = links.AddIndexReferenceLink(package.Id, $"https://pkgs.org/search/?q={package.Id}");
+        packageTable.NewRow();
         packageTable.WriteColumn(pkgLink);
         packageTable.WriteColumn(package.Name);
         packageTable.WriteColumn(string.Join(" ; ", package.RequiredScenarios ?? []));
         packageTable.WriteColumn(buffer.ToString());
-        packageTable.EndRow();
     }
     
-    packageTable.Render();
+    writer.Write(packageTable);
 
     foreach (var refLink in links.GetReferenceLinkAnchors())
     {

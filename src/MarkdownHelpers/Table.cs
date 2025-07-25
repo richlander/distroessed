@@ -1,8 +1,10 @@
+using System.Text;
+
 namespace MarkdownHelpers;
 
 public class Table
 {
-    private readonly IWriter _writer;
+    private readonly StringBuilder _output = new();
     private readonly List<string[]> _rows = new();
     private string[] _headers = Array.Empty<string>();
     private string[] _currentRow = Array.Empty<string>();
@@ -16,29 +18,30 @@ public class Table
     public double PercentileThreshold { get; set; } = 0.5; // Default to 50th percentile (median)
     public double ToleranceMultiplier { get; set; } = 1.2; // Default to 20% tolerance
     
-    public Table(IWriter writer)
+    public Table()
     {
-        _writer = writer;
-    }
-    
-    public Table(IWriter writer, int maxTableWidth)
-    {
-        _writer = writer;
-        MaxTableWidth = maxTableWidth;
     }
 
-    public void EndRow()
+    public void NewRow()
     {
-        if (_columnCount > 0 && _currentRow.Length > 0)
+        if (!_headerWritten)
         {
-            // Ensure all cells in the row are filled
-            for (int i = _currentColumn; i < _columnCount; i++)
-            {
-                _currentRow[i] = string.Empty;
-            }
-            _rows.Add(_currentRow);
-            _currentRow = new string[_columnCount];
+            throw new InvalidOperationException("Header must be written before starting a new row. Call WriteHeader first.");
         }
+        
+        if (_currentColumn != _columnCount && _currentColumn > 0)
+        {
+            throw new InvalidOperationException($"Current row is incomplete. Expected {_columnCount} columns, but only {_currentColumn} were written.");
+        }
+        
+        // Complete current row if we have data
+        if (_currentColumn > 0)
+        {
+            _rows.Add(_currentRow);
+        }
+        
+        // Start new row
+        _currentRow = new string[_columnCount];
         _currentColumn = 0;
     }
 
@@ -78,12 +81,26 @@ public class Table
         _currentColumn++;
     }
     
-    public void Render()
+    public override string ToString()
     {
         if (_columnCount == 0)
-            return;
+            return string.Empty;
             
+        // Complete any incomplete row
+        if (_currentColumn > 0)
+        {
+            // Fill missing columns with empty strings
+            for (int i = _currentColumn; i < _columnCount; i++)
+            {
+                _currentRow[i] = string.Empty;
+            }
+            _rows.Add(_currentRow);
+            _currentColumn = 0;
+        }
+        
         var columnWidths = CalculateColumnWidths();
+        
+        _output.Clear();
         
         // Write header
         WriteTableRow(_headers, columnWidths);
@@ -94,6 +111,14 @@ public class Table
         {
             WriteTableRow(row, columnWidths);
         }
+        
+        return _output.ToString();
+    }
+    
+    private void Render()
+    {
+        // Legacy method - kept for potential internal use
+        ToString();
     }
     
     private int[] CalculateColumnWidths()
@@ -166,12 +191,12 @@ public class Table
             int preSpace = 0;
             if (col > 0 || UseOuterPipes)
             {
-                _writer.Write("| ");
+                _output.Append("| ");
                 preSpace = 2;
             }
             
             string text = row[col];
-            _writer.Write(text);
+            _output.Append(text);
             
             bool isLastColumn = col == _columnCount - 1;
             bool writeEndPipe = isLastColumn && UseOuterPipes;
@@ -192,13 +217,13 @@ public class Table
             int remaining = specLength - realLength;
             if (remaining > 0)
             {
-                _writer.WriteRepeatCharacter(' ', remaining);
+                _output.Append(' ', remaining);
                 realLength += remaining;
             }
             
-            _writer.Write(writeEndPipe ? " |" : " ");
+            _output.Append(writeEndPipe ? " |" : " ");
         }
-        _writer.WriteLine();
+        _output.AppendLine();
     }
     
     private void WriteHeaderSeparator(int[] columnWidths)
@@ -211,12 +236,12 @@ public class Table
             int preSpace = 0;
             if (col > 0 || UseOuterPipes)
             {
-                _writer.Write("| ");
+                _output.Append("| ");
                 preSpace = 2;
             }
             
             // Start with the calculated column width (which includes our three-number algorithm)
-            _writer.WriteRepeatCharacter('-', columnWidths[col]);
+            _output.Append('-', columnWidths[col]);
             
             bool isLastColumn = col == _columnCount - 1;
             bool writeEndPipe = isLastColumn && UseOuterPipes;
@@ -236,8 +261,8 @@ public class Table
             // For header separator, realLength and specLength should always match
             // since we're using the calculated width directly
             
-            _writer.Write(writeEndPipe ? " |" : " ");
+            _output.Append(writeEndPipe ? " |" : " ");
         }
-        _writer.WriteLine();
+        _output.AppendLine();
     }
 }
