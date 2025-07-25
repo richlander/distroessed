@@ -149,8 +149,6 @@ static void WriteLastUpdatedSection(StreamWriter writer, DateOnly date)
 
 static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> families, Link links)
 {
-    ReadOnlySpan<string> labels = ["OS", "Versions", "Architectures", "Lifecycle"];
-    int[] lengths = [32, 30, 24, 24];
     int linkCount = 0;
     bool first = true;
 
@@ -165,11 +163,11 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             writer.WriteLine();
         }
 
-        Table table = new(Writer.GetWriter(writer), lengths);
+        Table table = new();
         Link familyLinks = new(linkCount);
         writer.WriteLine($"## {family.Name}");
         writer.WriteLine();
-        table.WriteHeader(labels);
+        table.AddHeader("OS", "Versions", "Architectures", "Lifecycle");
         List<string> notes = [];
 
         for (int i = 0; i < family.Distributions.Count; i++)
@@ -194,14 +192,10 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
             }
 
             var distroLink = familyLinks.AddIndexReferenceLink(distro.Name, distro.Link);
-            table.WriteColumn(distroLink);
-            table.WriteColumn(versions);
-            table.WriteColumn(Join(distro.Architectures));
             var lifecycleLink = distro.Lifecycle is null ? "None" :
                 familyLinks.AddIndexReferenceLink("Lifecycle", distro.Lifecycle);
 
-            table.WriteColumn(lifecycleLink);
-            table.EndRow();
+            table.AddRow(distroLink, versions, Join(distro.Architectures), lifecycleLink);
             linkCount = familyLinks.Index;
 
             if (distro.Notes is { Count: > 0 })
@@ -212,6 +206,8 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
                 }
             }
         }
+        
+        writer.Write(table);
 
         if (notes.Count > 0)
         {
@@ -237,18 +233,15 @@ static void WriteFamiliesSection(StreamWriter writer, IList<SupportFamily> famil
 static void WriteLibcSection(StreamWriter writer, IList<SupportLibc> supportedLibc)
 {
     string[] columnLabels = ["Libc", "Version", "Architectures", "Source"];
-    int[] columnLengths = [16, 10, 24, 16];
-    Table table = new(Writer.GetWriter(writer), columnLengths);
-    table.WriteHeader(columnLabels);
+    Table table = new();
+    table.AddHeader(columnLabels);
 
     foreach (SupportLibc libc in supportedLibc)
     {
-        table.WriteColumn(libc.Name);
-        table.WriteColumn(libc.Version);
-        table.WriteColumn(Join(libc.Architectures));
-        table.WriteColumn(libc.Source);
-        table.EndRow();
+        table.AddRow(libc.Name, libc.Version, Join(libc.Architectures), libc.Source);
     }
+    
+    writer.Write(table);
 }
 
 static void WriteNotesSection(StreamWriter writer, IList<string> notes)
@@ -279,17 +272,16 @@ static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFami
         .ThenByDescending(entry => GetEolDateForCycle(entry.Cycle))
         .ToArray();
 
-    if (eolCycles.Length == 0)
+    if (orderedEolCycles.Length == 0)
     {
         writer.WriteLine("None currently.");
         return;
     }
 
     string[] labels = ["OS", "Version", "Date"];
-    int[] lengths = [24, 16, 24];
-    Table table = new(Writer.GetWriter(writer), lengths);
+    Table table = new();
 
-    table.WriteHeader(labels);
+    table.AddHeader(labels);
 
     foreach (var entry in orderedEolCycles)
     {
@@ -301,11 +293,10 @@ static async Task WriteUnSupportedSection(StreamWriter writer, IList<SupportFami
             distroVersion = SupportedOS.PrettyifyWindowsVersion(distroVersion);
         }
 
-        table.WriteColumn(distroName);
-        table.WriteColumn(distroVersion);
-        table.WriteColumn(eol);
-        table.EndRow();
+        table.AddRow(distroName, distroVersion, eol);
     }
+    
+    writer.Write(table);
 }
 
 static string GetEolTextForCycle(SupportCycle? cycle)

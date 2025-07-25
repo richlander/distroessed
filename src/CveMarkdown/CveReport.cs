@@ -51,42 +51,47 @@ public static class CveReport
     {
         // CVE table
         string[] cveLabels = ["CVE", "Description", "Product", "Platforms", "CVSS"];
-        int[] cveLengths = [16, 20, 16, 16, 20];
-        Table cveTable = new(Writer.GetWriter(writer), cveLengths);
+        Table cveTable = new();
 
-        cveTable.WriteHeader(cveLabels);
+        cveTable.AddHeader(cveLabels);
 
         foreach (Cve cve in cves.Cves)
-        {cveTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
-            cveTable.WriteColumn(cve.Description);
-            cveTable.WriteColumn(cve.Product);
-            cveTable.WriteColumn(Join(cve.Platforms));
-            cveTable.WriteColumn(cve?.Cvss ?? "");
-            cveTable.EndRow();
+        {
+            cveTable.AddRow(
+                $"[{cve.Id}][{cve.Id}]",
+                cve.Description,
+                cve.Product,
+                Join(cve.Platforms),
+                cve?.Cvss ?? ""
+            );
         }
+        
+        writer.Write(cveTable);
     }
 
     public static void WritePackageTable(CveSet cves, StreamWriter writer)
     {
         // Package version table
         string[] packageLabels = ["CVE", "Package", "Min Version", "Max Version", "Fixed Version"];
-        int[] packageLengths = [16, 16, 12, 12, 16];
-        Table packageTable = new(Writer.GetWriter(writer), packageLengths);
+        Table packageTable = new();
 
-        packageTable.WriteHeader(packageLabels);
+        packageTable.AddHeader(packageLabels);
 
         foreach (Cve cve in cves.Cves)
         {
             foreach (var package in cve.Packages)
             {
-                packageTable.WriteColumn($"[{cve.Id}][{cve.Id}]");
-                packageTable.WriteColumn(Report.MakePackageString(package.Name));
-                packageTable.WriteColumn($">={package.MinVulnerableVersion}");
-                packageTable.WriteColumn($"<={package.MaxVulnerableVersion}");
-                packageTable.WriteColumn(package.FixedVersion);
-                packageTable.EndRow();
+                packageTable.AddRow(
+                    $"[{cve.Id}][{cve.Id}]",
+                    Report.MakePackageString(package.Name),
+                    $">={package.MinVulnerableVersion}",
+                    $"<={package.MaxVulnerableVersion}",
+                    package.FixedVersion
+                );
             }
         }
+        
+        writer.Write(packageTable);
     }
 
     public static void WriteCommitTable(CveSet cves, StreamWriter writer)
@@ -98,18 +103,20 @@ public static class CveReport
 
         // Commits table
         string[] commitLabels = ["CVE", "Branch", "Commit"];
-        int[] commitLengths = [30, 20, 60];
-        Table commitTable = new(Writer.GetWriter(writer), commitLengths);
+        Table commitTable = new();
 
-        commitTable.WriteHeader(commitLabels);
+        commitTable.AddHeader(commitLabels);
 
         foreach (Commit commit in cves.Commits)
         {
-            commitTable.WriteColumn($"[{commit.Cve}][{commit.Cve}]");
-            commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Branch, cves.Source.BranchUrl, null));
-            commitTable.WriteColumn(Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url));
-            commitTable.EndRow();
+            commitTable.AddRow(
+                $"[{commit.Cve}][{commit.Cve}]",
+                Report.MakeLinkFromBestSource(commit, commit.Branch, cves.Source.BranchUrl, null),
+                Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url)
+            );
         }
+        
+        writer.Write(commitTable);
 
         writer.WriteLine();
 
