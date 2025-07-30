@@ -15,7 +15,17 @@ public class Table
     
     private double _percentileThreshold = 0.5;
     private double _toleranceMultiplier = 1.2;
+    private int _minimumColumnWidth = 1;
     
+    // Constants for table formatting
+    private const int PipeSpacing = 2; // Space around pipes: "| "
+    private const int ColumnSpacing = 1; // Space between columns without pipes
+    
+    /// <summary>
+    /// Gets or sets the percentile threshold used for dynamic column width calculation.
+    /// Default is 0.5 (50th percentile). Values must be between 0.0 and 1.0.
+    /// Lower values result in narrower columns, higher values in wider columns.
+    /// </summary>
     public double PercentileThreshold 
     { 
         get => _percentileThreshold;
@@ -27,6 +37,11 @@ public class Table
         }
     }
     
+    /// <summary>
+    /// Gets or sets the tolerance multiplier for column width calculation.
+    /// Default is 1.2 (20% tolerance). Values must be greater than 0.0.
+    /// Higher values allow wider columns to accommodate outliers.
+    /// </summary>
     public double ToleranceMultiplier 
     { 
         get => _toleranceMultiplier;
@@ -35,6 +50,22 @@ public class Table
             if (value <= 0.0)
                 throw new ArgumentOutOfRangeException(nameof(value), "ToleranceMultiplier must be greater than 0.0");
             _toleranceMultiplier = value;
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the minimum column width.
+    /// Default is 1. Values must be greater than 0.
+    /// Ensures columns are never narrower than this value.
+    /// </summary>
+    public int MinimumColumnWidth
+    {
+        get => _minimumColumnWidth;
+        set
+        {
+            if (value <= 0)
+                throw new ArgumentOutOfRangeException(nameof(value), "MinimumColumnWidth must be greater than 0");
+            _minimumColumnWidth = value;
         }
     }
     
@@ -123,49 +154,49 @@ public class Table
     }
     
     
+    /// <summary>
+    /// Calculates optimal column widths based on content analysis.
+    /// Uses a three-factor algorithm considering:
+    /// 1. Header length (minimum constraint)
+    /// 2. Percentile-based content length 
+    /// 3. Maximum length within tolerance of percentile
+    /// The final width is the maximum of these three values.
+    /// </summary>
     private int[] CalculateColumnWidths()
     {
         if (_columnCount == 0) return Array.Empty<int>();
-        
-        // Algorithm: We need three numbers for each column:
-        // - Header length (sets the min)
-        // - Length of the configured percentile row content
-        // - Length of the longest row that is only within tolerance of the percentile
-        // Take the max of those and that's our default width for the outer pipe.
-        // All rows should align with that unless they go longer.
-        // If the row content is already past the default width, it should add one pad space and stop immediately.
         
         var alignmentWidths = new int[_columnCount];
         
         for (int col = 0; col < _columnCount; col++)
         {
-            // 1. Header length (sets the min)
+            // 1. Header length (sets the minimum)
             int headerLength = _headers[col].Length;
             
-            // 2. Get content lengths (already collected during WriteColumn)
+            // 2. Get content lengths collected during row addition
             var contentLengths = _columnLengths[col];
             
             if (contentLengths.Count == 0)
             {
-                alignmentWidths[col] = headerLength;
+                alignmentWidths[col] = Math.Max(headerLength, MinimumColumnWidth);
                 continue;
             }
             
-            // Sort the already-collected lengths (avoid copying by sorting in place)
+            // Sort lengths for percentile calculation (creates a copy to avoid modifying original)
             var sortedLengths = contentLengths.ToArray();
             Array.Sort(sortedLengths);
             
-            // 2. Length of the configured percentile row content
+            // 2. Calculate percentile-based length
             int percentileIndex = Math.Min((int)Math.Ceiling(sortedLengths.Length * PercentileThreshold) - 1, sortedLengths.Length - 1);
             percentileIndex = Math.Max(0, percentileIndex); // Ensure non-negative
             int percentileLength = sortedLengths[percentileIndex];
             
-            // 3. Length of the longest row that is only within tolerance of the percentile
+            // 3. Find maximum length within tolerance of percentile
             double tolerance = percentileLength * ToleranceMultiplier;
             int maxWithinToleranceLength = sortedLengths.Where(length => length <= tolerance).DefaultIfEmpty(percentileLength).Last();
             
-            // Take the max of the three numbers
-            alignmentWidths[col] = Math.Max(headerLength, Math.Max(percentileLength, maxWithinToleranceLength));
+            // Take the maximum of all three factors, ensuring minimum width is respected
+            alignmentWidths[col] = Math.Max(MinimumColumnWidth, Math.Max(headerLength, Math.Max(percentileLength, maxWithinToleranceLength)));
         }
         
         return alignmentWidths;
@@ -182,7 +213,7 @@ public class Table
             if (col > 0 || UseOuterPipes)
             {
                 _output.Append("| ");
-                preSpace = 2;
+                preSpace = PipeSpacing;
             }
             
             string text = row[col];
@@ -197,7 +228,7 @@ public class Table
                 continue; // No padding needed for last column without outer pipes
             }
             
-            int postSpace = writeEndPipe ? 2 : 1; // " |" vs " "
+            int postSpace = writeEndPipe ? PipeSpacing : ColumnSpacing; // " |" vs " "
             
             // Track actual vs target widths for smart padding
             actualWidth += preSpace + text.Length + postSpace;
@@ -227,10 +258,10 @@ public class Table
             if (col > 0 || UseOuterPipes)
             {
                 _output.Append("| ");
-                preSpace = 2;
+                preSpace = PipeSpacing;
             }
             
-            // Start with the calculated column width (which includes our three-number algorithm)
+            // Use the calculated column width from the dynamic algorithm
             _output.Append('-', columnWidths[col]);
             
             bool isLastColumn = col == _columnCount - 1;
@@ -242,7 +273,7 @@ public class Table
                 continue; // No padding needed for last column without outer pipes
             }
             
-            int postSpace = writeEndPipe ? 2 : 1; // " |" vs " "
+            int postSpace = writeEndPipe ? PipeSpacing : ColumnSpacing; // " |" vs " "
             
             // Track lengths using the calculated column width
             actualWidth += preSpace + columnWidths[col] + postSpace;
