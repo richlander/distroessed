@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
+using System.Text.Json.Serialization;
 using DotnetRelease;
 
 List<ModelInfo> models = [
@@ -16,9 +17,10 @@ List<ModelInfo> models = [
 ];
 
 
-var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions.Default)
+var serializerOptions = new JsonSerializerOptions
 {
-    PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
+    PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
+    TypeInfoResolver = SchemaGenerationContext.Default
 };
 
 var exporterOptions = new JsonSchemaExporterOptions()
@@ -62,3 +64,14 @@ static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? prov
     => provider?.GetCustomAttributes(typeof(TAttribute), inherit).FirstOrDefault() as TAttribute;
 
 record ModelInfo(Type Type, string TargetFile);
+
+[JsonSerializable(typeof(MajorReleasesIndex))]
+[JsonSerializable(typeof(MajorReleaseOverview))]
+[JsonSerializable(typeof(PatchReleasesIndex))]
+[JsonSerializable(typeof(PatchReleaseOverview))]
+[JsonSerializable(typeof(OSPackagesOverview))]
+[JsonSerializable(typeof(SupportedOSMatrix))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
+partial class SchemaGenerationContext : JsonSerializerContext
+{
+}
