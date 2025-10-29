@@ -1,16 +1,166 @@
+using System.ComponentModel;
+using System.Text.Json.Serialization;
+
 namespace CveInfo;
 
-public record CveSet(string Date, IList<Cve> Cves, IList<Commit>? Commits, Source Source);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("A set of CVEs with affected products, packages, and commit information.")]
+public record CveSet(
+    [property: Description("Date when the CVE set was last updated.")]
+    string LastUpdated,
 
-public record Cve(string Id, string Description, string Product, IList<Package> Packages, IList<string> Platforms)
-{
-    public string? Cvss { get; set; }
+    [property: Description("Title of the CVE disclosure.")]
+    string Title,
 
-    public IList<string>? References { get; set; }
-}
+    [property: Description("Set of CVEs disclosed.")]
+    IList<Cve> Cves,
 
-public record Package(string Name, string MinVulnerableVersion, string MaxVulnerableVersion, string FixedVersion);
+    [property: Description("Set of products affected by CVEs.")]
+    IList<Product> Products,
 
-public record Commit(string Cve, string Org, string Repo, string Branch, string Hash, string? Url);
+    [property: Description("Set of packages affected by CVEs.")]
+    IList<Package> Packages,
 
-public record Source(string Name, string CommitUrl, string BranchUrl);
+    [property: Description("Dictionary of commit information, keyed by commit hash."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IDictionary<string, CommitInfo>? Commits = null,
+
+    [property: Description("Dictionary of product display names, keyed by product name.")]
+    IDictionary<string, string>? ProductName = null,
+
+    [property: Description("Dictionary of CVE IDs affecting each product, keyed by product name.")]
+    IDictionary<string, IList<string>>? ProductCves = null,
+
+    [property: Description("Dictionary of CVE IDs affecting each release, keyed by release version.")]
+    IDictionary<string, IList<string>>? ReleaseCves = null,
+
+    [property: Description("Dictionary of release versions affected by each CVE, keyed by CVE ID.")]
+    IDictionary<string, IList<string>>? CveReleases = null,
+
+    [property: Description("Dictionary of commit hashes that fix each CVE, keyed by CVE ID."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IDictionary<string, IList<string>>? CveCommits = null
+);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("A disclosed vulnerability (CVE).")]
+public record Cve(
+    [property: Description("The CVE ID.")]
+    string Id,
+
+    [property: Description("Brief description of the vulnerability type.")]
+    string Problem,
+
+    [property: Description("Severity level of the CVE.")]
+    string Severity,
+
+    [property: Description("Timeline of when the CVE was disclosed and fixed.")]
+    Timeline Timeline,
+
+    [property: Description("CVSS score and vector string.")]
+    Cvss Cvss,
+
+    [property: Description("Detailed description of the vulnerability.")]
+    IList<string> Description,
+
+    [property: Description("Platforms affected by the CVE.")]
+    IList<string> Platforms,
+
+    [property: Description("Architectures affected by the CVE.")]
+    IList<string> Architectures,
+
+    [property: Description("CVE Numbering Authority that assigned the CVE.")]
+    string Cna,
+
+    [property: Description("Reference URLs for the CVE.")]
+    IList<string> References
+);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("Timeline of CVE disclosure and fix.")]
+public record Timeline(
+    [property: Description("Date when the CVE was publicly disclosed.")]
+    string Disclosed,
+
+    [property: Description("Date when the CVE fix was released.")]
+    string Fixed
+);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("CVSS scoring information for the CVE.")]
+public record Cvss(
+    [property: Description("CVSS version used for scoring.")]
+    string Version,
+
+    [property: Description("CVSS vector string.")]
+    string Vector
+);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("A product affected by a CVE.")]
+public record Product(
+    [property: Description("The CVE ID affecting this product.")]
+    string CveId,
+
+    [property: Description("Name of the affected product.")]
+    string Name,
+
+    [property: Description("Minimum vulnerable version of the product.")]
+    string MinVulnerable,
+
+    [property: Description("Maximum vulnerable version of the product.")]
+    string MaxVulnerable,
+
+    [property: Description("Version of the product that contains the fix.")]
+    string Fixed,
+
+    [property: Description("Major release version affected.")]
+    string Release,
+
+    [property: Description("List of commit hashes that fix the vulnerability.")]
+    IList<string> Commits
+);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("A package affected by a CVE.")]
+public record Package(
+    [property: Description("The CVE ID affecting this package.")]
+    string CveId,
+
+    [property: Description("Name of the affected package.")]
+    string Name,
+
+    [property: Description("Minimum vulnerable version of the package.")]
+    string MinVulnerable,
+
+    [property: Description("Maximum vulnerable version of the package.")]
+    string MaxVulnerable,
+
+    [property: Description("Version of the package that contains the fix.")]
+    string Fixed,
+
+    [property: Description("Major release version affected.")]
+    string Release,
+
+    [property: Description("List of commit hashes that fix the vulnerability.")]
+    IList<string> Commits
+);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("Information about a commit that fixes a CVE.")]
+public record CommitInfo(
+    [property: Description("Repository name where the commit exists.")]
+    string Repo,
+
+    [property: Description("Branch name where the commit exists.")]
+    string Branch,
+
+    [property: Description("Commit hash (SHA).")]
+    string Hash,
+
+    [property: Description("Organization that owns the repository.")]
+    string Org,
+
+    [property: Description("URL to the commit diff.")]
+    string Url
+);

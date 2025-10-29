@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
 using DotnetRelease;
+using CveInfo;
 
 List<ModelInfo> models = [
     new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),
@@ -13,15 +14,10 @@ List<ModelInfo> models = [
     new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
     new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
     new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
+    new (typeof(CveSet), "dotnet-cves.json", JsonKnownNamingPolicy.SnakeCaseLower),
     // new (typeof(ReportOverview), "dotnet-support-report.json"),
 ];
 
-
-var serializerOptions = new JsonSerializerOptions
-{
-    PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower,
-    TypeInfoResolver = SchemaGenerationContext.Default
-};
 
 var exporterOptions = new JsonSchemaExporterOptions()
     {
@@ -55,7 +51,18 @@ foreach (var model in models)
 
 void WriteSchema(ModelInfo modelInfo)
 {
-    var (type, targetFile) = modelInfo;
+    var (type, targetFile, namingPolicy) = modelInfo;
+    var serializerOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = namingPolicy switch
+        {
+            JsonKnownNamingPolicy.SnakeCaseLower => JsonNamingPolicy.SnakeCaseLower,
+            _ => JsonNamingPolicy.KebabCaseLower
+        },
+        TypeInfoResolver = type == typeof(CveSet) 
+            ? CveSchemaGenerationContext.Default 
+            : SchemaGenerationContext.Default
+    };
     var schema = JsonSchemaExporter.GetJsonSchemaAsNode(serializerOptions, type, exporterOptions);
     File.WriteAllText(targetFile, schema.ToString());
 }
@@ -63,7 +70,7 @@ void WriteSchema(ModelInfo modelInfo)
 static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? provider, bool inherit = false) where TAttribute : Attribute
     => provider?.GetCustomAttributes(typeof(TAttribute), inherit).FirstOrDefault() as TAttribute;
 
-record ModelInfo(Type Type, string TargetFile);
+record ModelInfo(Type Type, string TargetFile, JsonKnownNamingPolicy NamingPolicy = JsonKnownNamingPolicy.KebabCaseLower);
 
 [JsonSerializable(typeof(MajorReleasesIndex))]
 [JsonSerializable(typeof(MajorReleaseOverview))]
@@ -73,5 +80,11 @@ record ModelInfo(Type Type, string TargetFile);
 [JsonSerializable(typeof(SupportedOSMatrix))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
 partial class SchemaGenerationContext : JsonSerializerContext
+{
+}
+
+[JsonSerializable(typeof(CveSet))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
+partial class CveSchemaGenerationContext : JsonSerializerContext
 {
 }

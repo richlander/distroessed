@@ -14,7 +14,7 @@ const string templateFilename = "cve-template.md";
 
 Console.WriteLine("CveMarkdown");
 
-if (args.Length is <2 || 
+if (args.Length is < 2 ||
    !(File.Exists(args[0]) && args[0].EndsWith(jsonFilename) &&
      File.Exists(args[1]) && args[1].EndsWith(templateFilename)))
 {
@@ -33,7 +33,7 @@ using var targetStream = File.Open(target, FileMode.Create);
 using var targetWriter = new StreamWriter(targetStream);
 
 using var jsonStream = File.OpenRead(source);
-var cves = await Cves.GetCves(jsonStream);
+var cves = await CveUtils.GetCves(jsonStream);
 
 if (cves?.Cves is null)
 {
@@ -63,6 +63,7 @@ static void Close(StreamWriter writer, string file)
 }
 
 static void ReportInvalidArgs()
-{Console.WriteLine("Invalid args.");
+{
+    Console.WriteLine("Invalid args.");
     Console.WriteLine("Usage: CveMarkdown path-to-cves.json [target-file]");
 }
