@@ -9,7 +9,7 @@ public class Cves
 }
 
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower)]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [JsonSerializable(typeof(CveSet))]
 internal partial class CveSerializerContext : JsonSerializerContext
 {
