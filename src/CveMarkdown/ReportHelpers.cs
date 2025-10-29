@@ -10,7 +10,7 @@ public class Report
     private static readonly SearchValues<string> UrlTemplateSearch =
         SearchValues.Create(UrlTemplateStrings, StringComparison.OrdinalIgnoreCase);
 
-    public static string MakeUrlFromSourceScheme(Commit commit, string urlScheme)
+    public static string MakeUrlFromSourceScheme(CommitInfo commit, string urlScheme)
     {
         ReadOnlySpan<char> scheme = urlScheme;
         int index = 0;
@@ -44,7 +44,7 @@ public class Report
         return link.ToString();
     }
 
-    public static string MakeLinkFromBestSource(Commit commit, string? display, string? urlScheme, string? fallbackUrl)
+    public static string MakeLinkFromBestSource(CommitInfo commit, string? display, string? urlScheme, string? fallbackUrl)
     {
         var url = "";
         if (urlScheme is { })

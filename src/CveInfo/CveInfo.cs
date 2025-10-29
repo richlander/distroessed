@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace CveInfo;
 
-public class Cves
+public class CveUtils
 {
     public static ValueTask<CveSet?> GetCves(Stream json) => JsonSerializer.DeserializeAsync(json, CveSerializerContext.Default.CveSet);
 }

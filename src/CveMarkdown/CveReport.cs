@@ -17,7 +17,7 @@ public static class CveReport
             {
                 if (id.StartsWith("commit-section"))
                 {
-                    return cves?.Commits is {};
+                    return cves?.Commits is { };
                 }
 
                 return false;
@@ -36,10 +36,10 @@ public static class CveReport
         _ => throw new()
     };
 
-    public static void WriteDate(CveSet cves, StreamWriter writer) 
+    public static void WriteDate(CveSet set, StreamWriter writer)
     {
-        string date = cves.Date;
-        if (DateOnly.TryParse(cves.Date, out DateOnly dateOnly))
+        string date = set.LastUpdated;
+        if (DateOnly.TryParse(set.LastUpdated, out DateOnly dateOnly))
         {
             date = dateOnly.ToString("yyyy-MM-dd");
         }
@@ -50,7 +50,7 @@ public static class CveReport
     public static void WriteCveTable(CveSet cves, StreamWriter writer)
     {
         // CVE table
-        string[] cveLabels = ["CVE", "Description", "Product", "Platforms", "CVSS"];
+        string[] cveLabels = ["CVE", "Description", "Platforms", "CVSS"];
         Table cveTable = new();
 
         cveTable.AddHeader(cveLabels);
@@ -59,13 +59,12 @@ public static class CveReport
         {
             cveTable.AddRow(
                 $"[{cve.Id}][{cve.Id}]",
-                cve.Description,
-                cve.Product,
+                Join(cve.Description),
                 Join(cve.Platforms),
-                cve?.Cvss ?? ""
+                cve.Cvss.Vector
             );
         }
-        
+
         writer.Write(cveTable);
     }
 
@@ -77,26 +76,23 @@ public static class CveReport
 
         packageTable.AddHeader(packageLabels);
 
-        foreach (Cve cve in cves.Cves)
+        foreach (var package in cves.Packages)
         {
-            foreach (var package in cve.Packages)
-            {
-                packageTable.AddRow(
-                    $"[{cve.Id}][{cve.Id}]",
-                    Report.MakePackageString(package.Name),
-                    $">={package.MinVulnerableVersion}",
-                    $"<={package.MaxVulnerableVersion}",
-                    package.FixedVersion
-                );
-            }
+            packageTable.AddRow(
+                $"[{package.CveId}][{package.CveId}]",
+                Report.MakePackageString(package.Name),
+                $">={package.MinVulnerable}",
+                $"<={package.MaxVulnerable}",
+                package.Fixed
+            );
         }
-        
+
         writer.Write(packageTable);
     }
 
     public static void WriteCommitTable(CveSet cves, StreamWriter writer)
     {
-        if (cves.Commits is null)
+        if (cves.Commits is null || cves.CveCommits is null)
         {
             return;
         }
@@ -107,35 +103,42 @@ public static class CveReport
 
         commitTable.AddHeader(commitLabels);
 
-        foreach (Commit commit in cves.Commits)
+        foreach (var cveCommitPair in cves.CveCommits)
         {
-            commitTable.AddRow(
-                $"[{commit.Cve}][{commit.Cve}]",
-                Report.MakeLinkFromBestSource(commit, commit.Branch, cves.Source.BranchUrl, null),
-                Report.MakeLinkFromBestSource(commit, commit.Hash, cves.Source.CommitUrl, commit.Url)
-            );
+            string cveId = cveCommitPair.Key;
+            foreach (var commitHash in cveCommitPair.Value)
+            {
+                if (cves.Commits.TryGetValue(commitHash, out var commit))
+                {
+                    commitTable.AddRow(
+                        $"[{cveId}][{cveId}]",
+                        $"[{commit.Branch}]({commit.Url.Replace(".diff", "")})",
+                        $"[{commit.Hash[..7]}]({commit.Url})"
+                    );
+                }
+            }
         }
-        
+
         writer.Write(commitTable);
 
         writer.WriteLine();
 
         // Write second part of reference-style links
         foreach (var cve in cves.Cves)
-        {writer.WriteLine($"[{cve.Id}]: {Report.MakeCveLink(cve)}");
+        {
+            writer.WriteLine($"[{cve.Id}]: {Report.MakeCveLink(cve)}");
         }
 
-        foreach (var cve in cves.Cves)
+        HashSet<string> writtenPackages = new();
+        foreach (var package in cves.Packages)
         {
-            foreach (var package in cve.Packages)
+            if (Report.IsFramework(package.Name) || writtenPackages.Contains(package.Name))
             {
-                if (Report.IsFramework(package.Name))
-                {
-                    continue;
-                }
-
-                writer.WriteLine($"[{package.Name}]: {Report.MakeNuGetLink(package.Name)}");
+                continue;
             }
+
+            writer.WriteLine($"[{package.Name}]: {Report.MakeNuGetLink(package.Name)}");
+            writtenPackages.Add(package.Name);
         }
     }
 
