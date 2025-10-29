@@ -14,7 +14,7 @@ List<ModelInfo> models = [
     new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
     new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
     new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
-    new (typeof(CveSet), "dotnet-cves.json", JsonKnownNamingPolicy.SnakeCaseLower),
+    new (typeof(CveRecords), "dotnet-cves.json", JsonKnownNamingPolicy.SnakeCaseLower),
     // new (typeof(ReportOverview), "dotnet-support-report.json"),
 ];
 
@@ -59,7 +59,7 @@ void WriteSchema(ModelInfo modelInfo)
             JsonKnownNamingPolicy.SnakeCaseLower => JsonNamingPolicy.SnakeCaseLower,
             _ => JsonNamingPolicy.KebabCaseLower
         },
-        TypeInfoResolver = type == typeof(CveSet) 
+        TypeInfoResolver = type == typeof(CveRecords) 
             ? CveSchemaGenerationContext.Default 
             : SchemaGenerationContext.Default
     };
@@ -83,7 +83,7 @@ partial class SchemaGenerationContext : JsonSerializerContext
 {
 }
 
-[JsonSerializable(typeof(CveSet))]
+[JsonSerializable(typeof(CveRecords))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 partial class CveSchemaGenerationContext : JsonSerializerContext
 {
