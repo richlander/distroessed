@@ -4,13 +4,13 @@ using ReportHelpers;
 
 public static class CveReport
 {
-    public static MarkdownTemplate CreateTemplate(CveSet cves)
+    public static MarkdownTemplate CreateTemplate(CveRecords cves)
     {
         MarkdownTemplate notes = new()
         {
             Processor = (id, writer) =>
             {
-                Action<CveSet, StreamWriter> action = CveReport.SwitchOnId(id);
+                Action<CveRecords, StreamWriter> action = CveReport.SwitchOnId(id);
                 action(cves, writer);
             },
             SectionProcessor = (id) =>
@@ -27,7 +27,7 @@ public static class CveReport
         return notes;
     }
 
-    public static Action<CveSet, StreamWriter> SwitchOnId(string id) => id switch
+    public static Action<CveRecords, StreamWriter> SwitchOnId(string id) => id switch
     {
         "date" => WriteDate,
         "vuln-table" => WriteCveTable,
@@ -36,7 +36,7 @@ public static class CveReport
         _ => throw new()
     };
 
-    public static void WriteDate(CveSet set, StreamWriter writer)
+    public static void WriteDate(CveRecords set, StreamWriter writer)
     {
         string date = set.LastUpdated;
         if (DateOnly.TryParse(set.LastUpdated, out DateOnly dateOnly))
@@ -47,7 +47,7 @@ public static class CveReport
         writer.Write(date);
     }
 
-    public static void WriteCveTable(CveSet cves, StreamWriter writer)
+    public static void WriteCveTable(CveRecords cves, StreamWriter writer)
     {
         // CVE table
         string[] cveLabels = ["CVE", "Description", "Platforms", "CVSS"];
@@ -68,7 +68,7 @@ public static class CveReport
         writer.Write(cveTable);
     }
 
-    public static void WritePackageTable(CveSet cves, StreamWriter writer)
+    public static void WritePackageTable(CveRecords cves, StreamWriter writer)
     {
         // Package version table
         string[] packageLabels = ["CVE", "Package", "Min Version", "Max Version", "Fixed Version"];
@@ -90,7 +90,7 @@ public static class CveReport
         writer.Write(packageTable);
     }
 
-    public static void WriteCommitTable(CveSet cves, StreamWriter writer)
+    public static void WriteCommitTable(CveRecords cves, StreamWriter writer)
     {
         if (cves.Commits is null || cves.CveCommits is null)
         {

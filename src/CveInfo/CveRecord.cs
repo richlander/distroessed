@@ -5,7 +5,7 @@ namespace CveInfo;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A set of CVEs with affected products, packages, and commit information.")]
-public record CveSet(
+public record CveRecords(
     [property: Description("Date when the CVE set was last updated.")]
     string LastUpdated,
 
