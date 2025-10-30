@@ -73,7 +73,11 @@ public record Cve(
     string Cna,
 
     [property: Description("Reference URLs for the CVE.")]
-    IList<string> References
+    IList<string> References,
+
+    [property: Description("Mitigation information for the CVE."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IList<string>? Mitigation = null
 );
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
