@@ -3,25 +3,16 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A patch release for a major product version.")]
 public record PatchReleaseOverview(
-    [property: Description("Major (or major.minor) version of product.")]
+    [property: Description("Major (or major.minor) version of the product.")]
     string ChannelVersion,
-
-    [property: Description("The date of the patch release.")]
-    DateOnly ReleaseDate,
-
-    [property: Description("The version (branding) of the release")]
-    string ReleaseVersion,
-
-    [property: Description("Whether the release contains any CVE fixes.")]
-    bool Security,
 
     [property: Description("A patch release with detailed release information.")]
     PatchRelease Release);
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Detailed information for the patch release.")]
 public record PatchRelease(
     [property: Description("The date of the patch release.")]
@@ -54,18 +45,23 @@ public record PatchRelease(
 
     [property: Description("Windows Desktop component of the release."),
         JsonPropertyName("windowsdesktop")]
-    Component? WindowsDesktop = null);
+    Component? WindowsDesktop = null,
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    [property: Description("Symbol files for the release."),
+        Obsolete("Property used only by legacy releases."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Component? Symbols = null);
+
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A disclosed vulnerability (AKA CVE).")]
 public record Cve(
     [property: Description("The ID tracking the CVE.")]
     string CveId,
-    
+
     [property: Description("The URL tracking the CVE at the authoritative site.")]
     string CveUrl);
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Runtime component of a release.")]
 public record RuntimeComponent(
     [property: Description("The version of the component.")]
@@ -80,7 +76,7 @@ public record RuntimeComponent(
 
     [property: Description("The version of Visual Studio for Mac that includes this component version."),
     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string VSMacVersion, 
+    string VSMacVersion,
 
     [property: Description("The minimum version of Visual Studio that supports this component version.")]
     string VSSupport,
@@ -88,7 +84,7 @@ public record RuntimeComponent(
     [property: Description("The files that are available for this component.")]
     IList<ComponentFile> Files);
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("SDK component of the release.")]
 public record SdkComponent(
     [property: Description("The version of the component.")]
@@ -128,7 +124,7 @@ public record SdkComponent(
     IList<ComponentFile> Files
 );
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("ASP.NET Core component of the release.")]
 public record AspNetCoreComponent(
     [property: Description("The version of the component.")]
@@ -148,7 +144,7 @@ public record AspNetCoreComponent(
     IList<ComponentFile> Files
 );
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("Component that is part of the release.")]
 public record Component(
     [property: Description("The version of the component.")]
@@ -161,21 +157,21 @@ public record Component(
     IList<ComponentFile> Files
 );
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("File that is part of a release.")]
 public record ComponentFile(
     [property: Description("File name.")]
     string Name,
-    
+
     [property: Description("Runtime ID of file, describing OS and architecture applicability, like `linux-x64`.")]
     string Rid,
-    
+
     [property: Description("Fully-qualified URL of file.")]
     string Url,
 
     [property: Description("Content hash of file.")]
     string Hash,
-    
+
     [property: Description("Short-link URL to file."),
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? Akams = null);

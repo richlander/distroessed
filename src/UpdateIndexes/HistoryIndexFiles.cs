@@ -1,0 +1,344 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using DotnetRelease;
+using System.Linq;
+using System.Globalization;
+using JsonSchemaInjector;
+
+namespace UpdateIndexes;
+
+public class HistoryIndexFiles
+{
+    private static int _skippedFilesCount = 0;
+    
+    public static int SkippedFilesCount => _skippedFilesCount;
+    
+    public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
+
+    public static readonly OrderedDictionary<string, FileLink> HistoryFileMappings = new()
+    {
+        {"index.json", new FileLink("index.json", "History Index", LinkStyle.Prod) },
+        {"cve.json", new FileLink("cve.json", "CVE Information", LinkStyle.Prod) },
+        {"cve.md", new FileLink("cve.md", "CVE Information", LinkStyle.Prod | LinkStyle.GitHub) },
+    };
+
+    public static readonly OrderedDictionary<string, FileLink> ReleaseFileMappings = new()
+    {
+        {"index.json", new FileLink("index.json", ".NET Release Index", LinkStyle.Prod) },
+        {"README.md", new FileLink("README.md", ".NET Release Notes", LinkStyle.GitHub) },
+    };
+
+    public static async Task GenerateAsync(string inputPath, string outputPath, ReleaseHistory releaseHistory)
+    {
+        var historyPath = Path.Combine(outputPath, "archives");
+
+        if (!Directory.Exists(historyPath))
+        {
+            Directory.CreateDirectory(historyPath);
+        }
+
+        var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
+
+        var urlGenerator = (string relativePath, LinkStyle style) => style == LinkStyle.Prod
+    ? $"{Location.GitHubBaseUri}{relativePath}"
+    : $"https://github.com/dotnet/core/blob/main/release-notes/{relativePath}";
+
+
+        var halLinkGenerator = new HalLinkGenerator(inputPath, urlGenerator);
+
+        List<HistoryYearEntry> yearEntries = [];
+
+        HashSet<string> allReleases = [];
+
+        foreach (var year in releaseHistory.Years.Values)
+        {
+            Console.WriteLine($"Processing year: {year.Year}");
+            var yearPath = Path.Combine(historyPath, year.Year);
+            if (!Directory.Exists(yearPath))
+            {
+                Directory.CreateDirectory(yearPath);
+            }
+
+            List<HistoryMonthSummary> monthSummaries = [];
+            List<HistoryMonthEntry> monthDayEntries = [];
+
+            HashSet<string> releasesForYear = [];
+
+            foreach (var month in year.Months.Values)
+            {
+                Console.WriteLine($"Processing month: {month.Month} in year: {year.Year}");
+                var monthPath = Path.Combine(yearPath, month.Month);
+
+                if (!Directory.Exists(monthPath))
+                {
+                    Directory.CreateDirectory(monthPath);
+                }
+
+                var monthHistoryLinks = halLinkGenerator.Generate(
+                    monthPath,
+                    HistoryFileMappings.Values,
+                    (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}-{month.Month}" : fileLink.Title);
+
+                HashSet<string> monthReleases = [];
+                HashSet<string> monthPatchReleases = [];
+
+                // Process each day in the month
+                foreach (var days in month.Days.Values)
+                {
+                    foreach (var day in days.Releases)
+                    {
+                        monthReleases.Add(day.MajorVersion);
+                        releasesForYear.Add(day.MajorVersion);
+                        allReleases.Add(day.MajorVersion);
+
+                        // Add patch version (e.g., "10.0.1")
+                        monthPatchReleases.Add(day.PatchVersion);
+
+                        // Add runtime and SDK versions from components
+                        foreach (var component in day.Components)
+                        {
+                            if (component.Name == "Runtime" || component.Name == "SDK")
+                            {
+                                monthPatchReleases.Add(component.Version);
+                            }
+                        }
+                    }
+                }
+
+                // Load CVE information for the month
+                var cveJsonPath = Path.Combine(monthPath, "cve.json");
+                CveRecords? cveRecords = null;
+
+                if (File.Exists(cveJsonPath))
+                {
+                    using var cveStream = File.OpenRead(cveJsonPath);
+                    cveRecords = await JsonSerializer.DeserializeAsync<CveRecords>(cveStream, CveInfoSerializerContext.Default.CveRecords);
+                }
+
+                // Prepare month index path for links
+                var monthIndexPath = Path.Combine(monthPath, "index.json");
+                var monthIndexRelativePath = Path.GetRelativePath(inputPath, monthIndexPath);
+
+                // Create simplified month summary for year index with proper self link and CVE links
+                var monthSummaryLinks = new Dictionary<string, HalLink>
+                {
+                    [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
+                    {
+                        Relative = monthIndexRelativePath,
+                        Title = $"Release history for {year.Year}-{month.Month}",
+                        Type = MediaType.HalJson
+                    }
+                };
+
+                // Add CVE JSON link if CVE records exist
+                if (cveRecords?.Cves.Count > 0)
+                {
+                    var cveJsonRelativePath = Path.GetRelativePath(inputPath, Path.Combine(monthPath, "cve.json"));
+
+                    monthSummaryLinks["cve-json"] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
+                    {
+                        Relative = cveJsonRelativePath,
+                        Title = "CVE Information",
+                        Type = MediaType.Json
+                    };
+                }
+
+                var monthSummary = new HistoryMonthSummary(
+                    month.Month,
+                    monthSummaryLinks,
+                    cveRecords?.Cves?.Count,
+                    [.. monthReleases]
+                );
+                monthSummaries.Add(monthSummary);
+
+                // Create detailed month index with proper self link
+                var monthIndexLinks = new Dictionary<string, HalLink>(monthHistoryLinks)
+                {
+                    [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
+                    {
+                        Relative = monthIndexRelativePath,
+                        Title = $"Release history for {year.Year}-{month.Month}",
+                        Type = MediaType.HalJson
+                    }
+                };
+
+                // Calculate version range for month index
+                var monthMinVersion = monthReleases.Min(numericStringComparer);
+                var monthMaxVersion = monthReleases.Max(numericStringComparer);
+                var monthVersionRange = $"{monthMinVersion}–{monthMaxVersion}";
+
+                var monthIndex = new HistoryMonthIndex(
+                    HistoryKind.HistoryMonthIndex,
+                    $".NET Release History Index - {year.Year}-{month.Month}",
+                    $"Release history for {year.Year}-{month.Month} ({monthVersionRange}, latest first); {Location.CacheFriendlyNote}",
+                    year.Year,
+                    month.Month,
+                    monthIndexLinks)
+                {
+                    Embedded = new HistoryMonthIndexEmbedded
+                    {
+                        DotnetReleases = [.. monthReleases.OrderByDescending(v => v, numericStringComparer)],
+                        DotnetPatchReleases = [.. monthPatchReleases.OrderByDescending(v => v, numericStringComparer)]
+                    },
+                    Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+                };
+
+                // Serialize to string first to add schema reference
+                var monthIndexJson = JsonSerializer.Serialize(
+                    monthIndex,
+                    HistoryYearIndexSerializerContext.Default.HistoryMonthIndex);
+
+                // Add schema reference
+                var monthSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
+                var updatedMonthIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(monthIndexJson, monthSchemaUri);
+
+                // Write monthly index file
+                var currentMonthIndexPath = Path.Combine(monthPath, "index.json");
+                var finalMonthIndexJson = (updatedMonthIndexJson ?? monthIndexJson) + '\n';
+                
+                if (HalJsonComparer.ShouldWriteFile(currentMonthIndexPath, finalMonthIndexJson))
+                {
+                    using Stream monthStream = File.Create(currentMonthIndexPath);
+                    using var monthWriter = new StreamWriter(monthStream);
+                    await monthWriter.WriteAsync(finalMonthIndexJson);
+                }
+                else
+                {
+                    _skippedFilesCount++;
+                }
+            }
+
+            // Generate the root links for the year index
+            var yearHalLinks = halLinkGenerator.Generate(
+                yearPath,
+                HistoryFileMappings.Values,
+                (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title);
+
+            // Calculate version range for year index
+            var yearMinVersion = releasesForYear.Min(numericStringComparer);
+            var yearMaxVersion = releasesForYear.Max(numericStringComparer);
+            var yearVersionRange = $"{yearMinVersion}–{yearMaxVersion}";
+
+            // Create the year index (e.g., release-notes/2025/index.json)
+            var yearHistory = new HistoryYearIndex(
+                HistoryKind.HistoryYearIndex,
+                $".NET Release History Index - {year.Year}",
+                $"Release history for {year.Year} ({yearVersionRange}, latest first); {Location.CacheFriendlyNote}",
+                year.Year,
+                yearHalLinks)
+            {
+                Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+            };
+
+            // Create embedded releases structure
+            var releaseEntries = new List<ReleaseHistoryIndexEntry>(
+                releasesForYear
+                    .OrderByDescending(v => v, numericStringComparer)
+                    .Select(version => new ReleaseHistoryIndexEntry(version, yearHalLinks))
+            );
+
+            yearHistory.Embedded = new HistoryYearIndexEmbedded
+            {
+                Months = monthSummaries,
+                Releases = releaseEntries
+            };
+
+            // Serialize to string first to add schema reference
+            var yearIndexJson = JsonSerializer.Serialize(
+                yearHistory,
+                HistoryYearIndexSerializerContext.Default.HistoryYearIndex);
+
+            // Add schema reference
+            var yearSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
+            var updatedYearIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(yearIndexJson, yearSchemaUri);
+
+            var yearIndexPath = Path.Combine(yearPath, "index.json");
+            var finalYearIndexJson = (updatedYearIndexJson ?? yearIndexJson) + '\n';
+            
+            if (HalJsonComparer.ShouldWriteFile(yearIndexPath, finalYearIndexJson))
+            {
+                using Stream yearStream = File.Create(yearIndexPath);
+                using var yearWriter = new StreamWriter(yearStream);
+                await yearWriter.WriteAsync(finalYearIndexJson);
+            }
+            else
+            {
+                _skippedFilesCount++;
+            }
+
+            // for the overall index
+
+            var overallYearHalLinks = halLinkGenerator.Generate(
+                yearPath,
+                HistoryFileMappings.Values,
+                (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title);
+
+            yearEntries.Add(new HistoryYearEntry(
+                HistoryKind.HistoryYearIndex,
+                $".NET release history for {year.Year}",
+                year.Year,
+                overallYearHalLinks)
+            {
+                DotnetReleases = [.. releasesForYear]
+            }
+            );
+        }
+
+        var fullIndexLinks = halLinkGenerator.Generate(
+            historyPath,
+            HistoryFileMappings.Values,
+            (fileLink, key) => key == HalTerms.Self ? "History of .NET releases" : fileLink.Title);
+
+        // Add release-version-index link pointing back to root index.json
+        fullIndexLinks["release-version-index"] = new HalLink($"{Location.GitHubBaseUri}index.json")
+        {
+            Relative = "index.json",
+            Title = ".NET Release Version Index",
+            Type = MediaType.HalJson
+        };
+
+        // Calculate version range for root history index
+        var minVersion = allReleases.Min(numericStringComparer);
+        var maxVersion = allReleases.Max(numericStringComparer);
+        var rootVersionRange = $"{minVersion}–{maxVersion}";
+
+        // Create the history index
+        var historyIndex = new ReleaseHistoryIndex(
+            HistoryKind.ReleaseHistoryIndex,
+            ".NET Release History Index",
+            $"History of .NET releases {rootVersionRange} (latest first); {Location.CacheFriendlyNote}",
+            fullIndexLinks
+            )
+        {
+            Embedded = new ReleaseHistoryIndexEmbedded
+            {
+                Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)]
+            },
+            Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+        };
+
+        // Serialize to string first to add schema reference
+        var historyIndexJson = JsonSerializer.Serialize(
+            historyIndex,
+            ReleaseHistoryIndexSerializerContext.Default.ReleaseHistoryIndex);
+
+        // Add schema reference
+        var historySchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-history-index.json";
+        var updatedHistoryIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(historyIndexJson, historySchemaUri);
+
+        var historyIndexPath = Path.Combine(historyPath, "index.json");
+        var finalHistoryIndexJson = (updatedHistoryIndexJson ?? historyIndexJson) + '\n';
+        
+        if (HalJsonComparer.ShouldWriteFile(historyIndexPath, finalHistoryIndexJson))
+        {
+            using var historyStream = File.Create(historyIndexPath);
+            using var historyWriter = new StreamWriter(historyStream);
+            await historyWriter.WriteAsync(finalHistoryIndexJson);
+        }
+        else
+        {
+            _skippedFilesCount++;
+        }
+    }
+}

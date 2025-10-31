@@ -42,12 +42,12 @@ public record MajorReleaseIndexItem(
     [property: Description("End of life date of the major release.")]
     DateOnly EolDate,
 
-    [property: Description("The release type for of the makor release.")]
+    [property: Description("The release type of the major release.")]
     ReleaseType ReleaseType,
 
     [property: Description("Link to detailed release descriptions (JSON format), with all patch releases in one file. This property is now deprecated, but still required (for compatibility)."),
-        JsonPropertyName("releases.json"),
-        Obsolete("This property is obsolete. Use PatchReleasesInfoUri instead.")]
+        JsonPropertyName("releases.json")]
+        // Obsolete("This property is obsolete. Use PatchReleasesInfoUri instead.")]
     string ReleasesJson,
 
     [property: Description("Link to detailed release descriptions (JSON format), with all patch releases in one file.")]

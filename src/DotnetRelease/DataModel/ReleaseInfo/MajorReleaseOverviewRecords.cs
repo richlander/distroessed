@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+//[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A major product release, including detailed information for each patch release.")]
 public record MajorReleaseOverview(
     [property: Description("Major (or major.minor) version of the product.")]
@@ -15,17 +15,11 @@ public record MajorReleaseOverview(
     [property: Description("The date of the most recent release.")]
     DateOnly LatestReleaseDate,
 
-    [property: Description("Wehther the latest release includes security fixes.")]
-    bool LatestReleaseSecurity,
-
     [property: Description("The runtime version of the most recent patch release.")]
     string LatestRuntime,
 
     [property: Description("The SDK version of the most recent patch release.")]
     string LatestSdk,
-
-    [property: Description("The product marketing name.")]
-    string Product,
 
     [property: Description("The current support phase of the major version.")]
     SupportPhase SupportPhase,
@@ -39,16 +33,27 @@ public record MajorReleaseOverview(
     [property: Description("Link to lifecycle page for the product.")]
     string LifecyclePolicy,
 
-    [property: Description("Link to index file of detailed release descriptions (JSON format), with one file per patch release.")]
-    string? PatchReleasesIndexUri,
-
-    [property: Description("Link to supported OS matrix (JSON format)."),
-        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? SupportedOsInfoUri,
-
-    [property: Description("Link to OS package information (JSON format)."),
-        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? OsPackagesInfoUri,
-
     [property: Description("A set of patch releases with detailed release information.")]
-    IList<PatchRelease> Releases);
+    IList<PatchRelease> Releases,
+
+
+    [property: Description("Intellisense files for the release."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Intellisense? Intellisense = null
+    );
+
+
+public record Intellisense(
+    string Version,
+    string VersionDisplay,
+    IList<IntellisenseFile> Files
+);
+
+
+public record IntellisenseFile(
+    string Lang,
+    string Name,
+    string Rid,
+    string Url,
+    string Hash
+);

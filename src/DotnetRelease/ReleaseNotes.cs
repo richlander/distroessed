@@ -1,18 +1,9 @@
-using System.Net.Http.Json;
-using System.Reflection;
 using System.Text.Json;
 
 namespace DotnetRelease;
 
 public class ReleaseNotes
 {
-    // URLs
-    public static string OfficialBaseUri { get; private set; } = "https://builds.dotnet.microsoft.com/dotnet/release-metadata/";
-
-    public static string GitHubBaseUri { get; private set; } = "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
-
-    public static string MajorReleasesIndexUri { get; private set; } = "https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json";
-
     // File names
     public static string OSPackages { get; private set; } = "os-packages.json";
 
@@ -34,9 +25,6 @@ public class ReleaseNotes
 
     // Example file: https://github.com/dotnet/core/blob/main/release-notes/8.0/releases.json
     public static ValueTask<MajorReleaseOverview?> GetMajorRelease(Stream stream) => JsonSerializer.DeserializeAsync<MajorReleaseOverview>(stream, MajorReleaseOverviewSerializerContext.Default.MajorReleaseOverview);
-
-    // Example file: https://github.com/dotnet/core/blob/main/release-notes/8.0/patch-releases-index.json
-    public static ValueTask<PatchReleasesIndex?> GetPatchReleasesINdex(Stream stream) => JsonSerializer.DeserializeAsync<PatchReleasesIndex>(stream, PatchReleasesIndexSerializerContext.Default.PatchReleasesIndex);
 
     // Example file: https://github.com/dotnet/core/blob/main/release-notes/8.0/8.0.1/release.json
     public static ValueTask<PatchReleaseOverview?> GetPatchRelease(Stream stream) => JsonSerializer.DeserializeAsync<PatchReleaseOverview>(stream, PatchReleaseOverviewSerializerContext.Default.PatchReleaseOverview);

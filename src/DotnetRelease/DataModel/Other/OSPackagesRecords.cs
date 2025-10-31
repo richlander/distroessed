@@ -81,7 +81,7 @@ public record DistroPackage(
     [property: Description("Package name in the distro archive.")]
     string Name);
 
-[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<Scenario>))]
+[JsonConverter(typeof(SnakeCaseLowerStringEnumConverter<Scenario>))]
 [Description("Scenarios relating to package dependencies. 'All' includes both CoreCLR and NativeAOT while 'Runtime' is intended to cover CoreCLR, only.")]
 public enum Scenario
 {
