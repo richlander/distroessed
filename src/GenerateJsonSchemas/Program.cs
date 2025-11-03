@@ -10,7 +10,6 @@ using CveInfo;
 List<ModelInfo> models = [
     new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),
     new (typeof(MajorReleaseOverview), "dotnet-releases.json"),
-    new (typeof(PatchReleasesIndex), "dotnet-patch-releases-index.json"),
     new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
     new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
     new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
@@ -74,7 +73,6 @@ record ModelInfo(Type Type, string TargetFile, JsonKnownNamingPolicy NamingPolic
 
 [JsonSerializable(typeof(MajorReleasesIndex))]
 [JsonSerializable(typeof(MajorReleaseOverview))]
-[JsonSerializable(typeof(PatchReleasesIndex))]
 [JsonSerializable(typeof(PatchReleaseOverview))]
 [JsonSerializable(typeof(OSPackagesOverview))]
 [JsonSerializable(typeof(SupportedOSMatrix))]

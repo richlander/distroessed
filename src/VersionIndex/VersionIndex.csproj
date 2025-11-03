@@ -5,13 +5,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MarkdownTemplate\MarkdownTemplate.csproj" />
     <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
-    <ProjectReference Include="..\MarkdownHelpers\MarkdownHelpers.csproj" />
+    <ProjectReference Include="..\JsonSchemaInjector\JsonSchemaInjector.csproj" />
   </ItemGroup>
 
 </Project>
