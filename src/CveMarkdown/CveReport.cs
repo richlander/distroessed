@@ -1,6 +1,7 @@
 using CveInfo;
 using MarkdownHelpers;
 using ReportHelpers;
+using TaxonomyNames = DotnetRelease.TaxonomyNames;
 
 public static class CveReport
 {
@@ -31,6 +32,7 @@ public static class CveReport
     {
         "date" => WriteDate,
         "vuln-table" => WriteCveTable,
+        "product-table" => WriteProductsTable,
         "package-table" => WritePackageTable,
         "commit-table" => WriteCommitTable,
         _ => throw new()
@@ -60,7 +62,7 @@ public static class CveReport
             cveTable.AddRow(
                 $"[{cve.Id}][{cve.Id}]",
                 Join(cve.Description),
-                Join(cve.Platforms),
+                JoinPlatforms(cve.Platforms),
                 cve.Cvss.Vector
             );
         }
@@ -68,8 +70,49 @@ public static class CveReport
         writer.Write(cveTable);
     }
 
+    public static void WriteProductsTable(CveRecords cves, StreamWriter writer)
+    {
+        if (cves.Products is null || cves.Products.Count == 0)
+        {
+            writer.WriteLine("No vulnerable products reported.");
+            return;
+        }
+
+        writer.WriteLine("The following table lists vulnerable and patched version ranges for affected products.");
+        writer.WriteLine();
+
+        // Products table
+        string[] productLabels = ["CVE", "Product", "Min Version", "Max Version", "Fixed Version"];
+        Table productTable = new();
+
+        productTable.AddHeader(productLabels);
+
+        foreach (var product in cves.Products)
+        {
+            string displayName = TaxonomyNames.GetProductDisplayName(product.Name);
+            productTable.AddRow(
+                $"[{product.CveId}][{product.CveId}]",
+                displayName,
+                $">={product.MinVulnerable}",
+                $"<={product.MaxVulnerable}",
+                product.Fixed
+            );
+        }
+
+        writer.Write(productTable);
+    }
+
     public static void WritePackageTable(CveRecords cves, StreamWriter writer)
     {
+        if (cves.Packages is null || cves.Packages.Count == 0)
+        {
+            writer.WriteLine("No vulnerable packages reported.");
+            return;
+        }
+
+        writer.WriteLine("The following table lists vulnerable and patched version ranges for affected packages.");
+        writer.WriteLine();
+
         // Package version table
         string[] packageLabels = ["CVE", "Package", "Min Version", "Max Version", "Fixed Version"];
         Table packageTable = new();
@@ -116,6 +159,10 @@ public static class CveReport
                         $"[{commit.Hash[..7]}]({commit.Url})"
                     );
                 }
+                else
+                {
+                    Console.Error.WriteLine($"Warning: Commit hash '{commitHash}' referenced by {cveId} not found in commits dictionary");
+                }
             }
         }
 
@@ -129,6 +176,7 @@ public static class CveReport
             writer.WriteLine($"[{cve.Id}]: {Report.MakeCveLink(cve)}");
         }
 
+        // Write package reference links
         HashSet<string> writtenPackages = new();
         foreach (var package in cves.Packages)
         {
@@ -143,4 +191,11 @@ public static class CveReport
     }
 
     private static string Join(IEnumerable<string>? strings) => strings is null ? "" : string.Join(", ", strings);
+
+    private static string JoinPlatforms(IEnumerable<string>? platforms)
+    {
+        if (platforms is null) return "";
+        var displayNames = platforms.Select(p => TaxonomyNames.GetPlatformDisplayName(p));
+        return string.Join(", ", displayNames);
+    }
 }
