@@ -5,86 +5,103 @@ using var client = new HttpClient();
 var graph = new ReleaseNotesGraph(client);
 
 Console.WriteLine("=== .NET Release Notes Graph Demo ===\n");
+Console.WriteLine("This demo shows both Layer 2 (low-level) and Layer 3 (high-level) APIs\n");
 
-// 1. Get the major release index
-Console.WriteLine("1. Fetching major release index...");
-var majorIndex = await graph.GetMajorReleaseIndexAsync();
-if (majorIndex?.Embedded?.Releases is not null)
+// === LAYER 3: High-Level API (ReleasesSummary) ===
+Console.WriteLine("=== Layer 3: High-Level API ===\n");
+
+// 1. Get releases summary (replaces releases-index.json)
+Console.WriteLine("1. Getting releases summary (first call - fetches data)...");
+var summary = graph.GetReleasesSummary();
+var sw = System.Diagnostics.Stopwatch.StartNew();
+var allVersions = await summary.GetAllVersionsAsync();
+sw.Stop();
+Console.WriteLine($"   Found {allVersions.Count()} .NET versions (took {sw.ElapsedMilliseconds}ms)");
+
+Console.WriteLine("   Calling GetSupportedVersionsAsync() (cached - should be instant)...");
+sw.Restart();
+var supported = await summary.GetSupportedVersionsAsync();
+sw.Stop();
+Console.WriteLine($"   Currently supported: {string.Join(", ", supported.Select(s => s.Version))} (took {sw.ElapsedMilliseconds}ms - cached!)");
+
+var latestLts = await summary.GetLatestLtsAsync();
+Console.WriteLine($"   Latest LTS: {latestLts?.Version} (EOL: {latestLts?.EolDate:yyyy-MM-dd}) (also cached)");
+Console.WriteLine();
+
+// 2. Navigate into .NET 8.0 (ReleaseNavigator)
+Console.WriteLine("2. Navigating into .NET 8.0 (first call - fetches data)...");
+var nav = graph.GetReleaseNavigator("8.0");
+sw.Restart();
+var patches = await nav.GetAllPatchesAsync();
+sw.Stop();
+Console.WriteLine($"   Found {patches.Count()} patch releases (took {sw.ElapsedMilliseconds}ms)");
+
+Console.WriteLine("   Calling GetAllPatchesAsync() again (cached - should be instant)...");
+sw.Restart();
+var patches2 = await nav.GetAllPatchesAsync();
+sw.Stop();
+Console.WriteLine($"   Found {patches2.Count()} patch releases (took {sw.ElapsedMilliseconds}ms - cached!)");
+
+var latestPatch = await nav.GetLatestPatchAsync();
+Console.WriteLine($"   Latest: {latestPatch?.Version} (Released: {latestPatch?.ReleaseDate:yyyy-MM-dd})");
+
+var securityPatches = await nav.GetSecurityPatchesAsync();
+Console.WriteLine($"   Security patches (using cached data):");
+foreach (var patch in securityPatches.Take(3))
 {
-    Console.WriteLine($"   Found {majorIndex.Embedded.Releases.Count} .NET versions");
-
-    // Show supported versions
-    var supported = majorIndex.Embedded.Releases
-        .Where(r => r.Lifecycle?.Supported == true)
-        .ToList();
-
-    Console.WriteLine($"   Currently supported: {string.Join(", ", supported.Select(s => s.Version))}");
+    Console.WriteLine($"     - {patch.Version}: {patch.CveCount} CVE(s)");
 }
 Console.WriteLine();
 
-// 2. Get patch releases for .NET 8.0
-Console.WriteLine("2. Fetching patch releases for .NET 8.0...");
-var patchIndex = await graph.GetPatchReleaseIndexAsync("8.0");
-if (patchIndex?.Embedded?.Releases is not null)
+// 3. Real-world workflow: Security updates since a specific version
+Console.WriteLine("3. Security updates since 8.0.16 (real-world scenario)...");
+var nav80 = graph.GetReleaseNavigator("8.0");
+var allPatches80 = await nav80.GetAllPatchesAsync();
+
+// Find patches newer than 8.0.16
+var currentVersion = "8.0.16";
+var newerPatches = allPatches80
+    .TakeWhile(p => p.Version != currentVersion)
+    .ToList();
+
+Console.WriteLine($"   You are on: {currentVersion}");
+Console.WriteLine($"   Newer patches available: {newerPatches.Count}");
+
+var securityUpdates = newerPatches.Where(p => p.HasCves).ToList();
+Console.WriteLine($"   Security updates since {currentVersion}: {securityUpdates.Count}");
+
+foreach (var patch in securityUpdates)
 {
-    Console.WriteLine($"   Found {patchIndex.Embedded.Releases.Count} patch releases");
-    var latestPatch = patchIndex.Embedded.Releases.First();
-    Console.WriteLine($"   Latest: {latestPatch.Version} (Released: {latestPatch.Lifecycle?.ReleaseDate:yyyy-MM-dd})");
-
-    // Show patches with CVEs
-    var withCves = patchIndex.Embedded.Releases
-        .Where(r => r.CveRecords?.Count > 0)
-        .Take(3)
-        .ToList();
-
-    Console.WriteLine($"   Recent security patches:");
-    foreach (var patch in withCves)
-    {
-        Console.WriteLine($"     - {patch.Version}: {patch.CveRecords?.Count} CVE(s)");
-    }
+    Console.WriteLine($"     - {patch.Version}: {patch.CveCount} CVE(s) fixed");
 }
 Console.WriteLine();
 
-// 3. Get manifest for .NET 8.0
-Console.WriteLine("3. Fetching manifest for .NET 8.0...");
+// 4. Combined workflow: All supported LTS versions with latest patches
+Console.WriteLine("4. Supported LTS versions with latest patches...");
+var ltsVersions = await summary.GetVersionsByTypeAsync(ReleaseType.LTS);
+var supportedLts = ltsVersions.Where(v => v.IsSupported);
+
+foreach (var version in supportedLts)
+{
+    var versionNav = summary.GetNavigator(version.Version);
+    var latest = await versionNav.GetLatestPatchVersionAsync();
+    var hasUpdates = await versionNav.HasSecurityUpdatesAsync();
+    Console.WriteLine($"   {version.Version}: Latest={latest}, HasSecurityUpdates={hasUpdates}");
+}
+Console.WriteLine();
+
+// === LAYER 2: Low-Level API ===
+Console.WriteLine("\n=== Layer 2: Low-Level API (for reference) ===\n");
+
+// 4. Get manifest directly
+Console.WriteLine("4. Fetching manifest for .NET 8.0 (Layer 2)...");
 var manifest = await graph.GetManifestAsync("8.0");
 if (manifest is not null)
 {
     Console.WriteLine($"   Title: {manifest.Title}");
     Console.WriteLine($"   Version: {manifest.Version}");
-    Console.WriteLine($"   Label: {manifest.Label}");
     Console.WriteLine($"   Release Type: {manifest.Lifecycle?.ReleaseType}");
-    Console.WriteLine($"   Phase: {manifest.Lifecycle?.Phase}");
-    Console.WriteLine($"   Release Date: {manifest.Lifecycle?.ReleaseDate:yyyy-MM-dd}");
-    Console.WriteLine($"   EOL Date: {manifest.Lifecycle?.EolDate:yyyy-MM-dd}");
 }
 Console.WriteLine();
 
-// 4. Get release history index
-Console.WriteLine("4. Fetching release history index...");
-var historyIndex = await graph.GetReleaseHistoryIndexAsync();
-if (historyIndex?.Embedded?.Years is not null)
-{
-    Console.WriteLine($"   Found {historyIndex.Embedded.Years.Count} years of release history");
-    var recentYears = historyIndex.Embedded.Years.Take(3).ToList();
-    foreach (var year in recentYears)
-    {
-        Console.WriteLine($"   - {year.Year}: {year.DotnetReleases?.Count ?? 0} versions released");
-    }
-}
-Console.WriteLine();
-
-// 5. HAL Link Following Demo
-Console.WriteLine("5. Demonstrating HAL link following...");
-if (majorIndex?.Links is not null && majorIndex.Links.TryGetValue("latest-lts", out var ltsLink))
-{
-    Console.WriteLine($"   Following 'latest-lts' link: {ltsLink.Title}");
-    var ltsIndex = await graph.FollowLinkAsync<DotnetRelease.Graph.PatchReleaseVersionIndex>(ltsLink);
-    if (ltsIndex is not null)
-    {
-        Console.WriteLine($"   Successfully fetched: {ltsIndex.Title}");
-        Console.WriteLine($"   Latest patch: {ltsIndex.Embedded?.Releases?.FirstOrDefault()?.Version}");
-    }
-}
-
-Console.WriteLine("\n=== Demo Complete ===");
+Console.WriteLine("=== Demo Complete ===");

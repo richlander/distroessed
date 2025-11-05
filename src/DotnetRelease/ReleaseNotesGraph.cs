@@ -96,6 +96,28 @@ public class ReleaseNotesGraph
         return await FetchDocumentAsync<HistoryMonthIndex>(url, HistoryYearIndexSerializerContext.Default.HistoryMonthIndex, cancellationToken);
     }
 
+    // === Layer 3: High-Level Wrappers ===
+
+    /// <summary>
+    /// Gets a high-level summary of all .NET releases with support status.
+    /// This replaces the functionality of the legacy releases-index.json file.
+    /// The summary fetches data lazily on first use.
+    /// </summary>
+    public ReleasesSummary GetReleasesSummary()
+    {
+        return new ReleasesSummary(this);
+    }
+
+    /// <summary>
+    /// Gets a navigator for deep exploration of a specific .NET version.
+    /// The navigator fetches data lazily as needed.
+    /// </summary>
+    /// <param name="version">Major version (e.g., "8.0", "9.0")</param>
+    public ReleaseNavigator GetReleaseNavigator(string version)
+    {
+        return new ReleaseNavigator(this, version);
+    }
+
     /// <summary>
     /// Follows a HAL link to fetch a document of the specified type.
     /// This is the core link-following pattern for navigating the graph.
