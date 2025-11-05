@@ -4,8 +4,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
-using DotnetRelease;
-using CveInfo;
+using DotnetRelease.Index;
+using DotnetRelease.ReleaseInfo;
+using DotnetRelease.Support;
+using DotnetRelease.Cves;
 
 List<ModelInfo> models = [
     new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),

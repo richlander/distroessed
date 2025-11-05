@@ -1,6 +1,6 @@
 using System.Text.Json;
-using CveInfo;
 using DotnetRelease;
+using DotnetRelease.Cves;
 
 const string jsonFilename = "cve.json";
 

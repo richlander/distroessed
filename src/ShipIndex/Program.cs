@@ -1,4 +1,5 @@
 ﻿using DotnetRelease;
+using DotnetRelease.Summary;
 using ShipIndex;
 
 // Generates .NET ship history index files (chronological: years -> months -> days)

@@ -1,4 +1,4 @@
-using DotnetRelease;
+using DotnetRelease.Graph;
 
 namespace ShipIndex;
 

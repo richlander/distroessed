@@ -1,5 +1,4 @@
-using CveInfo;
-using DotnetRelease;
+using DotnetRelease.Cves;
 using System.Text.Json;
 
 // CveDictionaries - Validate and generate query dictionaries for cve.json files

@@ -1,7 +1,6 @@
-using CveInfo;
+using DotnetRelease.Cves;
 using MarkdownHelpers;
 using ReportHelpers;
-using TaxonomyNames = DotnetRelease.TaxonomyNames;
 
 public static class CveReport
 {

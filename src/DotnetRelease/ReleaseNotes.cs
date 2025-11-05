@@ -1,6 +1,7 @@
-using System.Net.Http.Json;
-using System.Reflection;
 using System.Text.Json;
+using DotnetRelease.Index;
+using DotnetRelease.Support;
+using DotnetRelease.ReleaseInfo;
 
 namespace DotnetRelease;
 
@@ -9,7 +10,7 @@ public class ReleaseNotes
     // URLs
     public static string OfficialBaseUri { get; private set; } = "https://builds.dotnet.microsoft.com/dotnet/release-metadata/";
 
-    public static string GitHubBaseUri { get; private set; } = "https://raw.githubusercontent.com/dotnet/core/main/release-notes/";
+    public static string GitHubBaseUri { get; private set; } = "https://raw.githubusercontent.com/richlander/core/main/release-notes/";
 
     public static string MajorReleasesIndexUri { get; private set; } = "https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json";
 
@@ -49,28 +50,6 @@ public class ReleaseNotes
     public static ValueTask<SupportedOSMatrix?> GetSupportedOSes(Stream stream) => JsonSerializer.DeserializeAsync<SupportedOSMatrix>(stream, SupportedOSMatrixSerializerContext.Default.SupportedOSMatrix);
 
     public static IEnumerable<DirectoryInfo> GetReleaseNoteDirectories(DirectoryInfo releaseNotesRoot) => releaseNotesRoot.EnumerateDirectories("*", SearchOption.TopDirectoryOnly).Where(d => decimal.TryParse(d.Name, out var num)).OrderByDescending(d => d.Name);
-
-    public static ReleaseName GetReleaseName(string version)
-    {
-        int index = version.IndexOf('-');
-
-        if (index < 0)
-        {
-            return new(version, version, false);
-        }
-
-        index++;
-        string name = version[index..].Replace(".", "");
-
-        if (version.StartsWith("9.0"))
-        {
-            return new(name, $"preview/{name}", true);
-        }
-        else
-        {
-            return new(name, "preview", true);
-        }
-    }
 }
 
 public record ReleaseName(string Name, string Folder, bool IsPreview);

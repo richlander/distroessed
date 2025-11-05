@@ -1,4 +1,7 @@
 ﻿using DotnetRelease;
+using DotnetRelease.ReleaseInfo;
+using DotnetRelease.Support;
+using DotnetRelease.Summary;
 using FileHelpers;
 
 if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
