@@ -5,13 +5,12 @@ namespace DotnetRelease;
 
 /// <summary>
 /// Provides deep navigation into a specific year of .NET release history with CVE information.
-/// Data is fetched lazily as needed and cached for subsequent queries.
+/// Data is fetched lazily and cached automatically by ReleaseNotesGraph.
 /// </summary>
 public class ArchiveNavigator
 {
     private readonly ReleaseNotesGraph _graph;
     private readonly string _year;
-    private HistoryYearIndex? _yearIndex;
 
     public ArchiveNavigator(ReleaseNotesGraph graph, string year)
     {
@@ -27,20 +26,12 @@ public class ArchiveNavigator
     public string Year => _year;
 
     /// <summary>
-    /// Ensures the year index is loaded, fetching it if necessary.
-    /// </summary>
-    private async Task<HistoryYearIndex> EnsureYearIndexAsync(CancellationToken cancellationToken = default)
-    {
-        return _yearIndex ??= await _graph.GetYearIndexAsync(_year, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to load year index for {_year}");
-    }
-
-    /// <summary>
     /// Gets the raw year index document.
     /// </summary>
     public async Task<HistoryYearIndex> GetYearIndexAsync(CancellationToken cancellationToken = default)
     {
-        return await EnsureYearIndexAsync(cancellationToken);
+        return await _graph.GetYearIndexAsync(_year, cancellationToken)
+            ?? throw new InvalidOperationException($"Failed to load year index for {_year}");
     }
 
     /// <summary>
@@ -48,7 +39,7 @@ public class ArchiveNavigator
     /// </summary>
     public async Task<IEnumerable<MonthSummary>> GetAllMonthsAsync(CancellationToken cancellationToken = default)
     {
-        var index = await EnsureYearIndexAsync(cancellationToken);
+        var index = await GetYearIndexAsync(cancellationToken);
         return index.Embedded?.Months?.Select(m => new MonthSummary(m, _year))
             ?? Enumerable.Empty<MonthSummary>();
     }

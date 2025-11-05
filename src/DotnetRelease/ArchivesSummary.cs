@@ -5,12 +5,11 @@ namespace DotnetRelease;
 
 /// <summary>
 /// Provides a high-level summary of .NET release history archives with CVE information.
-/// Data is fetched lazily on first query and cached for subsequent queries.
+/// Data is fetched lazily and cached automatically by ReleaseNotesGraph.
 /// </summary>
 public class ArchivesSummary
 {
     private readonly ReleaseNotesGraph _graph;
-    private ReleaseHistoryIndex? _historyIndex;
 
     public ArchivesSummary(ReleaseNotesGraph graph)
     {
@@ -19,21 +18,13 @@ public class ArchivesSummary
     }
 
     /// <summary>
-    /// Ensures the release history index is loaded, fetching it if necessary.
-    /// </summary>
-    private async Task EnsureLoadedAsync(CancellationToken cancellationToken = default)
-    {
-        _historyIndex ??= await _graph.GetReleaseHistoryIndexAsync(cancellationToken)
-            ?? throw new InvalidOperationException("Failed to load release history index");
-    }
-
-    /// <summary>
     /// Gets all years in the release history (latest first).
     /// </summary>
     public async Task<IEnumerable<YearSummary>> GetAllYearsAsync(CancellationToken cancellationToken = default)
     {
-        await EnsureLoadedAsync(cancellationToken);
-        return _historyIndex!.Embedded?.Years?.Select(y => new YearSummary(y))
+        var historyIndex = await _graph.GetReleaseHistoryIndexAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Failed to load release history index");
+        return historyIndex.Embedded?.Years?.Select(y => new YearSummary(y))
             ?? Enumerable.Empty<YearSummary>();
     }
 

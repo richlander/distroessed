@@ -4,14 +4,12 @@ namespace DotnetRelease;
 
 /// <summary>
 /// Provides deep navigation into a specific .NET major version, including patches, CVEs, and SDK information.
-/// Data is fetched lazily as needed and cached for subsequent queries.
+/// Data is fetched lazily and cached automatically by ReleaseNotesGraph.
 /// </summary>
 public class ReleaseNavigator
 {
     private readonly ReleaseNotesGraph _graph;
     private readonly string _version;
-    private PatchReleaseVersionIndex? _patchIndex;
-    private ReleaseManifest? _manifest;
 
     public ReleaseNavigator(ReleaseNotesGraph graph, string version)
     {
@@ -27,29 +25,12 @@ public class ReleaseNavigator
     public string Version => _version;
 
     /// <summary>
-    /// Ensures the patch index is loaded, fetching it if necessary.
-    /// </summary>
-    private async Task<PatchReleaseVersionIndex> EnsurePatchIndexAsync(CancellationToken cancellationToken = default)
-    {
-        return _patchIndex ??= await _graph.GetPatchReleaseIndexAsync(_version, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to load patch index for version {_version}");
-    }
-
-    /// <summary>
-    /// Ensures the manifest is loaded, fetching it if necessary.
-    /// </summary>
-    private async Task<ReleaseManifest> EnsureManifestAsync(CancellationToken cancellationToken = default)
-    {
-        return _manifest ??= await _graph.GetManifestAsync(_version, cancellationToken)
-            ?? throw new InvalidOperationException($"Failed to load manifest for version {_version}");
-    }
-
-    /// <summary>
     /// Gets the raw patch index document.
     /// </summary>
     public async Task<PatchReleaseVersionIndex> GetPatchIndexAsync(CancellationToken cancellationToken = default)
     {
-        return await EnsurePatchIndexAsync(cancellationToken);
+        return await _graph.GetPatchReleaseIndexAsync(_version, cancellationToken)
+            ?? throw new InvalidOperationException($"Failed to load patch index for version {_version}");
     }
 
     /// <summary>
@@ -57,7 +38,8 @@ public class ReleaseNavigator
     /// </summary>
     public async Task<ReleaseManifest> GetManifestAsync(CancellationToken cancellationToken = default)
     {
-        return await EnsureManifestAsync(cancellationToken);
+        return await _graph.GetManifestAsync(_version, cancellationToken)
+            ?? throw new InvalidOperationException($"Failed to load manifest for version {_version}");
     }
 
     /// <summary>
@@ -65,7 +47,7 @@ public class ReleaseNavigator
     /// </summary>
     public async Task<IEnumerable<PatchSummary>> GetAllPatchesAsync(CancellationToken cancellationToken = default)
     {
-        var index = await EnsurePatchIndexAsync(cancellationToken);
+        var index = await GetPatchIndexAsync(cancellationToken);
         return index.Embedded?.Releases?.Select(r => new PatchSummary(r))
             ?? Enumerable.Empty<PatchSummary>();
     }
