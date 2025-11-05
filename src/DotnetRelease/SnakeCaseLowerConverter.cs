@@ -9,3 +9,10 @@ public class SnakeCaseLowerStringEnumConverter<TEnum> : JsonStringEnumConverter<
     public SnakeCaseLowerStringEnumConverter() : base(JsonNamingPolicy.SnakeCaseLower)
     { }
 }
+
+public class KebabCaseLowerStringEnumConverter<TEnum> : JsonStringEnumConverter<TEnum>
+    where TEnum : struct, Enum
+{
+    public KebabCaseLowerStringEnumConverter() : base(JsonNamingPolicy.KebabCaseLower)
+    { }
+}

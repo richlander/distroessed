@@ -62,7 +62,7 @@ public record HistoryYearEntry(
     public IList<string>? DotnetReleases { get; set; }
 };
 
-[JsonConverter(typeof(SnakeCaseLowerStringEnumConverter<HistoryKind>))]
+[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<HistoryKind>))]
 [Description("Identifies the type of history index document")]
 public enum HistoryKind
 {

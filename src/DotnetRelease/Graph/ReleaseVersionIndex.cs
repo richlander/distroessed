@@ -93,7 +93,7 @@ public record ReleaseVersionIndexEntry(
     public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
 }
 
-[JsonConverter(typeof(SnakeCaseLowerStringEnumConverter<ReleaseKind>))]
+[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]
 [Description("Identifies the type of release or index document")]
 public enum ReleaseKind
 {
