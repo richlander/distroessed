@@ -13,7 +13,8 @@ public class PatchSummary
 
     public PatchSummary(PatchReleaseVersionIndexEntry entry)
     {
-        _entry = entry ?? throw new ArgumentNullException(nameof(entry));
+        ArgumentNullException.ThrowIfNull(entry);
+        _entry = entry;
     }
 
     /// <summary>

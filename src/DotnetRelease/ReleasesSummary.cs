@@ -14,7 +14,8 @@ public class ReleasesSummary
 
     public ReleasesSummary(ReleaseNotesGraph graph)
     {
-        _graph = graph ?? throw new ArgumentNullException(nameof(graph));
+        ArgumentNullException.ThrowIfNull(graph);
+        _graph = graph;
     }
 
     /// <summary>
@@ -22,11 +23,8 @@ public class ReleasesSummary
     /// </summary>
     private async Task EnsureLoadedAsync(CancellationToken cancellationToken = default)
     {
-        if (_index is not null) return;
-
-        _index = await _graph.GetMajorReleaseIndexAsync(cancellationToken);
-        if (_index is null)
-            throw new InvalidOperationException("Failed to load major release index");
+        _index ??= await _graph.GetMajorReleaseIndexAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Failed to load major release index");
     }
 
     /// <summary>

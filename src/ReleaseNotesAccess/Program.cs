@@ -90,11 +90,78 @@ foreach (var version in supportedLts)
 }
 Console.WriteLine();
 
+// === ARCHIVES API: CVE Workflows ===
+Console.WriteLine("\n=== Archives API: CVE-Focused Workflows ===\n");
+
+// 5. Get all CVEs across all years
+Console.WriteLine("5. Getting all CVE IDs across all release history...");
+var archives = graph.GetArchivesSummary();
+sw.Restart();
+var allCveIds = await archives.GetAllCveIdsAsync();
+sw.Stop();
+Console.WriteLine($"   Total CVEs in release history: {allCveIds.Count()} (took {sw.ElapsedMilliseconds}ms)");
+Console.WriteLine($"   Sample CVEs: {string.Join(", ", allCveIds.Take(3))}");
+Console.WriteLine();
+
+// 6. Navigate into a specific year for CVE details
+Console.WriteLine("6. Navigating into 2024 release history...");
+var year2024 = archives.GetNavigator("2024");
+sw.Restart();
+var months2024 = await year2024.GetAllMonthsAsync();
+sw.Stop();
+Console.WriteLine($"   Found {months2024.Count()} months in 2024 (took {sw.ElapsedMilliseconds}ms)");
+
+var monthsWithCves = await year2024.GetMonthsWithCvesAsync();
+Console.WriteLine($"   Months with CVEs: {monthsWithCves.Count()}");
+
+foreach (var month in monthsWithCves.Take(3))
+{
+    Console.WriteLine($"     - {month.YearMonth}: {month.CveCount} CVE(s), affecting {string.Join(", ", month.DotnetReleases ?? [])}");
+}
+Console.WriteLine();
+
+// 7. Get full CVE records for a specific month
+Console.WriteLine("7. Getting full CVE records for a specific month...");
+var firstMonthWithCves = monthsWithCves.FirstOrDefault();
+if (firstMonthWithCves is not null)
+{
+    sw.Restart();
+    var cveRecords = await year2024.GetCveRecordsForMonthAsync(firstMonthWithCves.Month);
+    sw.Stop();
+    Console.WriteLine($"   Fetched full CVE records for {firstMonthWithCves.YearMonth} (took {sw.ElapsedMilliseconds}ms)");
+
+    if (cveRecords is not null)
+    {
+        Console.WriteLine($"   Title: {cveRecords.Title}");
+        Console.WriteLine($"   CVEs: {cveRecords.Cves.Count}");
+        Console.WriteLine($"   Affected Products: {cveRecords.Products.Count}");
+        Console.WriteLine($"   Affected Packages: {cveRecords.Packages.Count}");
+
+        var firstCve = cveRecords.Cves.FirstOrDefault();
+        if (firstCve is not null)
+        {
+            Console.WriteLine($"   First CVE: {firstCve.Id} - {firstCve.Problem} (Severity: {firstCve.Severity})");
+        }
+    }
+}
+Console.WriteLine();
+
+// 8. Get CVE count for specific year
+Console.WriteLine("8. CVE statistics by year...");
+var years = await archives.GetAllYearsAsync();
+foreach (var year in years.Take(3))
+{
+    var yearNav = archives.GetNavigator(year.Year);
+    var cveCount = await yearNav.GetCveCountAsync();
+    Console.WriteLine($"   {year.Year}: {cveCount} CVE(s), {year.ReleaseCount} .NET version(s) released");
+}
+Console.WriteLine();
+
 // === LAYER 2: Low-Level API ===
 Console.WriteLine("\n=== Layer 2: Low-Level API (for reference) ===\n");
 
-// 4. Get manifest directly
-Console.WriteLine("4. Fetching manifest for .NET 8.0 (Layer 2)...");
+// 9. Get manifest directly
+Console.WriteLine("9. Fetching manifest for .NET 8.0 (Layer 2)...");
 var manifest = await graph.GetManifestAsync("8.0");
 if (manifest is not null)
 {

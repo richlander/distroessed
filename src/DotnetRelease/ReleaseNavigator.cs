@@ -15,8 +15,10 @@ public class ReleaseNavigator
 
     public ReleaseNavigator(ReleaseNotesGraph graph, string version)
     {
-        _graph = graph ?? throw new ArgumentNullException(nameof(graph));
-        _version = version ?? throw new ArgumentNullException(nameof(version));
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(version);
+        _graph = graph;
+        _version = version;
     }
 
     /// <summary>
@@ -29,13 +31,8 @@ public class ReleaseNavigator
     /// </summary>
     private async Task<PatchReleaseVersionIndex> EnsurePatchIndexAsync(CancellationToken cancellationToken = default)
     {
-        if (_patchIndex is not null) return _patchIndex;
-
-        _patchIndex = await _graph.GetPatchReleaseIndexAsync(_version, cancellationToken);
-        if (_patchIndex is null)
-            throw new InvalidOperationException($"Failed to load patch index for version {_version}");
-
-        return _patchIndex;
+        return _patchIndex ??= await _graph.GetPatchReleaseIndexAsync(_version, cancellationToken)
+            ?? throw new InvalidOperationException($"Failed to load patch index for version {_version}");
     }
 
     /// <summary>
@@ -43,13 +40,8 @@ public class ReleaseNavigator
     /// </summary>
     private async Task<ReleaseManifest> EnsureManifestAsync(CancellationToken cancellationToken = default)
     {
-        if (_manifest is not null) return _manifest;
-
-        _manifest = await _graph.GetManifestAsync(_version, cancellationToken);
-        if (_manifest is null)
-            throw new InvalidOperationException($"Failed to load manifest for version {_version}");
-
-        return _manifest;
+        return _manifest ??= await _graph.GetManifestAsync(_version, cancellationToken)
+            ?? throw new InvalidOperationException($"Failed to load manifest for version {_version}");
     }
 
     /// <summary>

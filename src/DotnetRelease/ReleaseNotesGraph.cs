@@ -119,6 +119,25 @@ public class ReleaseNotesGraph
     }
 
     /// <summary>
+    /// Gets a high-level summary of release history archives with CVE information.
+    /// The summary fetches data lazily on first use.
+    /// </summary>
+    public ArchivesSummary GetArchivesSummary()
+    {
+        return new ArchivesSummary(this);
+    }
+
+    /// <summary>
+    /// Gets a navigator for deep exploration of a specific year's release history.
+    /// The navigator fetches data lazily as needed.
+    /// </summary>
+    /// <param name="year">Year (e.g., "2024", "2025")</param>
+    public ArchiveNavigator GetArchiveNavigator(string year)
+    {
+        return new ArchiveNavigator(this, year);
+    }
+
+    /// <summary>
     /// Follows a HAL link to fetch a document of the specified type.
     /// This is the core link-following pattern for navigating the graph.
     /// </summary>
@@ -138,6 +157,7 @@ public class ReleaseNotesGraph
             nameof(HistoryYearIndex) => FetchDocumentAsync(link.Href, HistoryYearIndexSerializerContext.Default.HistoryYearIndex, cancellationToken) as Task<T?>,
             nameof(HistoryMonthIndex) => FetchDocumentAsync(link.Href, HistoryYearIndexSerializerContext.Default.HistoryMonthIndex, cancellationToken) as Task<T?>,
             nameof(SdkVersionIndex) => FetchDocumentAsync(link.Href, SdkVersionIndexSerializerContext.Default.SdkVersionIndex, cancellationToken) as Task<T?>,
+            "CveRecords" => FetchDocumentAsync(link.Href, HistoryYearIndexSerializerContext.Default.CveRecords, cancellationToken) as Task<T?>,
             _ => throw new NotSupportedException($"Type {typeof(T).Name} is not supported for link following")
         } ?? throw new InvalidOperationException($"Failed to cast result to {typeof(T).Name}");
     }

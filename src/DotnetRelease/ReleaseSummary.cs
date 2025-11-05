@@ -12,7 +12,8 @@ public class ReleaseSummary
 
     public ReleaseSummary(MajorReleaseVersionIndexEntry entry)
     {
-        _entry = entry ?? throw new ArgumentNullException(nameof(entry));
+        ArgumentNullException.ThrowIfNull(entry);
+        _entry = entry;
     }
 
     /// <summary>
