@@ -590,6 +590,13 @@ static async Task<string?> ValidateNuGetPackage(HttpClient client, string packag
         
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
+            // Check if it matches the Microsoft.*Runtime pattern (appears to be a product not package)
+            if (packageName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) && 
+                packageName.EndsWith("Runtime", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"Package '{packageName}' not found on nuget.org (appears to be a product not package)";
+            }
+            
             return $"Package '{packageName}' not found on nuget.org";
         }
         
