@@ -157,6 +157,28 @@ foreach (var year in years.Take(3))
 }
 Console.WriteLine();
 
+// 8b. Filtered CVE query - CVEs from Oct 2025 affecting .NET 8 on Windows
+Console.WriteLine("8b. CVEs from Oct 2025 affecting .NET 8.0 on Windows...");
+sw.Restart();
+var oct2025Records = await archives.GetCveRecordsInDateRangeAsync(2025, 10, 2025, 10);
+Console.WriteLine($"   Fetched {oct2025Records.Count()} CVE record document(s)");
+
+// First filter by version
+var all8Cves = CveFilter.FilterByVersion(oct2025Records, "8.0");
+Console.WriteLine($"   CVEs affecting .NET 8.0: {all8Cves.Count()}");
+
+// Then filter by platform
+var filtered8Windows = CveFilter.FilterByPlatform(all8Cves, "windows");
+sw.Stop();
+
+Console.WriteLine($"   CVEs affecting .NET 8.0 on Windows: {filtered8Windows.Count()} (took {sw.ElapsedMilliseconds}ms)");
+foreach (var cve in filtered8Windows)
+{
+    var platforms = string.Join(", ", cve.Platforms);
+    Console.WriteLine($"   - {cve.Id}: {cve.Problem} (Severity: {cve.Severity}, Platforms: {platforms})");
+}
+Console.WriteLine();
+
 // === LAYER 2: Low-Level API ===
 Console.WriteLine("\n=== Layer 2: Low-Level API (for reference) ===\n");
 

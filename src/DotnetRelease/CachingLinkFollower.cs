@@ -102,7 +102,7 @@ public class CachingLinkFollower : ILinkFollower
             nameof(HistoryYearIndex) => (JsonTypeInfo<T>)(object)HistoryYearIndexSerializerContext.Default.HistoryYearIndex,
             nameof(HistoryMonthIndex) => (JsonTypeInfo<T>)(object)HistoryYearIndexSerializerContext.Default.HistoryMonthIndex,
             nameof(SdkVersionIndex) => (JsonTypeInfo<T>)(object)SdkVersionIndexSerializerContext.Default.SdkVersionIndex,
-            nameof(CveRecords) => (JsonTypeInfo<T>)(object)HistoryYearIndexSerializerContext.Default.CveRecords,
+            nameof(CveRecords) => (JsonTypeInfo<T>)(object)CveSerializerContext.Default.CveRecords,
             _ => throw new NotSupportedException($"Type {typeof(T).Name} is not supported for deserialization")
         };
     }

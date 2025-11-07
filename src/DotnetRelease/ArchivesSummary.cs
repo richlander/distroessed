@@ -78,6 +78,108 @@ public class ArchivesSummary
     }
 
     /// <summary>
+    /// Gets CVE summaries for a specific date range.
+    /// </summary>
+    /// <param name="startYear">Start year (inclusive)</param>
+    /// <param name="startMonth">Start month (inclusive, 1-12)</param>
+    /// <param name="endYear">End year (inclusive)</param>
+    /// <param name="endMonth">End month (inclusive, 1-12)</param>
+    public async Task<IEnumerable<CveRecordSummary>> GetCvesInDateRangeAsync(
+        int startYear, int startMonth, int endYear, int endMonth,
+        CancellationToken cancellationToken = default)
+    {
+        var allCves = new List<CveRecordSummary>();
+
+        for (int year = startYear; year <= endYear; year++)
+        {
+            var navigator = GetNavigator(year.ToString());
+            var months = await navigator.GetAllMonthsAsync(cancellationToken);
+
+            foreach (var month in months)
+            {
+                var monthNum = int.Parse(month.Month);
+
+                // Check if month is in range
+                if (year == startYear && monthNum < startMonth) continue;
+                if (year == endYear && monthNum > endMonth) continue;
+
+                if (month.CveRecords is not null)
+                {
+                    allCves.AddRange(month.CveRecords);
+                }
+            }
+        }
+
+        return allCves;
+    }
+
+    /// <summary>
+    /// Gets CVEs from the last N months.
+    /// </summary>
+    public async Task<IEnumerable<CveRecordSummary>> GetRecentCvesAsync(
+        int monthsBack,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var start = now.AddMonths(-monthsBack);
+
+        return await GetCvesInDateRangeAsync(
+            start.Year, start.Month,
+            now.Year, now.Month,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets full CVE records for a date range.
+    /// This fetches the detailed cve.json files for each month in the range.
+    /// </summary>
+    public async Task<IEnumerable<CveRecords>> GetCveRecordsInDateRangeAsync(
+        int startYear, int startMonth, int endYear, int endMonth,
+        CancellationToken cancellationToken = default)
+    {
+        var allRecords = new List<CveRecords>();
+
+        for (int year = startYear; year <= endYear; year++)
+        {
+            var navigator = GetNavigator(year.ToString());
+            var months = await navigator.GetAllMonthsAsync(cancellationToken);
+
+            foreach (var month in months.Where(m => m.HasCves))
+            {
+                var monthNum = int.Parse(month.Month);
+
+                // Check if month is in range
+                if (year == startYear && monthNum < startMonth) continue;
+                if (year == endYear && monthNum > endMonth) continue;
+
+                var records = await navigator.GetCveRecordsForMonthAsync(month.Month, cancellationToken);
+                if (records is not null)
+                {
+                    allRecords.Add(records);
+                }
+            }
+        }
+
+        return allRecords;
+    }
+
+    /// <summary>
+    /// Gets full CVE records from the last N months.
+    /// </summary>
+    public async Task<IEnumerable<CveRecords>> GetRecentCveRecordsAsync(
+        int monthsBack,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var start = now.AddMonths(-monthsBack);
+
+        return await GetCveRecordsInDateRangeAsync(
+            start.Year, start.Month,
+            now.Year, now.Month,
+            cancellationToken);
+    }
+
+    /// <summary>
     /// Creates an ArchiveNavigator for deep exploration of a specific year.
     /// </summary>
     public ArchiveNavigator GetNavigator(string year)
