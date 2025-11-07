@@ -4,7 +4,7 @@ using DotnetRelease.Support;
 namespace DotnetRelease.ReleaseInfo;
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(MajorReleaseOverview))]
 public partial class MajorReleaseOverviewSerializerContext : JsonSerializerContext
@@ -12,7 +12,7 @@ public partial class MajorReleaseOverviewSerializerContext : JsonSerializerConte
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(PatchReleaseOverview))]
 public partial class PatchReleaseOverviewSerializerContext : JsonSerializerContext
@@ -21,7 +21,7 @@ public partial class PatchReleaseOverviewSerializerContext : JsonSerializerConte
 
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(OSPackagesOverview))]
 public partial class OSPackagesSerializerContext : JsonSerializerContext
@@ -29,7 +29,7 @@ public partial class OSPackagesSerializerContext : JsonSerializerContext
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(SupportedOSMatrix))]
 public partial class SupportedOSMatrixSerializerContext : JsonSerializerContext

@@ -696,6 +696,9 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
     var cveReleases = new Dictionary<string, List<string>>();
     var releaseCves = new Dictionary<string, List<string>>();
 
+    // Build a set of valid CVE IDs
+    var validCveIds = new HashSet<string>(cveRecords.Cves.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
+
     // Build product_name and product_cves from products
     foreach (var product in cveRecords.Products)
     {
@@ -704,36 +707,40 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
             productName[product.Name] = GetProductDisplayName(product.Name);
         }
 
-        if (!productCves.ContainsKey(product.Name))
+        // Only add CVE if it exists in the cves property
+        if (validCveIds.Contains(product.CveId))
         {
-            productCves[product.Name] = new List<string>();
-        }
-        if (!productCves[product.Name].Contains(product.CveId))
-        {
-            productCves[product.Name].Add(product.CveId);
-        }
-
-        // Only process release mappings if release is not empty
-        if (!string.IsNullOrEmpty(product.Release))
-        {
-            string release = product.Release;
-
-            if (!cveReleases.ContainsKey(product.CveId))
+            if (!productCves.ContainsKey(product.Name))
             {
-                cveReleases[product.CveId] = new List<string>();
+                productCves[product.Name] = new List<string>();
             }
-            if (!cveReleases[product.CveId].Contains(release))
+            if (!productCves[product.Name].Contains(product.CveId))
             {
-                cveReleases[product.CveId].Add(release);
+                productCves[product.Name].Add(product.CveId);
             }
 
-            if (!releaseCves.ContainsKey(release))
+            // Only process release mappings if release is not empty
+            if (!string.IsNullOrEmpty(product.Release))
             {
-                releaseCves[release] = new List<string>();
-            }
-            if (!releaseCves[release].Contains(product.CveId))
-            {
-                releaseCves[release].Add(product.CveId);
+                string release = product.Release;
+
+                if (!cveReleases.ContainsKey(product.CveId))
+                {
+                    cveReleases[product.CveId] = new List<string>();
+                }
+                if (!cveReleases[product.CveId].Contains(release))
+                {
+                    cveReleases[product.CveId].Add(release);
+                }
+
+                if (!releaseCves.ContainsKey(release))
+                {
+                    releaseCves[release] = new List<string>();
+                }
+                if (!releaseCves[release].Contains(product.CveId))
+                {
+                    releaseCves[release].Add(product.CveId);
+                }
             }
         }
     }
@@ -746,36 +753,40 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
             productName[package.Name] = GetProductDisplayName(package.Name);
         }
 
-        if (!productCves.ContainsKey(package.Name))
+        // Only add CVE if it exists in the cves property
+        if (validCveIds.Contains(package.CveId))
         {
-            productCves[package.Name] = new List<string>();
-        }
-        if (!productCves[package.Name].Contains(package.CveId))
-        {
-            productCves[package.Name].Add(package.CveId);
-        }
-
-        // Only process release mappings if release is not empty
-        if (!string.IsNullOrEmpty(package.Release))
-        {
-            string release = package.Release;
-
-            if (!cveReleases.ContainsKey(package.CveId))
+            if (!productCves.ContainsKey(package.Name))
             {
-                cveReleases[package.CveId] = new List<string>();
+                productCves[package.Name] = new List<string>();
             }
-            if (!cveReleases[package.CveId].Contains(release))
+            if (!productCves[package.Name].Contains(package.CveId))
             {
-                cveReleases[package.CveId].Add(release);
+                productCves[package.Name].Add(package.CveId);
             }
 
-            if (!releaseCves.ContainsKey(release))
+            // Only process release mappings if release is not empty
+            if (!string.IsNullOrEmpty(package.Release))
             {
-                releaseCves[release] = new List<string>();
-            }
-            if (!releaseCves[release].Contains(package.CveId))
-            {
-                releaseCves[release].Add(package.CveId);
+                string release = package.Release;
+
+                if (!cveReleases.ContainsKey(package.CveId))
+                {
+                    cveReleases[package.CveId] = new List<string>();
+                }
+                if (!cveReleases[package.CveId].Contains(release))
+                {
+                    cveReleases[package.CveId].Add(release);
+                }
+
+                if (!releaseCves.ContainsKey(release))
+                {
+                    releaseCves[release] = new List<string>();
+                }
+                if (!releaseCves[release].Contains(package.CveId))
+                {
+                    releaseCves[release].Add(package.CveId);
+                }
             }
         }
     }
@@ -799,12 +810,19 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
 
 static IDictionary<string, IList<string>> GenerateCveCommits(CveRecords cveRecords)
 {
-    var cveCommits = new Dictionary<string, HashSet<string>>();
+    var cveCommits = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+    // Build a set of valid commit hashes and CVE IDs
+    var validCommits = cveRecords.Commits is not null 
+        ? new HashSet<string>(cveRecords.Commits.Keys, StringComparer.OrdinalIgnoreCase)
+        : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var validCveIds = new HashSet<string>(cveRecords.Cves.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
 
     // Collect commits from products
     foreach (var product in cveRecords.Products)
     {
-        if (product.Commits is not null && product.Commits.Count > 0)
+        // Only process if CVE exists in cves property
+        if (validCveIds.Contains(product.CveId) && product.Commits is not null && product.Commits.Count > 0)
         {
             if (!cveCommits.ContainsKey(product.CveId))
             {
@@ -812,7 +830,11 @@ static IDictionary<string, IList<string>> GenerateCveCommits(CveRecords cveRecor
             }
             foreach (var commit in product.Commits)
             {
-                cveCommits[product.CveId].Add(commit);
+                // Only add commit if it exists in commits property
+                if (validCommits.Contains(commit))
+                {
+                    cveCommits[product.CveId].Add(commit);
+                }
             }
         }
     }
@@ -820,7 +842,8 @@ static IDictionary<string, IList<string>> GenerateCveCommits(CveRecords cveRecor
     // Collect commits from packages
     foreach (var package in cveRecords.Packages)
     {
-        if (package.Commits is not null && package.Commits.Count > 0)
+        // Only process if CVE exists in cves property
+        if (validCveIds.Contains(package.CveId) && package.Commits is not null && package.Commits.Count > 0)
         {
             if (!cveCommits.ContainsKey(package.CveId))
             {
@@ -828,7 +851,11 @@ static IDictionary<string, IList<string>> GenerateCveCommits(CveRecords cveRecor
             }
             foreach (var commit in package.Commits)
             {
-                cveCommits[package.CveId].Add(commit);
+                // Only add commit if it exists in commits property
+                if (validCommits.Contains(commit))
+                {
+                    cveCommits[package.CveId].Add(commit);
+                }
             }
         }
     }

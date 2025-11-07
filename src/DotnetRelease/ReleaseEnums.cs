@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace DotnetRelease;
 
-[JsonConverter(typeof(SnakeCaseLowerStringEnumConverter<SupportPhase>))]
+[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<SupportPhase>))]
 [Description("The support phases of a .NET release through its lifecycle")]
 public enum SupportPhase
 {
@@ -19,7 +19,7 @@ public enum SupportPhase
     Eol
 }
 
-[JsonConverter(typeof(SnakeCaseLowerStringEnumConverter<ReleaseType>))]
+[JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseType>))]
 [Description("The release support models offering different support lengths")]
 public enum ReleaseType
 {
