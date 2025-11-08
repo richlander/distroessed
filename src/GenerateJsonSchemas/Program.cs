@@ -9,6 +9,30 @@ using DotnetRelease.ReleaseInfo;
 using DotnetRelease.Support;
 using DotnetRelease.Cves;
 
+// GenerateJsonSchemas - Generate JSON Schema files for data models
+// Usage:
+//   GenerateJsonSchemas [target-directory]
+//   target-directory: Directory where schema files will be written (optional, defaults to current directory)
+
+string targetDirectory = args.Length > 0 ? args[0] : Directory.GetCurrentDirectory();
+
+if (!Directory.Exists(targetDirectory))
+{
+    try
+    {
+        Directory.CreateDirectory(targetDirectory);
+        Console.WriteLine($"Created target directory: {targetDirectory}");
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Error: Could not create target directory '{targetDirectory}': {ex.Message}");
+        return 1;
+    }
+}
+
+Console.WriteLine($"Generating JSON schemas in: {targetDirectory}");
+Console.WriteLine();
+
 List<ModelInfo> models = [
     new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),
     new (typeof(MajorReleaseOverview), "dotnet-releases.json"),
@@ -50,9 +74,13 @@ foreach (var model in models)
     WriteSchema(model);
 }
 
+Console.WriteLine($"Generated {models.Count} schema file(s)");
+return 0;
+
 void WriteSchema(ModelInfo modelInfo)
 {
     var (type, targetFile, namingPolicy) = modelInfo;
+    var outputPath = Path.Combine(targetDirectory, targetFile);
     var serializerOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = namingPolicy switch
@@ -65,7 +93,8 @@ void WriteSchema(ModelInfo modelInfo)
             : SchemaGenerationContext.Default
     };
     var schema = JsonSchemaExporter.GetJsonSchemaAsNode(serializerOptions, type, exporterOptions);
-    File.WriteAllText(targetFile, schema.ToString());
+    File.WriteAllText(outputPath, schema.ToString());
+    Console.WriteLine($"  ✓ {targetFile}");
 }
 
 static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? provider, bool inherit = false) where TAttribute : Attribute

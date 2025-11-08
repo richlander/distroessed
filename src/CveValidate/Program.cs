@@ -204,6 +204,7 @@ static async Task<bool> UpdateCveFile(string filePath)
         {
             CveReleases = generated.CveReleases,
             ProductCves = generated.ProductCves,
+            PackageCves = generated.PackageCves,
             ProductName = generated.ProductName,
             ReleaseCves = generated.ReleaseCves,
             CveCommits = cveCommits
@@ -693,6 +694,7 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
 {
     var productName = new Dictionary<string, string>();
     var productCves = new Dictionary<string, List<string>>();
+    var packageCves = new Dictionary<string, List<string>>();
     var cveReleases = new Dictionary<string, List<string>>();
     var releaseCves = new Dictionary<string, List<string>>();
 
@@ -745,7 +747,7 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
         }
     }
 
-    // Also process packages
+    // Build package_cves from packages
     foreach (var package in cveRecords.Packages)
     {
         if (!productName.ContainsKey(package.Name))
@@ -756,13 +758,13 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
         // Only add CVE if it exists in the cves property
         if (validCveIds.Contains(package.CveId))
         {
-            if (!productCves.ContainsKey(package.Name))
+            if (!packageCves.ContainsKey(package.Name))
             {
-                productCves[package.Name] = new List<string>();
+                packageCves[package.Name] = new List<string>();
             }
-            if (!productCves[package.Name].Contains(package.CveId))
+            if (!packageCves[package.Name].Contains(package.CveId))
             {
-                productCves[package.Name].Add(package.CveId);
+                packageCves[package.Name].Add(package.CveId);
             }
 
             // Only process release mappings if release is not empty
@@ -794,6 +796,8 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
     // Sort all lists for consistency
     foreach (var list in productCves.Values)
         list.Sort();
+    foreach (var list in packageCves.Values)
+        list.Sort();
     foreach (var list in cveReleases.Values)
         list.Sort();
     foreach (var list in releaseCves.Values)
@@ -803,6 +807,7 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
     return new GeneratedDictionaries(
         CveReleases: cveReleases.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
         ProductCves: productCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
+        PackageCves: packageCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
         ProductName: productName.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => v.Value),
         ReleaseCves: releaseCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value)
     );
@@ -892,6 +897,9 @@ static void ValidateDictionaries(CveRecords cveRecords, List<string> errors)
 
     // Validate product_cves
     ValidateDictionary(cveRecords.ProductCves, expected.ProductCves, "product_cves", errors);
+
+    // Validate package_cves
+    ValidateDictionary(cveRecords.PackageCves, expected.PackageCves, "package_cves", errors);
 
     // Validate product_name
     ValidateDictionary(cveRecords.ProductName, expected.ProductName, "product_name", errors);
@@ -993,6 +1001,7 @@ static void ReportInvalidArgs()
 record GeneratedDictionaries(
     IDictionary<string, IList<string>> CveReleases,
     IDictionary<string, IList<string>> ProductCves,
+    IDictionary<string, IList<string>> PackageCves,
     IDictionary<string, string> ProductName,
     IDictionary<string, IList<string>> ReleaseCves
 );
