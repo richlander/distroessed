@@ -1,6 +1,10 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using DotnetRelease;
+using DotnetRelease.Index;
+using DotnetRelease.ReleaseInfo;
+using DotnetRelease.Support;
+using DotnetRelease.Summary;
 using FileHelpers;
 using EndOfLifeDate;
 using MarkdownHelpers;

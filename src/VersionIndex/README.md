@@ -13,17 +13,24 @@ Creates a hierarchical version index:
 ## Usage
 
 ```bash
-dotnet run --project VersionIndex -- <input-directory> [output-directory]
+dotnet run --project VersionIndex -- <input-directory> [output-directory] [--commit <sha>]
 ```
 
 **Arguments:**
 - `input-directory` - Directory containing release-notes data (e.g., `~/git/core-rich/release-notes`)
 - `output-directory` - Optional. Where to write generated files (defaults to input-directory)
+- `--commit <sha>` - Optional. Git commit SHA to use in generated links (defaults to 'main')
 
-**Example:**
+**Examples:**
 ```bash
+# Generate with default 'main' branch links
 dotnet run --project VersionIndex -- ~/git/core-rich/release-notes
+
+# Generate with commit-specific links (cache-busting for LLM testing)
+dotnet run --project VersionIndex -- ~/git/core-rich/release-notes --commit abc123def456
 ```
+
+See `/docs/commit-links-workflow.md` for details on using commit-specific links to avoid GitHub caching issues.
 
 ## Generated Files
 

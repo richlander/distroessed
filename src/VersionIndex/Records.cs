@@ -1,4 +1,5 @@
 using DotnetRelease;
+using DotnetRelease.Graph;
 
 public record ReleaseKindMapping(string Name, string Filename, ReleaseKind Kind, string FileType);
 

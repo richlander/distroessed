@@ -1,6 +1,6 @@
 using System.Buffers;
 using System.Text;
-using CveInfo;
+using DotnetRelease.Cves;
 
 namespace ReportHelpers;
 

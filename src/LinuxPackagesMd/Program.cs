@@ -2,6 +2,7 @@
 using DotnetRelease;
 using FileHelpers;
 using MarkdownHelpers;
+using DotnetRelease.Support;
 
 if (args.Length is 0 || !int.TryParse(args[0], out int majorVersion))
 {
@@ -77,13 +78,13 @@ writtenFile.Close();
 static void WritePackageOverview(StreamWriter writer, OSPackagesOverview packageOverview, Link links)
 {
     Table packageTable = new();
-  
+
     packageTable.AddHeader("Id", "Name", "Required scenarios", "Notes");
 
     foreach (var package in packageOverview.Packages)
     {
         BreakBuffer buffer = new(new());
-        if (package.MinVersion is {})
+        if (package.MinVersion is { })
         {
             buffer.Append($"Minimum required version {package.MinVersion}");
         }
@@ -101,7 +102,7 @@ static void WritePackageOverview(StreamWriter writer, OSPackagesOverview package
             buffer.ToString()
         );
     }
-    
+
     writer.Write(packageTable);
 
     foreach (var refLink in links.GetReferenceLinkAnchors())
@@ -138,7 +139,7 @@ static void WritePackageFamilies(StreamWriter writer, OSPackagesOverview package
             guard.StartRegion("bash");
 
             int commandCount = distro?.InstallCommands?.Count is null ? 0 : distro.InstallCommands.Count;
-            for(int i = 0; i < commandCount; i++)
+            for (int i = 0; i < commandCount; i++)
             {
                 var command = distro!.InstallCommands![i];
                 var commandString = GetCommandString(command);
@@ -167,7 +168,7 @@ static void WritePackageFamilies(StreamWriter writer, OSPackagesOverview package
                 guard.WriteLine($"{packages[i].Name}{endChar}");
             }
 
-            guard.EndRegion();  
+            guard.EndRegion();
         }
     }
 }

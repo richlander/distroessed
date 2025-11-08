@@ -1,6 +1,16 @@
 using System.Text.Json;
-using CveInfo;
 using DotnetRelease;
+using DotnetRelease.Cves;
+
+// CveValidate - Validate and update CVE JSON files
+// Usage:
+//   CveValidate validate <path> [--skip-urls]    - Validate cve.json file(s)
+//   CveValidate update <path>                    - Update dictionaries in cve.json file(s)
+//
+// Examples:
+//   CveValidate validate ~/git/core/release-notes/archives
+//   CveValidate validate ~/git/core/release-notes/archives/2024/01/cve.json --skip-urls
+//   CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json
 
 const string jsonFilename = "cve.json";
 
@@ -13,6 +23,7 @@ if (args.Length < 1)
 }
 
 // Parse arguments
+string? command = null;
 string? inputPath = null;
 bool skipUrls = false;
 
@@ -24,8 +35,22 @@ foreach (var arg in args)
     }
     else if (!arg.StartsWith("--"))
     {
-        inputPath = arg;
+        if (command is null)
+        {
+            command = arg.ToLowerInvariant();
+        }
+        else
+        {
+            inputPath = arg;
+        }
     }
+}
+
+// If only one non-option argument provided, treat as path with validate command
+if (command is not null && inputPath is null)
+{
+    inputPath = command;
+    command = "validate";
 }
 
 if (inputPath is null)
@@ -34,11 +59,16 @@ if (inputPath is null)
     return 1;
 }
 
-int totalFiles = 0;
-int validFiles = 0;
-int invalidFiles = 0;
+if (command != "validate" && command != "update")
+{
+    Console.WriteLine($"Error: Invalid command '{command}'. Must be 'validate' or 'update'.");
+    ReportInvalidArgs();
+    return 1;
+}
 
 // Determine if input is a file or directory
+List<string> cveFiles = new();
+
 if (File.Exists(inputPath))
 {
     if (!inputPath.EndsWith(jsonFilename))
@@ -46,49 +76,53 @@ if (File.Exists(inputPath))
         Console.WriteLine($"Error: Input file must be named '{jsonFilename}'");
         return 1;
     }
-
-    var result = await ValidateCveFile(inputPath, skipUrls);
-    return result ? 0 : 1;
+    cveFiles.Add(inputPath);
 }
 else if (Directory.Exists(inputPath))
 {
-    var cveFiles = Directory.GetFiles(inputPath, jsonFilename, SearchOption.AllDirectories);
-
-    if (cveFiles.Length == 0)
+    cveFiles.AddRange(Directory.GetFiles(inputPath, jsonFilename, SearchOption.AllDirectories));
+    
+    if (cveFiles.Count == 0)
     {
         Console.WriteLine($"No '{jsonFilename}' files found in directory: {inputPath}");
         return 1;
     }
     
     // Sort files alphabetically for consistent chronological order
-    Array.Sort(cveFiles);
-
-    Console.WriteLine($"Found {cveFiles.Length} CVE file(s) to validate");
-    Console.WriteLine();
-
-    foreach (var cveFile in cveFiles)
-    {
-        totalFiles++;
-        bool isValid = await ValidateCveFile(cveFile, skipUrls);
-        if (isValid)
-        {
-            validFiles++;
-        }
-        else
-        {
-            invalidFiles++;
-        }
-        Console.WriteLine();
-    }
-
-    Console.WriteLine($"Validation complete: {validFiles} valid, {invalidFiles} invalid");
-    return invalidFiles > 0 ? 1 : 0;
+    cveFiles.Sort();
 }
 else
 {
     Console.WriteLine($"Error: Path not found: {inputPath}");
     return 1;
 }
+
+Console.WriteLine($"Found {cveFiles.Count} CVE file(s) to process");
+Console.WriteLine();
+
+int successCount = 0;
+int failureCount = 0;
+
+foreach (var cveFile in cveFiles)
+{
+    bool success = command == "validate" 
+        ? await ValidateCveFile(cveFile, skipUrls) 
+        : await UpdateCveFile(cveFile);
+    
+    if (success)
+    {
+        successCount++;
+    }
+    else
+    {
+        failureCount++;
+    }
+    Console.WriteLine();
+}
+
+string action = command == "validate" ? "Validation" : "Update";
+Console.WriteLine($"{action} complete: {successCount} succeeded, {failureCount} failed");
+return failureCount > 0 ? 1 : 0;
 
 static async Task<bool> ValidateCveFile(string filePath, bool skipUrls)
 {
@@ -112,6 +146,8 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls)
         ValidateTaxonomy(cves, errors);
         ValidateVersionCoherence(cves, errors);
         ValidateForeignKeys(cves, errors);
+        ValidateDictionaries(cves, errors);
+        await ValidateNuGetPackages(cves, errors);
 
         if (!skipUrls)
         {
@@ -139,6 +175,51 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls)
     {
         errors.Add($"Unexpected error: {ex.Message}");
         ReportErrors(errors);
+        return false;
+    }
+}
+
+static async Task<bool> UpdateCveFile(string filePath)
+{
+    try
+    {
+        Console.WriteLine($"Updating: {filePath}");
+        
+        using var stream = File.OpenRead(filePath);
+        var cveRecords = await CveUtils.GetCves(stream);
+        
+        if (cveRecords is null)
+        {
+            Console.WriteLine($"  ERROR: Failed to deserialize JSON");
+            return false;
+        }
+
+        var generated = GenerateDictionaries(cveRecords);
+        
+        // Update cve_commits dictionary
+        var cveCommits = GenerateCveCommits(cveRecords);
+        
+        // Create new record with updated dictionaries
+        var updated = cveRecords with
+        {
+            CveReleases = generated.CveReleases,
+            ProductCves = generated.ProductCves,
+            PackageCves = generated.PackageCves,
+            ProductName = generated.ProductName,
+            ReleaseCves = generated.ReleaseCves,
+            CveCommits = cveCommits
+        };
+
+        // Serialize with 2-space indentation to match original format
+        string json = JsonSerializer.Serialize(updated, CveSerializerContext.Default.CveRecords);
+        await File.WriteAllTextAsync(filePath, json);
+
+        Console.WriteLine($"  ✓ Updated dictionaries and cve_commits");
+        return true;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"  ERROR: {ex.Message}");
         return false;
     }
 }
@@ -464,6 +545,79 @@ static void ValidateForeignKeys(CveRecords cves, List<string> errors)
     }
 }
 
+static async Task ValidateNuGetPackages(CveRecords cves, List<string> errors)
+{
+    if (cves.Packages is null || cves.Packages.Count == 0)
+        return;
+
+    using var client = new HttpClient();
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("User-Agent", "CveValidate/1.0");
+
+    // Collect unique package names
+    var packageNames = new HashSet<string>();
+    foreach (var package in cves.Packages)
+    {
+        packageNames.Add(package.Name);
+    }
+
+    // Validate all packages in parallel
+    var validationTasks = packageNames.Select(name => ValidateNuGetPackage(client, name)).ToArray();
+    var results = await Task.WhenAll(validationTasks);
+
+    // Collect all errors
+    foreach (var error in results.Where(e => e is not null))
+    {
+        errors.Add(error!);
+    }
+}
+
+static async Task<string?> ValidateNuGetPackage(HttpClient client, string packageName)
+{
+    // Skip validation for files (e.g., .so, .dll, .dylib files)
+    if (packageName.Contains('.') && 
+        (packageName.EndsWith(".so", StringComparison.OrdinalIgnoreCase) ||
+         packageName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||
+         packageName.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase)))
+    {
+        return $"Package '{packageName}' appears to be a file (with extension), not a NuGet package";
+    }
+
+    try
+    {
+        // Use NuGet.org API v3 to check if package exists
+        string url = $"https://api.nuget.org/v3/registration5-semver1/{packageName.ToLowerInvariant()}/index.json";
+        var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Check if it matches the Microsoft.*Runtime pattern (appears to be a product not package)
+            if (packageName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) && 
+                packageName.EndsWith("Runtime", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"Package '{packageName}' not found on nuget.org (appears to be a product not package)";
+            }
+            
+            return $"Package '{packageName}' not found on nuget.org";
+        }
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            return $"Package '{packageName}' validation failed with status {(int)response.StatusCode}";
+        }
+        
+        return null;
+    }
+    catch (HttpRequestException ex)
+    {
+        return $"Package '{packageName}' validation request failed: {ex.Message}";
+    }
+    catch (TaskCanceledException)
+    {
+        return $"Package '{packageName}' validation timeout";
+    }
+}
+
 static async Task ValidateUrls(CveRecords cves, List<string> errors)
 {
     using var client = new HttpClient();
@@ -536,20 +690,318 @@ static void ReportErrors(List<string> errors)
     }
 }
 
+static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
+{
+    var productName = new Dictionary<string, string>();
+    var productCves = new Dictionary<string, List<string>>();
+    var packageCves = new Dictionary<string, List<string>>();
+    var cveReleases = new Dictionary<string, List<string>>();
+    var releaseCves = new Dictionary<string, List<string>>();
+
+    // Build a set of valid CVE IDs
+    var validCveIds = new HashSet<string>(cveRecords.Cves.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
+
+    // Build product_name and product_cves from products
+    foreach (var product in cveRecords.Products)
+    {
+        if (!productName.ContainsKey(product.Name))
+        {
+            productName[product.Name] = GetProductDisplayName(product.Name);
+        }
+
+        // Only add CVE if it exists in the cves property
+        if (validCveIds.Contains(product.CveId))
+        {
+            if (!productCves.ContainsKey(product.Name))
+            {
+                productCves[product.Name] = new List<string>();
+            }
+            if (!productCves[product.Name].Contains(product.CveId))
+            {
+                productCves[product.Name].Add(product.CveId);
+            }
+
+            // Only process release mappings if release is not empty
+            if (!string.IsNullOrEmpty(product.Release))
+            {
+                string release = product.Release;
+
+                if (!cveReleases.ContainsKey(product.CveId))
+                {
+                    cveReleases[product.CveId] = new List<string>();
+                }
+                if (!cveReleases[product.CveId].Contains(release))
+                {
+                    cveReleases[product.CveId].Add(release);
+                }
+
+                if (!releaseCves.ContainsKey(release))
+                {
+                    releaseCves[release] = new List<string>();
+                }
+                if (!releaseCves[release].Contains(product.CveId))
+                {
+                    releaseCves[release].Add(product.CveId);
+                }
+            }
+        }
+    }
+
+    // Build package_cves from packages
+    foreach (var package in cveRecords.Packages)
+    {
+        if (!productName.ContainsKey(package.Name))
+        {
+            productName[package.Name] = GetProductDisplayName(package.Name);
+        }
+
+        // Only add CVE if it exists in the cves property
+        if (validCveIds.Contains(package.CveId))
+        {
+            if (!packageCves.ContainsKey(package.Name))
+            {
+                packageCves[package.Name] = new List<string>();
+            }
+            if (!packageCves[package.Name].Contains(package.CveId))
+            {
+                packageCves[package.Name].Add(package.CveId);
+            }
+
+            // Only process release mappings if release is not empty
+            if (!string.IsNullOrEmpty(package.Release))
+            {
+                string release = package.Release;
+
+                if (!cveReleases.ContainsKey(package.CveId))
+                {
+                    cveReleases[package.CveId] = new List<string>();
+                }
+                if (!cveReleases[package.CveId].Contains(release))
+                {
+                    cveReleases[package.CveId].Add(release);
+                }
+
+                if (!releaseCves.ContainsKey(release))
+                {
+                    releaseCves[release] = new List<string>();
+                }
+                if (!releaseCves[release].Contains(package.CveId))
+                {
+                    releaseCves[release].Add(package.CveId);
+                }
+            }
+        }
+    }
+
+    // Sort all lists for consistency
+    foreach (var list in productCves.Values)
+        list.Sort();
+    foreach (var list in packageCves.Values)
+        list.Sort();
+    foreach (var list in cveReleases.Values)
+        list.Sort();
+    foreach (var list in releaseCves.Values)
+        list.Sort();
+
+    // Return dictionaries with sorted keys
+    return new GeneratedDictionaries(
+        CveReleases: cveReleases.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
+        ProductCves: productCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
+        PackageCves: packageCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
+        ProductName: productName.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => v.Value),
+        ReleaseCves: releaseCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value)
+    );
+}
+
+static IDictionary<string, IList<string>> GenerateCveCommits(CveRecords cveRecords)
+{
+    var cveCommits = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+    // Build a set of valid commit hashes and CVE IDs
+    var validCommits = cveRecords.Commits is not null 
+        ? new HashSet<string>(cveRecords.Commits.Keys, StringComparer.OrdinalIgnoreCase)
+        : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var validCveIds = new HashSet<string>(cveRecords.Cves.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
+
+    // Collect commits from products
+    foreach (var product in cveRecords.Products)
+    {
+        // Only process if CVE exists in cves property
+        if (validCveIds.Contains(product.CveId) && product.Commits is not null && product.Commits.Count > 0)
+        {
+            if (!cveCommits.ContainsKey(product.CveId))
+            {
+                cveCommits[product.CveId] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+            foreach (var commit in product.Commits)
+            {
+                // Only add commit if it exists in commits property
+                if (validCommits.Contains(commit))
+                {
+                    cveCommits[product.CveId].Add(commit);
+                }
+            }
+        }
+    }
+
+    // Collect commits from packages
+    foreach (var package in cveRecords.Packages)
+    {
+        // Only process if CVE exists in cves property
+        if (validCveIds.Contains(package.CveId) && package.Commits is not null && package.Commits.Count > 0)
+        {
+            if (!cveCommits.ContainsKey(package.CveId))
+            {
+                cveCommits[package.CveId] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+            foreach (var commit in package.Commits)
+            {
+                // Only add commit if it exists in commits property
+                if (validCommits.Contains(commit))
+                {
+                    cveCommits[package.CveId].Add(commit);
+                }
+            }
+        }
+    }
+
+    // Convert to sorted dictionary with sorted lists
+    return cveCommits
+        .OrderBy(k => k.Key)
+        .ToDictionary(
+            k => k.Key,
+            v => (IList<string>)v.Value.OrderBy(c => c).ToList()
+        );
+}
+
+static string GetProductDisplayName(string productName)
+{
+    return productName switch
+    {
+        "dotnet-runtime-libraries" => ".NET Runtime Libraries",
+        "dotnet-runtime-aspnetcore" => "ASP.NET Core Runtime",
+        "dotnet-runtime" => ".NET Runtime Libraries",
+        "dotnet-aspnetcore" => "ASP.NET Core Runtime",
+        "dotnet-sdk" => ".NET SDK",
+        "aspnetcore-runtime" => "ASP.NET Core Runtime",
+        _ => productName
+    };
+}
+
+static void ValidateDictionaries(CveRecords cveRecords, List<string> errors)
+{
+    var expected = GenerateDictionaries(cveRecords);
+
+    // Validate cve_releases
+    ValidateDictionary(cveRecords.CveReleases, expected.CveReleases, "cve_releases", errors);
+
+    // Validate product_cves
+    ValidateDictionary(cveRecords.ProductCves, expected.ProductCves, "product_cves", errors);
+
+    // Validate package_cves
+    ValidateDictionary(cveRecords.PackageCves, expected.PackageCves, "package_cves", errors);
+
+    // Validate product_name
+    ValidateDictionary(cveRecords.ProductName, expected.ProductName, "product_name", errors);
+
+    // Validate release_cves
+    ValidateDictionary(cveRecords.ReleaseCves, expected.ReleaseCves, "release_cves", errors);
+
+    // Validate cve_commits
+    var expectedCveCommits = GenerateCveCommits(cveRecords);
+    if (expectedCveCommits.Count > 0)
+    {
+        ValidateDictionary(cveRecords.CveCommits, expectedCveCommits, "cve_commits", errors);
+    }
+}
+
+static void ValidateDictionary<T>(
+    IDictionary<string, T>? actual,
+    IDictionary<string, T>? expected,
+    string dictionaryName,
+    List<string> errors)
+{
+    if (expected is null && actual is null)
+        return;
+
+    if (expected is null || actual is null)
+    {
+        errors.Add($"{dictionaryName}: Dictionary is {(actual is null ? "missing" : "unexpected")}");
+        return;
+    }
+
+    // Check for missing keys
+    foreach (var key in expected.Keys)
+    {
+        if (!actual.ContainsKey(key))
+        {
+            errors.Add($"{dictionaryName}: Missing key '{key}'");
+        }
+    }
+
+    // Check for extra keys
+    foreach (var key in actual.Keys)
+    {
+        if (!expected.ContainsKey(key))
+        {
+            errors.Add($"{dictionaryName}: Unexpected key '{key}'");
+        }
+    }
+
+    // Check values for matching keys
+    foreach (var key in expected.Keys.Intersect(actual.Keys))
+    {
+        var expectedValue = expected[key];
+        var actualValue = actual[key];
+
+        if (expectedValue is IList<string> expectedList && actualValue is IList<string> actualList)
+        {
+            var expectedSorted = expectedList.OrderBy(x => x).ToList();
+            var actualSorted = actualList.OrderBy(x => x).ToList();
+
+            if (!expectedSorted.SequenceEqual(actualSorted))
+            {
+                errors.Add($"{dictionaryName}['{key}']: Value mismatch");
+                errors.Add($"    Expected: [{string.Join(", ", expectedSorted)}]");
+                errors.Add($"    Actual:   [{string.Join(", ", actualSorted)}]");
+            }
+        }
+        else if (!Equals(expectedValue, actualValue))
+        {
+            errors.Add($"{dictionaryName}['{key}']: Value mismatch");
+            errors.Add($"    Expected: {expectedValue}");
+            errors.Add($"    Actual:   {actualValue}");
+        }
+    }
+}
+
 static void ReportInvalidArgs()
 {
     Console.WriteLine();
     Console.WriteLine("Usage:");
-    Console.WriteLine("  CveValidate <path> [--skip-urls]");
+    Console.WriteLine("  CveValidate <command> <path> [--skip-urls]");
+    Console.WriteLine("  CveValidate <path> [--skip-urls]              (defaults to validate)");
+    Console.WriteLine();
+    Console.WriteLine("Commands:");
+    Console.WriteLine("  validate    Validate cve.json file(s) including dictionaries");
+    Console.WriteLine("  update      Update query dictionaries and cve_commits in cve.json file(s)");
     Console.WriteLine();
     Console.WriteLine("Arguments:");
-    Console.WriteLine("  <path>       Path to a cve.json file or directory containing cve.json files");
+    Console.WriteLine("  <path>      Path to a cve.json file or directory containing cve.json files");
     Console.WriteLine();
     Console.WriteLine("Options:");
-    Console.WriteLine("  --skip-urls  Skip URL validation (faster, useful for offline validation)");
+    Console.WriteLine("  --skip-urls Skip URL validation (faster, useful for offline validation)");
     Console.WriteLine();
     Console.WriteLine("Examples:");
-    Console.WriteLine("  CveValidate ~/git/core/release-notes/archives");
-    Console.WriteLine("  CveValidate ~/git/core/release-notes/archives/2025/06/cve.json");
+    Console.WriteLine("  CveValidate validate ~/git/core/release-notes/archives");
     Console.WriteLine("  CveValidate ~/git/core/release-notes/archives --skip-urls");
+    Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json");
 }
+
+record GeneratedDictionaries(
+    IDictionary<string, IList<string>> CveReleases,
+    IDictionary<string, IList<string>> ProductCves,
+    IDictionary<string, IList<string>> PackageCves,
+    IDictionary<string, string> ProductName,
+    IDictionary<string, IList<string>> ReleaseCves
+);

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DotnetRelease;
+using DotnetRelease.Graph;
 
 namespace VersionIndex;
 

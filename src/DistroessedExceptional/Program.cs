@@ -1,4 +1,6 @@
 ﻿using DotnetRelease;
+using DotnetRelease.ReleaseInfo;
+using DotnetRelease.Support;
 using ExceptionalVersions = System.Collections.Generic.List<string>;
 using ExceptionsPerVersion = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>;
 using ExceptionsPerFamily = System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<string, System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>>>;

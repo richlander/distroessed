@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using DotnetRelease;
+using DotnetRelease.Summary;
 
 namespace ShipIndex;
 

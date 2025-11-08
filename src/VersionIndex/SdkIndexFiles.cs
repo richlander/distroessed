@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
 using DotnetRelease;
+using DotnetRelease.Graph;
+using DotnetRelease.Summary;
 using JsonSchemaInjector;
 
 namespace VersionIndex;

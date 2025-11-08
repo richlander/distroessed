@@ -1,6 +1,10 @@
 using System.Globalization;
 using System.Net;
 using DotnetRelease;
+using DotnetRelease.ReleaseInfo;
+using DotnetRelease.Summary;
+using CveFromRelease = DotnetRelease.ReleaseInfo.Cve;
+using CveFromCves = DotnetRelease.Cves.Cve;
 
 namespace VersionIndex;
 

@@ -1,4 +1,5 @@
 ﻿using DotnetRelease;
+using DotnetRelease.Summary;
 using ShipIndex;
 
 // Generates .NET ship history index files (chronological: years -> months -> days)
@@ -9,19 +10,53 @@ using ShipIndex;
 
 if (args.Length == 0)
 {
-    Console.Error.WriteLine("Usage: ShipIndex <input-directory> [output-directory]");
+    Console.Error.WriteLine("Usage: ShipIndex <input-directory> [output-directory] [--commit <sha>]");
     Console.Error.WriteLine("  input-directory:  Directory containing release-notes data to read");
     Console.Error.WriteLine("  output-directory: Directory to write generated index files (optional, defaults to input-directory)");
+    Console.Error.WriteLine("  --commit <sha>:   Git commit SHA to use in generated links (optional, defaults to 'main')");
     return 1;
 }
 
-var inputDir = args[0];
-var outputDir = args.Length > 1 ? args[1] : inputDir;
+string? inputDir = null;
+string? outputDir = null;
+string? commitSha = null;
+
+// Parse arguments
+for (int i = 0; i < args.Length; i++)
+{
+    if (args[i] == "--commit" && i + 1 < args.Length)
+    {
+        commitSha = args[++i];
+    }
+    else if (inputDir == null)
+    {
+        inputDir = args[i];
+    }
+    else if (outputDir == null)
+    {
+        outputDir = args[i];
+    }
+}
+
+if (inputDir == null)
+{
+    Console.Error.WriteLine("Error: input-directory is required");
+    return 1;
+}
+
+outputDir ??= inputDir;
 
 if (!Directory.Exists(inputDir))
 {
     Console.Error.WriteLine($"Input directory not found: {inputDir}");
     return 1;
+}
+
+// Set commit SHA if provided
+if (commitSha != null)
+{
+    Location.SetGitHubCommit(commitSha);
+    Console.WriteLine($"Using commit: {commitSha}");
 }
 
 // Create output directory if it doesn't exist and it's different from input

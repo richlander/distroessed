@@ -1,4 +1,5 @@
 ﻿using DotnetRelease;
+using DotnetRelease.Cves;
 using MarkdownHelpers;
 
 // Format is inspired by https://security.alpinelinux.org/vuln/CVE-2024-5535

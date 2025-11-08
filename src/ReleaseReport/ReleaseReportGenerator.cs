@@ -1,4 +1,6 @@
-﻿using DotnetRelease;
+﻿using DotnetRelease.ReleaseInfo;
+using DotnetRelease.Support;
+using DotnetRelease.Summary;
 using EndOfLifeDate;
 
 public class ReleaseReportGenerator
