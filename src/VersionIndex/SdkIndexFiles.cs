@@ -247,7 +247,7 @@ public class SdkIndexFiles
             links)
         {
             Embedded = new SdkVersionIndexEmbedded(latestDownloads, featureBandEntries, sdkReleaseEntries),
-            Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
 
         // Serialize to JSON

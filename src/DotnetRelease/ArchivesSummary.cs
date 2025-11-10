@@ -1,4 +1,4 @@
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 using DotnetRelease.Graph;
 
 namespace DotnetRelease;

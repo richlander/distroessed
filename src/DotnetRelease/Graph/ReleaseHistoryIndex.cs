@@ -16,6 +16,11 @@ public record ReleaseHistoryIndex(
     Dictionary<string, HalLink> Links)
 {
 
+    [JsonPropertyName("_usage"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Usage information including glossary of terms and help links")]
+    public UsageWithLinks? Usage { get; set; }
+
     [JsonPropertyName("_embedded"),
      Description("Embedded time-based navigation entries and release summaries")]
     public ReleaseHistoryIndexEmbedded? Embedded { get; set; }

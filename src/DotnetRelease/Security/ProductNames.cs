@@ -1,4 +1,4 @@
-namespace DotnetRelease.Cves;
+namespace DotnetRelease.Security;
 
 /// <summary>
 /// Represents a single taxonomy item with identifier, display name, and description.

@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using DotnetRelease;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 using DotnetRelease.Graph;
 using DotnetRelease.Summary;
 using System.Linq;
@@ -10,6 +10,9 @@ using System.Globalization;
 using JsonSchemaInjector;
 
 namespace ShipIndex;
+
+// Helper record to track patch release information
+internal record PatchReleaseInfo(string PatchVersion, HashSet<string> SdkVersions);
 
 public class ShipIndexFiles
 {
@@ -34,7 +37,7 @@ public class ShipIndexFiles
 
     public static async Task GenerateAsync(string inputPath, string outputPath, ReleaseHistory releaseHistory)
     {
-        var historyPath = Path.Combine(outputPath, "archives");
+        var historyPath = Path.Combine(outputPath, "release-history");
 
         if (!Directory.Exists(historyPath))
         {
@@ -84,7 +87,7 @@ public class ShipIndexFiles
                     (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}-{month.Month}" : fileLink.Title);
 
                 HashSet<string> monthReleases = [];
-                HashSet<string> monthPatchReleases = [];
+                Dictionary<string, Dictionary<string, PatchReleaseInfo>> releasesByMajor = new();
 
                 // Process each day in the month
                 foreach (var days in month.Days.Values)
@@ -95,22 +98,38 @@ public class ShipIndexFiles
                         releasesForYear.Add(day.MajorVersion);
                         allReleases.Add(day.MajorVersion);
 
-                        // Add patch version (e.g., "10.0.1")
-                        monthPatchReleases.Add(day.PatchVersion);
+                        // Group patches by major version, keyed by runtime version
+                        if (!releasesByMajor.TryGetValue(day.MajorVersion, out var patches))
+                        {
+                            patches = new Dictionary<string, PatchReleaseInfo>();
+                            releasesByMajor[day.MajorVersion] = patches;
+                        }
 
-                        // Add runtime and SDK versions from components
+                        // Get runtime version for this release
+                        var runtimeVersion = day.Components.FirstOrDefault(c => c.Name == "Runtime")?.Version ?? day.PatchVersion;
+                        
+                        if (!patches.ContainsKey(runtimeVersion))
+                        {
+                            patches[runtimeVersion] = new PatchReleaseInfo(
+                                day.PatchVersion,
+                                new HashSet<string>()
+                            );
+                        }
+
+                        // Collect SDK versions for this runtime release
                         foreach (var component in day.Components)
                         {
-                            if (component.Name == "Runtime" || component.Name == "SDK")
+                            if (component.Name == "SDK")
                             {
-                                monthPatchReleases.Add(component.Version);
+                                patches[runtimeVersion].SdkVersions.Add(component.Version);
                             }
                         }
                     }
                 }
 
                 // Load CVE information for the month
-                var cveJsonPath = Path.Combine(monthPath, "cve.json");
+                var inputMonthPath = Path.Combine(inputPath, "release-history", year.Year, month.Month);
+                var cveJsonPath = Path.Combine(inputMonthPath, "cve.json");
                 CveRecords? cveRecords = null;
 
                 if (File.Exists(cveJsonPath))
@@ -135,7 +154,7 @@ public class ShipIndexFiles
                 };
 
                 // Add CVE JSON link if CVE records exist
-                if (cveRecords?.Cves.Count > 0)
+                if (cveRecords?.Disclosures.Count > 0)
                 {
                     var cveJsonRelativePath = Path.GetRelativePath(inputPath, Path.Combine(monthPath, "cve.json"));
 
@@ -150,9 +169,77 @@ public class ShipIndexFiles
                 var monthSummary = new HistoryMonthSummary(
                     month.Month,
                     monthSummaryLinks,
-                    cveRecords?.Cves.Select(r => new CveRecordSummary(r.Id, r.Problem)
+                    cveRecords?.Disclosures.Select(r =>
                     {
-                        Href = null  // TODO: Add reference URL when available in schema
+                        var affectedProducts = cveRecords.ProductCves?
+                            .Where(kv => kv.Value.Contains(r.Id))
+                            .Select(kv => kv.Key)
+                            .ToList();
+                        var affectedPackages = cveRecords.PackageCves?
+                            .Where(kv => kv.Value.Contains(r.Id))
+                            .Select(kv => kv.Key)
+                            .ToList();
+
+                        // Build _links with announcement first, then fix commit links
+                        var links = new Dictionary<string, object>();
+                        var fixes = new List<CommitLink>();
+                        
+                        // Add announcement link if available
+                        var announcementUrl = r.References?.FirstOrDefault();
+                        if (announcementUrl != null)
+                        {
+                            links["announcement"] = new HalLink(announcementUrl)
+                            {
+                                Title = $"Announcement for {r.Id}"
+                            };
+                        }
+
+                        // Add fix commit links
+                        if (cveRecords.CveCommits?.TryGetValue(r.Id, out var commitHashes) == true)
+                        {
+                            foreach (var hash in commitHashes)
+                            {
+                                if (cveRecords.Commits?.TryGetValue(hash, out var commitInfo) == true)
+                                {
+                                    // Find the release version for this commit
+                                    var release = cveRecords.Products?
+                                        .Where(p => p.CveId == r.Id && p.Commits.Contains(hash))
+                                        .Select(p => p.Release)
+                                        .FirstOrDefault();
+                                    
+                                    if (string.IsNullOrEmpty(release))
+                                    {
+                                        release = cveRecords.Packages?
+                                            .Where(p => p.CveId == r.Id && p.Commits.Contains(hash))
+                                            .Select(p => p.Release)
+                                            .FirstOrDefault();
+                                    }
+
+                                    var repoFullName = $"{commitInfo.Org}/{commitInfo.Repo}";
+                                    fixes.Add(new CommitLink(
+                                        commitInfo.Url,
+                                        repoFullName,
+                                        commitInfo.Branch)
+                                    {
+                                        Title = $"Fix commit in {commitInfo.Repo} ({commitInfo.Branch})",
+                                        Release = !string.IsNullOrEmpty(release) ? release : null
+                                    });
+                                }
+                            }
+                        }
+
+                        return new CveRecordSummary(r.Id, r.Problem)
+                        {
+                            Links = links.Count > 0 ? links : null,
+                            Fixes = fixes.Count > 0 ? fixes : null,
+                            CvssScore = r.Cvss.Score,
+                            CvssSeverity = r.Cvss.Severity,
+                            DisclosureDate = r.Timeline.Disclosure.Date,
+                            AffectedReleases = cveRecords.CveReleases?.TryGetValue(r.Id, out var releases) == true ? releases : null,
+                            AffectedProducts = affectedProducts?.Count > 0 ? affectedProducts : null,
+                            AffectedPackages = affectedPackages?.Count > 0 ? affectedPackages : null,
+                            Platforms = r.Platforms
+                        };
                     }).ToList() ?? [],
                     [.. monthReleases]
                 );
@@ -184,10 +271,183 @@ public class ShipIndexFiles
                 {
                     Embedded = new HistoryMonthIndexEmbedded
                     {
-                        DotnetReleases = [.. monthReleases.OrderByDescending(v => v, numericStringComparer)],
-                        DotnetPatchReleases = [.. monthPatchReleases.OrderByDescending(v => v, numericStringComparer)]
+                        Releases = releasesByMajor
+                            .OrderByDescending(kv => kv.Key, numericStringComparer)
+                            .ToDictionary(
+                                kv => kv.Key,
+                                kv => 
+                                {
+                                    var majorVersion = kv.Key;
+                                    var versionIndexPath = $"{majorVersion}/index.json";
+                                    
+                                    // Collect runtime and SDK patches separately
+                                    var runtimePatches = kv.Value.Keys.OrderByDescending(v => v, numericStringComparer).ToList();
+                                    var sdkPatches = kv.Value.Values
+                                        .SelectMany(p => p.SdkVersions)
+                                        .Distinct()
+                                        .OrderByDescending(v => v, numericStringComparer)
+                                        .ToList();
+                                    
+                                    var patchesDict = new Dictionary<string, IList<string>>
+                                    {
+                                        ["dotnet-runtime"] = runtimePatches
+                                    };
+                                    
+                                    if (sdkPatches.Count > 0)
+                                    {
+                                        patchesDict["dotnet-sdk"] = sdkPatches;
+                                    }
+                                    
+                                    var links = new Dictionary<string, object>
+                                    {
+                                        ["version-index"] = new HalLink($"{Location.GitHubBaseUri}{versionIndexPath}")
+                                        {
+                                            Relative = versionIndexPath,
+                                            Title = $".NET {majorVersion} Version Index",
+                                            Type = MediaType.HalJson
+                                        }
+                                    };
+
+                                    // Add individual release links for each runtime version
+                                    foreach (var runtimeVersion in runtimePatches)
+                                    {
+                                        var patchInfo = kv.Value[runtimeVersion];
+                                        var releaseJsonPath = $"{majorVersion}/{patchInfo.PatchVersion}/release.json";
+                                        
+                                        links[runtimeVersion] = new HalLink($"{Location.GitHubBaseUri}{releaseJsonPath}")
+                                        {
+                                            Relative = releaseJsonPath,
+                                            Title = $".NET {runtimeVersion} Release",
+                                            Type = MediaType.Json
+                                        };
+
+                                        // Add markdown link
+                                        var readmePath = $"{majorVersion}/{patchInfo.PatchVersion}/README.md";
+                                        links[$"{runtimeVersion}-markdown-raw"] = new HalLink($"{Location.GitHubBaseUri}{readmePath}")
+                                        {
+                                            Relative = readmePath,
+                                            Title = $".NET {runtimeVersion} Release Notes (Raw Markdown)",
+                                            Type = MediaType.Markdown
+                                        };
+                                    }
+
+                                    // Add SDK index link for supported versions (8.0+)
+                                    if (int.TryParse(majorVersion.Split('.')[0], out int majorVersionNumber) && majorVersionNumber >= 8)
+                                    {
+                                        var sdkIndexPath = $"{majorVersion}/sdk/index.json";
+                                        links["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
+                                        {
+                                            Relative = sdkIndexPath,
+                                            Title = $".NET SDK {majorVersion} Release Information",
+                                            Type = MediaType.HalJson
+                                        };
+
+                                        // Add links to SDK feature band JSON files
+                                        var sdkFeatureBands = sdkPatches
+                                            .Select(v => {
+                                                var parts = v.Split('.');
+                                                if (parts.Length >= 3)
+                                                {
+                                                    return $"{parts[0]}.{parts[1]}.{parts[2][0]}xx";
+                                                }
+                                                return null;
+                                            })
+                                            .Where(fb => fb != null)
+                                            .Distinct()
+                                            .OrderByDescending(fb => fb);
+
+                                        foreach (var featureBand in sdkFeatureBands)
+                                        {
+                                            var sdkBandPath = $"{majorVersion}/sdk/sdk-{featureBand}.json";
+                                            links[$"sdk-{featureBand}"] = new HalLink($"{Location.GitHubBaseUri}{sdkBandPath}")
+                                            {
+                                                Relative = sdkBandPath,
+                                                Title = $".NET SDK {featureBand}",
+                                                Type = MediaType.Json
+                                            };
+                                        }
+                                    }
+
+                                    var majorReleaseHistory = new MajorReleaseHistory(patchesDict)
+                                    {
+                                        Links = links
+                                    };
+                                    return majorReleaseHistory;
+                                }),
+                        Disclosures = cveRecords?.Disclosures.Select(r =>
+                        {
+                            var affectedProducts = cveRecords.ProductCves?
+                                .Where(kv => kv.Value.Contains(r.Id))
+                                .Select(kv => kv.Key)
+                                .ToList();
+                            var affectedPackages = cveRecords.PackageCves?
+                                .Where(kv => kv.Value.Contains(r.Id))
+                                .Select(kv => kv.Key)
+                                .ToList();
+
+                            // Build _links with announcement first, then fix commit links
+                            var links = new Dictionary<string, object>();
+                            var fixes = new List<CommitLink>();
+                            
+                            // Add announcement link if available
+                            var announcementUrl = r.References?.FirstOrDefault();
+                            if (announcementUrl != null)
+                            {
+                                links["announcement"] = new HalLink(announcementUrl)
+                                {
+                                    Title = $"Announcement for {r.Id}"
+                                };
+                            }
+
+                            // Add fix commit links
+                            if (cveRecords.CveCommits?.TryGetValue(r.Id, out var commitHashes) == true)
+                            {
+                                foreach (var hash in commitHashes)
+                                {
+                                    if (cveRecords.Commits?.TryGetValue(hash, out var commitInfo) == true)
+                                    {
+                                        // Find the release version for this commit
+                                        var release = cveRecords.Products?
+                                            .Where(p => p.CveId == r.Id && p.Commits.Contains(hash))
+                                            .Select(p => p.Release)
+                                            .FirstOrDefault();
+                                        
+                                        if (string.IsNullOrEmpty(release))
+                                        {
+                                            release = cveRecords.Packages?
+                                                .Where(p => p.CveId == r.Id && p.Commits.Contains(hash))
+                                                .Select(p => p.Release)
+                                                .FirstOrDefault();
+                                        }
+
+                                        var repoFullName = $"{commitInfo.Org}/{commitInfo.Repo}";
+                                        fixes.Add(new CommitLink(
+                                            commitInfo.Url,
+                                            repoFullName,
+                                            commitInfo.Branch)
+                                        {
+                                            Title = $"Fix commit in {commitInfo.Repo} ({commitInfo.Branch})",
+                                            Release = !string.IsNullOrEmpty(release) ? release : null
+                                        });
+                                    }
+                                }
+                            }
+
+                            return new CveRecordSummary(r.Id, r.Problem)
+                            {
+                                Links = links.Count > 0 ? links : null,
+                                Fixes = fixes.Count > 0 ? fixes : null,
+                                CvssScore = r.Cvss.Score,
+                                CvssSeverity = r.Cvss.Severity,
+                                DisclosureDate = r.Timeline.Disclosure.Date,
+                                AffectedReleases = cveRecords.CveReleases?.TryGetValue(r.Id, out var releases) == true ? releases : null,
+                                AffectedProducts = affectedProducts?.Count > 0 ? affectedProducts : null,
+                                AffectedPackages = affectedPackages?.Count > 0 ? affectedPackages : null,
+                                Platforms = r.Platforms
+                            };
+                        }).ToList()
                     },
-                    Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+                    Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
                 };
 
                 // Serialize to string first to add schema reference
@@ -234,7 +494,7 @@ public class ShipIndexFiles
                 year.Year,
                 yearHalLinks)
             {
-                Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+                Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
             };
 
             // Create embedded releases structure
@@ -317,11 +577,25 @@ public class ShipIndexFiles
             fullIndexLinks
             )
         {
+            Usage = new UsageWithLinks
+            {
+                Glossary = new Dictionary<string, string>
+                {
+                    ["lts"] = "Long-Term Support – 3-year support window",
+                    ["sts"] = "Standard-Term Support – 18-month support window",
+                    ["cve"] = "Common Vulnerabilities and Exposures – Security vulnerability identifiers",
+                    ["cvss"] = "Common Vulnerability Scoring System – Vulnerability severity ratings",
+                    ["release"] = "General Availability – Production-ready release",
+                    ["eol"] = "End of Life – No longer supported",
+                    ["preview"] = "Pre-release phase with previews and release candidates",
+                    ["active"] = "Full support with regular updates and security fixes"
+                }
+            },
             Embedded = new ReleaseHistoryIndexEmbedded
             {
                 Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)]
             },
-            Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
         };
 
         // Serialize to string first to add schema reference

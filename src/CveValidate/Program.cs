@@ -1,16 +1,25 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using DotnetRelease;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 
 // CveValidate - Validate and update CVE JSON files
 // Usage:
 //   CveValidate validate <path> [--skip-urls]    - Validate cve.json file(s)
-//   CveValidate update <path>                    - Update dictionaries in cve.json file(s)
+//   CveValidate update <path>                    - Update dictionaries and CVSS scores in cve.json file(s)
 //
 // Examples:
 //   CveValidate validate ~/git/core/release-notes/archives
 //   CveValidate validate ~/git/core/release-notes/archives/2024/01/cve.json --skip-urls
 //   CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json
+//
+// Update command fetches CVSS scores from CVE.org API and updates:
+//   - Query dictionaries (cve_releases, product_cves, package_cves, etc.)
+//   - CVSS scores and severity ratings from authoritative CVE.org data
+//   - CWE/weakness information from CVE.org
+//   - Acknowledgments from MSRC (when --msrc flag is used)
+//   - Cve_commits dictionary
 
 const string jsonFilename = "cve.json";
 
@@ -26,12 +35,22 @@ if (args.Length < 1)
 string? command = null;
 string? inputPath = null;
 bool skipUrls = false;
+bool validateMsrc = false;
+bool quietMode = false;
 
 foreach (var arg in args)
 {
     if (arg == "--skip-urls")
     {
         skipUrls = true;
+    }
+    else if (arg == "--msrc")
+    {
+        validateMsrc = true;
+    }
+    else if (arg == "--quiet" || arg == "-q")
+    {
+        quietMode = true;
     }
     else if (!arg.StartsWith("--"))
     {
@@ -98,7 +117,10 @@ else
 }
 
 Console.WriteLine($"Found {cveFiles.Count} CVE file(s) to process");
-Console.WriteLine();
+if (!quietMode)
+{
+    Console.WriteLine();
+}
 
 int successCount = 0;
 int failureCount = 0;
@@ -106,8 +128,8 @@ int failureCount = 0;
 foreach (var cveFile in cveFiles)
 {
     bool success = command == "validate" 
-        ? await ValidateCveFile(cveFile, skipUrls) 
-        : await UpdateCveFile(cveFile);
+        ? await ValidateCveFile(cveFile, skipUrls, validateMsrc, quietMode) 
+        : await UpdateCveFile(cveFile, validateMsrc);
     
     if (success)
     {
@@ -117,16 +139,19 @@ foreach (var cveFile in cveFiles)
     {
         failureCount++;
     }
-    Console.WriteLine();
+    
+    if (!quietMode || !success)
+    {
+        Console.WriteLine();
+    }
 }
 
 string action = command == "validate" ? "Validation" : "Update";
 Console.WriteLine($"{action} complete: {successCount} succeeded, {failureCount} failed");
 return failureCount > 0 ? 1 : 0;
 
-static async Task<bool> ValidateCveFile(string filePath, bool skipUrls)
+static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool validateMsrc, bool quietMode)
 {
-    Console.WriteLine($"Validating: {filePath}");
     var errors = new List<string>();
 
     try
@@ -138,13 +163,16 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls)
         if (cves is null)
         {
             errors.Add("Failed to deserialize JSON");
+            Console.WriteLine($"Validating: {filePath}");
             ReportErrors(errors);
             return false;
         }
 
         // Run all validations
         ValidateTaxonomy(cves, errors);
+        ValidateProblemDescriptionMatch(cves, errors);
         ValidateVersionCoherence(cves, errors);
+        ValidateCommitBranchMatch(cves, errors);
         ValidateForeignKeys(cves, errors);
         ValidateDictionaries(cves, errors);
         await ValidateNuGetPackages(cves, errors);
@@ -154,32 +182,173 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls)
             await ValidateUrls(cves, errors);
         }
 
+        if (validateMsrc)
+        {
+            await ValidateMsrcData(filePath, cves, errors);
+        }
+
         if (errors.Count == 0)
         {
-            Console.WriteLine("  ✓ All validations passed");
+            if (!quietMode)
+            {
+                Console.WriteLine($"Validating: {filePath}");
+                Console.WriteLine("  ✓ All validations passed");
+            }
             return true;
         }
         else
         {
+            Console.WriteLine($"Validating: {filePath}");
             ReportErrors(errors);
             return false;
         }
     }
     catch (JsonException ex)
     {
+        Console.WriteLine($"Validating: {filePath}");
         errors.Add($"JSON parsing error: {ex.Message}");
         ReportErrors(errors);
         return false;
     }
     catch (Exception ex)
     {
+        Console.WriteLine($"Validating: {filePath}");
         errors.Add($"Unexpected error: {ex.Message}");
         ReportErrors(errors);
         return false;
     }
 }
 
-static async Task<bool> UpdateCveFile(string filePath)
+static async Task<IList<Cve>> UpdateCvssScores(IList<Cve> cves)
+{
+    var updatedCves = new List<Cve>();
+    using var client = new HttpClient();
+    client.DefaultRequestHeaders.Add("User-Agent", "dotnet-cve-tools");
+    
+    foreach (var cve in cves)
+    {
+        try
+        {
+            Console.WriteLine($"  Fetching CVE data for {cve.Id}...");
+            var response = await client.GetStringAsync($"https://cveawg.mitre.org/api/cve/{cve.Id}");
+            var jsonDoc = JsonDocument.Parse(response);
+            
+            decimal baseScore = 0.0m;
+            string baseSeverity = "";
+            string? weakness = null;
+            
+            // Navigate to containers.cna
+            if (jsonDoc.RootElement.TryGetProperty("containers", out var containers) &&
+                containers.TryGetProperty("cna", out var cna))
+            {
+                // Get CVSS metrics
+                if (cna.TryGetProperty("metrics", out var metrics) &&
+                    metrics.GetArrayLength() > 0)
+                {
+                    var firstMetric = metrics[0];
+                    if (firstMetric.TryGetProperty("cvssV3_1", out var cvssV3_1))
+                    {
+                        baseScore = cvssV3_1.TryGetProperty("baseScore", out var scoreElement) 
+                            ? scoreElement.GetDecimal() 
+                            : 0.0m;
+                        baseSeverity = cvssV3_1.TryGetProperty("baseSeverity", out var severityElement)
+                            ? severityElement.GetString() ?? ""
+                            : "";
+                    }
+                }
+                
+                // Get CWE from problemTypes
+                if (cna.TryGetProperty("problemTypes", out var problemTypes) &&
+                    problemTypes.GetArrayLength() > 0)
+                {
+                    var firstProblem = problemTypes[0];
+                    if (firstProblem.TryGetProperty("descriptions", out var descriptions) &&
+                        descriptions.GetArrayLength() > 0)
+                    {
+                        var firstDesc = descriptions[0];
+                        if (firstDesc.TryGetProperty("cweId", out var cweIdElement))
+                        {
+                            weakness = cweIdElement.GetString();
+                        }
+                    }
+                }
+            }
+            
+            // Update CVSS with score and severity
+            var updatedCvss = cve.Cvss with
+            {
+                Score = baseScore,
+                Severity = baseSeverity
+            };
+            
+            updatedCves.Add(cve with { Cvss = updatedCvss, Weakness = weakness });
+            Console.WriteLine($"    Score: {baseScore}, Severity: {baseSeverity}, CWE: {weakness ?? "none"}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"    Error fetching CVE data: {ex.Message}");
+            updatedCves.Add(cve);
+        }
+        
+        // Rate limiting - be nice to the API
+        await Task.Delay(500);
+    }
+    
+    return updatedCves;
+}
+
+static async Task<IList<Cve>> UpdateAcknowledgmentsFromMsrc(string filePath, IList<Cve> cves)
+{
+    var msrcData = await FetchMsrcDataForFile(filePath);
+    if (msrcData is null)
+    {
+        Console.WriteLine("  Warning: Could not fetch MSRC data for acknowledgments and FAQs");
+        return cves;
+    }
+
+    var updatedCves = new List<Cve>();
+    foreach (var cve in cves)
+    {
+        if (msrcData.TryGetValue(cve.Id, out var msrcCve))
+        {
+            var updatedCna = cve.Cna ?? new Cna("microsoft");
+            bool hasUpdates = false;
+
+            // Add acknowledgments if available
+            if (msrcCve.Acknowledgments is not null && msrcCve.Acknowledgments.Count > 0)
+            {
+                Console.WriteLine($"  Adding {msrcCve.Acknowledgments.Count} acknowledgment(s) for {cve.Id}");
+                updatedCna = updatedCna with { Acknowledgments = msrcCve.Acknowledgments };
+                hasUpdates = true;
+            }
+
+            // Add FAQs if available
+            if (msrcCve.Faqs is not null && msrcCve.Faqs.Count > 0)
+            {
+                Console.WriteLine($"  Adding {msrcCve.Faqs.Count} FAQ(s) for {cve.Id}");
+                updatedCna = updatedCna with { Faq = msrcCve.Faqs };
+                hasUpdates = true;
+            }
+
+            if (hasUpdates)
+            {
+                updatedCves.Add(cve with { Cna = updatedCna });
+            }
+            else
+            {
+                updatedCves.Add(cve);
+            }
+        }
+        else
+        {
+            updatedCves.Add(cve);
+        }
+    }
+
+    return updatedCves;
+}
+
+static async Task<bool> UpdateCveFile(string filePath, bool validateMsrc)
 {
     try
     {
@@ -199,9 +368,19 @@ static async Task<bool> UpdateCveFile(string filePath)
         // Update cve_commits dictionary
         var cveCommits = GenerateCveCommits(cveRecords);
         
+        // Fetch and update CVSS scores from CVE.org
+        var updatedCves = await UpdateCvssScores(cveRecords.Disclosures);
+        
+        // Optionally fetch acknowledgments from MSRC
+        if (validateMsrc)
+        {
+            updatedCves = await UpdateAcknowledgmentsFromMsrc(filePath, updatedCves);
+        }
+        
         // Create new record with updated dictionaries
         var updated = cveRecords with
         {
+            Disclosures = updatedCves,
             CveReleases = generated.CveReleases,
             ProductCves = generated.ProductCves,
             PackageCves = generated.PackageCves,
@@ -214,7 +393,7 @@ static async Task<bool> UpdateCveFile(string filePath)
         string json = JsonSerializer.Serialize(updated, CveSerializerContext.Default.CveRecords);
         await File.WriteAllTextAsync(filePath, json);
 
-        Console.WriteLine($"  ✓ Updated dictionaries and cve_commits");
+        Console.WriteLine($"  ✓ Updated dictionaries, cve_commits, and CVSS scores");
         return true;
     }
     catch (Exception ex)
@@ -240,10 +419,10 @@ static void ValidateTaxonomy(CveRecords cves, List<string> errors)
     }
 
     // Validate platforms
-    if (cves.Cves is not null)
+    if (cves.Disclosures is not null)
     {
         var validPlatforms = new[] { "linux", "macos", "windows", "all" };
-        foreach (var cve in cves.Cves)
+        foreach (var cve in cves.Disclosures)
         {
             if (cve.Platforms is not null)
             {
@@ -270,12 +449,12 @@ static void ValidateTaxonomy(CveRecords cves, List<string> errors)
             }
 
             // Validate severity
-            if (cve.Severity is not null)
+            if (!string.IsNullOrEmpty(cve.Cvss.Severity))
             {
                 var validSeverities = new[] { "critical", "high", "medium", "low" };
-                if (!validSeverities.Contains(cve.Severity, StringComparer.OrdinalIgnoreCase))
+                if (!validSeverities.Contains(cve.Cvss.Severity, StringComparer.OrdinalIgnoreCase))
                 {
-                    errors.Add($"Invalid severity in {cve.Id}: '{cve.Severity}'");
+                    errors.Add($"Invalid severity in {cve.Id}: '{cve.Cvss.Severity}'");
                 }
             }
 
@@ -283,11 +462,90 @@ static void ValidateTaxonomy(CveRecords cves, List<string> errors)
             if (cve.Cna is not null)
             {
                 var validCnas = new[] { "microsoft" };
-                if (!validCnas.Contains(cve.Cna, StringComparer.OrdinalIgnoreCase))
+                if (!validCnas.Any(v => string.Equals(v, cve.Cna.Name, StringComparison.OrdinalIgnoreCase)))
                 {
-                    errors.Add($"Invalid CNA in {cve.Id}: '{cve.Cna}'");
+                    errors.Add($"Invalid CNA in {cve.Id}: '{cve.Cna.Name}'");
                 }
             }
+        }
+    }
+}
+
+static void ValidateProblemDescriptionMatch(CveRecords cves, List<string> errors)
+{
+    if (cves.Disclosures is null)
+        return;
+
+    // Map of vulnerability types that should be present in the description
+    var vulnerabilityKeywords = new Dictionary<string, string[]>
+    {
+        ["denial of service"] = new[] { 
+            "denial-of-service", "denial of service", "dos", "hang", "crash", "unresponsive",
+            "allocate", "memory leak", "resource exhaustion", "exhaust"
+        },
+        ["remote code execution"] = new[] { 
+            "remote code execution", "rce", "execute code", "arbitrary code", "run code",
+            "use-after-free", "race condition", "specially crafted request", "specially crafted file",
+            "exploit"
+        },
+        ["elevation of privilege"] = new[] { 
+            "elevation of privilege", "eop", "privilege escalation", "escalate privileges", "elevated privileges",
+            "local system", "system context", "administrator", "gain access"
+        },
+        ["information disclosure"] = new[] { 
+            "information disclosure", "information leak", "data leak", "expose information", "disclosed", "reveal",
+            "aitm", "adversary-in-the-middle", "mitm", "man-in-the-middle", "man in the middle",
+            "steal", "intercept", "eavesdrop"
+        },
+        ["security feature bypass"] = new[] { 
+            "security feature bypass", "bypass", "circumvent"
+        },
+        ["spoofing"] = new[] { 
+            "spoofing", "spoof", "impersonation", "masquerade"
+        },
+        ["tampering"] = new[] { 
+            "tampering", "tamper", "modify", "alter"
+        }
+    };
+
+    foreach (var cve in cves.Disclosures)
+    {
+        var problem = cve.Problem.ToLowerInvariant();
+        var description = string.Join(" ", cve.Description).ToLowerInvariant();
+
+        // Skip if description is empty
+        if (string.IsNullOrWhiteSpace(description))
+            continue;
+
+        // Extract the vulnerability type from the problem field
+        string? detectedProblemType = null;
+        foreach (var vulnType in vulnerabilityKeywords.Keys)
+        {
+            if (problem.Contains(vulnType))
+            {
+                detectedProblemType = vulnType;
+                break;
+            }
+        }
+
+        if (detectedProblemType is null)
+            continue;
+
+        // Check if any of the keywords for this vulnerability type appear in the description
+        var keywords = vulnerabilityKeywords[detectedProblemType];
+        bool foundMatch = keywords.Any(keyword => description.Contains(keyword));
+
+        if (!foundMatch)
+        {
+            errors.Add($"{cve.Id}: Problem/Description mismatch - Problem states '{detectedProblemType}' but description does not mention related terms");
+            errors.Add($"    Problem: {cve.Problem}");
+            errors.Add($"    Description: {string.Join(" ", cve.Description)}");
+        }
+
+        // Check for deprecated MITM term and suggest AiTM
+        if (description.Contains("mitm") || description.Contains("man-in-the-middle") || description.Contains("man in the middle"))
+        {
+            errors.Add($"{cve.Id}: Uses deprecated MITM (man-in-the-middle) term - consider using AiTM (adversary-in-the-middle) instead");
         }
     }
 }
@@ -314,6 +572,94 @@ static void ValidateVersionCoherence(CveRecords cves, List<string> errors)
             if (!IsVersionCoherent(package.MinVulnerable, package.MaxVulnerable, package.Fixed))
             {
                 errors.Add($"Incoherent versions for {package.CveId} in package {package.Name}: min={package.MinVulnerable}, max={package.MaxVulnerable}, fixed={package.Fixed}");
+            }
+        }
+    }
+}
+
+static void ValidateCommitBranchMatch(CveRecords cves, List<string> errors)
+{
+    if (cves.Commits is null)
+        return;
+
+    // Group products/packages by CVE to provide better error messages
+    var cveProductsMap = new Dictionary<string, List<(string name, string release, IList<string> commits)>>();
+    
+    if (cves.Products is not null)
+    {
+        foreach (var product in cves.Products)
+        {
+            if (!string.IsNullOrEmpty(product.Release) && product.Commits is not null && product.Commits.Count > 0)
+            {
+                if (!cveProductsMap.ContainsKey(product.CveId))
+                {
+                    cveProductsMap[product.CveId] = new List<(string, string, IList<string>)>();
+                }
+                cveProductsMap[product.CveId].Add((product.Name, product.Release, product.Commits));
+            }
+        }
+    }
+
+    if (cves.Packages is not null)
+    {
+        foreach (var package in cves.Packages)
+        {
+            if (!string.IsNullOrEmpty(package.Release) && package.Commits is not null && package.Commits.Count > 0)
+            {
+                if (!cveProductsMap.ContainsKey(package.CveId))
+                {
+                    cveProductsMap[package.CveId] = new List<(string, string, IList<string>)>();
+                }
+                cveProductsMap[package.CveId].Add((package.Name, package.Release, package.Commits));
+            }
+        }
+    }
+
+    // Check each CVE
+    foreach (var kvp in cveProductsMap)
+    {
+        var cveId = kvp.Key;
+        var items = kvp.Value;
+        
+        var mismatches = new List<string>();
+        var correctMatches = new List<string>();
+
+        foreach (var (name, release, commits) in items)
+        {
+            foreach (var commitHash in commits)
+            {
+                if (cves.Commits.TryGetValue(commitHash, out var commitInfo))
+                {
+                    var expectedBranch = $"release/{release}";
+                    if (!commitInfo.Branch.Equals(expectedBranch, StringComparison.OrdinalIgnoreCase))
+                    {
+                        mismatches.Add($"    {name} (release {release}) uses commit {commitHash} from branch '{commitInfo.Branch}'");
+                    }
+                    else
+                    {
+                        correctMatches.Add($"    {name} (release {release}) correctly uses commit {commitHash} from branch '{commitInfo.Branch}'");
+                    }
+                }
+            }
+        }
+
+        // Only report error if there are mismatches
+        if (mismatches.Count > 0)
+        {
+            errors.Add($"Commit branch mismatch for {cveId}:");
+            foreach (var mismatch in mismatches)
+            {
+                errors.Add(mismatch);
+            }
+            
+            // Show which releases have correct commits for context
+            if (correctMatches.Count > 0)
+            {
+                errors.Add($"    Note: Other releases have correct branch commits:");
+                foreach (var match in correctMatches)
+                {
+                    errors.Add(match);
+                }
             }
         }
     }
@@ -388,9 +734,9 @@ static void ValidateForeignKeys(CveRecords cves, List<string> errors)
 {
     // Collect all CVE IDs
     var cveIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    if (cves.Cves is not null)
+    if (cves.Disclosures is not null)
     {
-        foreach (var cve in cves.Cves)
+        foreach (var cve in cves.Disclosures)
         {
             cveIds.Add(cve.Id);
         }
@@ -627,9 +973,9 @@ static async Task ValidateUrls(CveRecords cves, List<string> errors)
     var urls = new HashSet<string>();
 
     // Collect URLs from CVEs
-    if (cves.Cves is not null)
+    if (cves.Disclosures is not null)
     {
-        foreach (var cve in cves.Cves)
+        foreach (var cve in cves.Disclosures)
         {
             if (cve.References is not null)
             {
@@ -699,9 +1045,9 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
     var releaseCves = new Dictionary<string, List<string>>();
 
     // Build a set of valid CVE IDs
-    var validCveIds = new HashSet<string>(cveRecords.Cves.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
+    var validCveIds = new HashSet<string>(cveRecords.Disclosures.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
 
-    // Build product_name and product_cves from products
+    // Build product_name and product_cves from products ONLY
     foreach (var product in cveRecords.Products)
     {
         if (!productName.ContainsKey(product.Name))
@@ -747,14 +1093,9 @@ static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
         }
     }
 
-    // Build package_cves from packages
+    // Build package_cves from packages (no need to add to product_name)
     foreach (var package in cveRecords.Packages)
     {
-        if (!productName.ContainsKey(package.Name))
-        {
-            productName[package.Name] = GetProductDisplayName(package.Name);
-        }
-
         // Only add CVE if it exists in the cves property
         if (validCveIds.Contains(package.CveId))
         {
@@ -821,7 +1162,7 @@ static IDictionary<string, IList<string>> GenerateCveCommits(CveRecords cveRecor
     var validCommits = cveRecords.Commits is not null 
         ? new HashSet<string>(cveRecords.Commits.Keys, StringComparer.OrdinalIgnoreCase)
         : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    var validCveIds = new HashSet<string>(cveRecords.Cves.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
+    var validCveIds = new HashSet<string>(cveRecords.Disclosures.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
 
     // Collect commits from products
     foreach (var product in cveRecords.Products)
@@ -979,23 +1320,255 @@ static void ReportInvalidArgs()
 {
     Console.WriteLine();
     Console.WriteLine("Usage:");
-    Console.WriteLine("  CveValidate <command> <path> [--skip-urls]");
-    Console.WriteLine("  CveValidate <path> [--skip-urls]              (defaults to validate)");
+    Console.WriteLine("  CveValidate <command> <path> [options]");
+    Console.WriteLine("  CveValidate <path> [options]              (defaults to validate)");
     Console.WriteLine();
     Console.WriteLine("Commands:");
     Console.WriteLine("  validate    Validate cve.json file(s) including dictionaries");
-    Console.WriteLine("  update      Update query dictionaries and cve_commits in cve.json file(s)");
+    Console.WriteLine("  update      Update dictionaries and fetch CVSS scores from CVE.org");
     Console.WriteLine();
     Console.WriteLine("Arguments:");
     Console.WriteLine("  <path>      Path to a cve.json file or directory containing cve.json files");
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  --skip-urls Skip URL validation (faster, useful for offline validation)");
+    Console.WriteLine("  --msrc      Validate/update against MSRC data");
+    Console.WriteLine("  --quiet, -q Only show files with errors (suppress success messages)");
     Console.WriteLine();
     Console.WriteLine("Examples:");
     Console.WriteLine("  CveValidate validate ~/git/core/release-notes/archives");
-    Console.WriteLine("  CveValidate ~/git/core/release-notes/archives --skip-urls");
+    Console.WriteLine("  CveValidate ~/git/core/release-notes/archives --skip-urls --quiet");
     Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json");
+    Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json --msrc");
+    Console.WriteLine("  CveValidate validate ~/git/core/release-notes/archives --msrc -q");
+}
+
+static async Task ValidateMsrcData(string filePath, CveRecords cves, List<string> errors)
+{
+    var msrcData = await FetchMsrcDataForFile(filePath);
+    if (msrcData is null)
+    {
+        errors.Add("MSRC: Could not fetch MSRC data for this file");
+        return;
+    }
+
+    foreach (var cve in cves.Disclosures)
+    {
+        if (msrcData.TryGetValue(cve.Id, out var msrcCve))
+        {
+            if (cve.Cvss.Score != msrcCve.Score)
+            {
+                errors.Add($"MSRC: {cve.Id} score mismatch - Expected: {msrcCve.Score}, Actual: {cve.Cvss.Score}");
+            }
+            
+            if (cve.Cvss.Vector != msrcCve.Vector)
+            {
+                errors.Add($"MSRC: {cve.Id} vector mismatch");
+            }
+
+            if (cve.Weakness != msrcCve.Weakness)
+            {
+                errors.Add($"MSRC: {cve.Id} weakness/CWE mismatch");
+            }
+        }
+    }
+}
+
+static async Task<Dictionary<string, MsrcCveData>?> FetchMsrcDataForFile(string filePath)
+{
+    // Extract year and month from file path (format: .../YYYY/MM/cve.json)
+    var match = Regex.Match(filePath, @"(\d{4})/(\d{2})/cve\.json");
+    if (!match.Success)
+    {
+        return null;
+    }
+
+    string year = match.Groups[1].Value;
+    string month = match.Groups[2].Value;
+    string monthName = new DateTime(int.Parse(year), int.Parse(month), 1).ToString("MMM");
+    string msrcId = $"{year}-{monthName}";
+    
+    return await FetchMsrcData(msrcId);
+}
+
+static async Task<Dictionary<string, MsrcCveData>?> FetchMsrcData(string msrcId)
+{
+    using var httpClient = new HttpClient();
+    var url = $"https://api.msrc.microsoft.com/cvrf/v2.0/cvrf/{msrcId}";
+    
+    try
+    {
+        var xmlContent = await httpClient.GetStringAsync(url);
+        return ParseMsrcXml(xmlContent);
+    }
+    catch (Exception)
+    {
+        return null;
+    }
+}
+
+static Dictionary<string, MsrcCveData> ParseMsrcXml(string xmlContent)
+{
+    var result = new Dictionary<string, MsrcCveData>();
+    
+    // Parse embedded HTML table from DocumentNotes
+    var tableMatch = Regex.Match(xmlContent, @"&lt;table&gt;.*?&lt;/table&gt;", RegexOptions.Singleline);
+    if (!tableMatch.Success)
+        return result;
+
+    var tableHtml = tableMatch.Value
+        .Replace("&lt;", "<")
+        .Replace("&gt;", ">")
+        .Replace("&amp;", "&");
+
+    // Extract rows
+    var rowMatches = Regex.Matches(tableHtml, @"<tr>(.*?)</tr>", RegexOptions.Singleline);
+    
+    foreach (Match rowMatch in rowMatches)
+    {
+        var row = rowMatch.Groups[1].Value;
+        var cells = Regex.Matches(row, @"<td>(.*?)</td>", RegexOptions.Singleline)
+            .Select(m => Regex.Replace(m.Groups[1].Value, @"<a[^>]*>(.*?)</a>", "$1").Trim())
+            .ToList();
+
+        if (cells.Count >= 4 && cells[1].StartsWith("CVE-"))
+        {
+            var cveId = cells[1];
+            var scoreText = cells[2];
+            var vector = cells[3];
+
+            if (decimal.TryParse(scoreText, out decimal score))
+            {
+                result[cveId] = new MsrcCveData
+                {
+                    CveId = cveId,
+                    Score = score,
+                    Vector = vector,
+                    Impact = "",
+                    Weakness = null,
+                    CnaSeverity = null
+                };
+            }
+        }
+    }
+
+    // Parse XML for Impact, Weakness (CWE), and MSRC Severity
+    var xdoc = XDocument.Parse(xmlContent);
+    XNamespace vulnNs = "http://www.icasi.org/CVRF/schema/vuln/1.1";
+
+    foreach (var vuln in xdoc.Descendants(vulnNs + "Vulnerability"))
+    {
+        var cveElem = vuln.Element(vulnNs + "CVE");
+        if (cveElem is null) continue;
+
+        var cveId = cveElem.Value;
+        if (!result.ContainsKey(cveId)) continue;
+
+        // Get Impact
+        var impactElem = vuln.Descendants(vulnNs + "Threat")
+            .FirstOrDefault(t => t.Attribute("Type")?.Value == "Impact");
+        if (impactElem is not null)
+        {
+            var impactDesc = impactElem.Element(vulnNs + "Description")?.Value ?? "";
+            result[cveId] = result[cveId] with { Impact = impactDesc };
+        }
+
+        // Get CNA Severity
+        var severityElem = vuln.Descendants(vulnNs + "Threat")
+            .FirstOrDefault(t => t.Attribute("Type")?.Value == "Severity");
+        if (severityElem is not null)
+        {
+            var severityDesc = severityElem.Element(vulnNs + "Description")?.Value ?? "";
+            result[cveId] = result[cveId] with { CnaSeverity = severityDesc };
+        }
+
+        // Get CWE
+        var cweElem = vuln.Element(vulnNs + "CWE");
+        if (cweElem is not null)
+        {
+            var cweId = cweElem.Attribute("ID")?.Value;
+            if (cweId is not null)
+            {
+                result[cveId] = result[cveId] with { Weakness = cweId };
+            }
+        }
+
+        // Get Acknowledgments
+        var acknowledgments = new List<string>();
+        var acknowledgementsElem = vuln.Element(vulnNs + "Acknowledgments");
+        if (acknowledgementsElem is not null)
+        {
+            foreach (var ackElem in acknowledgementsElem.Elements(vulnNs + "Acknowledgment"))
+            {
+                var nameElem = ackElem.Element(vulnNs + "Name");
+                if (nameElem is not null)
+                {
+                    // Strip HTML tags from acknowledgment names
+                    var name = Regex.Replace(nameElem.Value, @"<[^>]+>", "");
+                    name = name.Replace("&amp;", "&").Trim();
+                    if (!string.IsNullOrEmpty(name) && !acknowledgments.Contains(name))
+                    {
+                        acknowledgments.Add(name);
+                    }
+                }
+            }
+        }
+        if (acknowledgments.Count > 0)
+        {
+            result[cveId] = result[cveId] with { Acknowledgments = acknowledgments };
+        }
+
+        // Get FAQs
+        var faqs = new List<CnaFaq>();
+        var notesElems = vuln.Elements(vulnNs + "Notes");
+        foreach (var notesElem in notesElems)
+        {
+            var faqNotes = notesElem.Elements(vulnNs + "Note")
+                .Where(n => n.Attribute("Type")?.Value == "FAQ");
+            
+            foreach (var faqNote in faqNotes)
+            {
+                var htmlContent = faqNote.Value;
+                // Parse the FAQ HTML content
+                var questionMatch = Regex.Match(htmlContent, @"<strong>(.*?)</strong>", RegexOptions.Singleline);
+                var answerMatch = Regex.Match(htmlContent, @"</strong>\s*</p>\s*<p>(.*?)</p>", RegexOptions.Singleline);
+                
+                if (questionMatch.Success)
+                {
+                    var question = Regex.Replace(questionMatch.Groups[1].Value, @"<[^>]+>", "").Trim();
+                    question = question.Replace("&amp;", "&");
+                    
+                    var answer = answerMatch.Success 
+                        ? Regex.Replace(answerMatch.Groups[1].Value, @"<[^>]+>", "").Trim()
+                        : "";
+                    answer = answer.Replace("&amp;", "&");
+                    
+                    if (!string.IsNullOrEmpty(question) && !string.IsNullOrEmpty(answer))
+                    {
+                        faqs.Add(new CnaFaq(question, answer));
+                    }
+                }
+            }
+        }
+        if (faqs.Count > 0)
+        {
+            result[cveId] = result[cveId] with { Faqs = faqs };
+        }
+    }
+
+    return result;
+}
+
+record MsrcCveData
+{
+    required public string CveId { get; init; }
+    required public decimal Score { get; init; }
+    required public string Vector { get; init; }
+    required public string Impact { get; init; }
+    public string? Weakness { get; init; }
+    public string? CnaSeverity { get; init; }
+    public List<string>? Acknowledgments { get; init; }
+    public List<CnaFaq>? Faqs { get; init; }
 }
 
 record GeneratedDictionaries(

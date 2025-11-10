@@ -4,7 +4,7 @@ using DotnetRelease;
 using DotnetRelease.ReleaseInfo;
 using DotnetRelease.Summary;
 using CveFromRelease = DotnetRelease.ReleaseInfo.Cve;
-using CveFromCves = DotnetRelease.Cves.Cve;
+using CveFromCves = DotnetRelease.Security.Cve;
 
 namespace VersionIndex;
 
@@ -159,7 +159,7 @@ public class Summary
 
     public static void PopulateCveInformation(ReleaseHistory releaseHistory, string rootDir)
     {
-        var historyDir = Path.Combine(rootDir, "archives");
+        var historyDir = Path.Combine(rootDir, "release-history");
         if (!Directory.Exists(historyDir))
         {
             return;

@@ -1,4 +1,4 @@
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 using MarkdownHelpers;
 using ReportHelpers;
 
@@ -56,7 +56,7 @@ public static class CveReport
 
         cveTable.AddHeader(cveLabels);
 
-        foreach (Cve cve in cves.Cves)
+        foreach (Cve cve in cves.Disclosures)
         {
             cveTable.AddRow(
                 $"[{cve.Id}][{cve.Id}]",
@@ -170,7 +170,7 @@ public static class CveReport
         writer.WriteLine();
 
         // Write second part of reference-style links
-        foreach (var cve in cves.Cves)
+        foreach (var cve in cves.Disclosures)
         {
             writer.WriteLine($"[{cve.Id}]: {Report.MakeCveLink(cve)}");
         }

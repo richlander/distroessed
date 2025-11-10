@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 
 namespace DotnetRelease.Graph;
 
@@ -47,6 +47,8 @@ public partial class ReleaseHistoryIndexSerializerContext : JsonSerializerContex
 [JsonSerializable(typeof(CveRecords))]
 [JsonSerializable(typeof(CveRecordsSummary))]
 [JsonSerializable(typeof(CveRecordSummary))]
+[JsonSerializable(typeof(CommitLink))]
+[JsonSerializable(typeof(HalLink))]
 public partial class HistoryYearIndexSerializerContext : JsonSerializerContext
 {
 }

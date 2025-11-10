@@ -15,7 +15,7 @@ public class IndexHelpers
         { "manifest.json", new ReleaseKindMapping("manifest", "manifest.json", ReleaseKind.Manifest, MediaType.Json) },
         { "usage.md", new ReleaseKindMapping("usage", "usage.md", ReleaseKind.Content, MediaType.Markdown) },
         { "terminology.md", new ReleaseKindMapping("terminology", "terminology.md", ReleaseKind.Content, MediaType.Markdown) },
-        { "archives/index.json", new ReleaseKindMapping("release-history-index", "archives/index.json", ReleaseKind.Index, MediaType.Json) }
+        { "release-history/index.json", new ReleaseKindMapping("release-history", "release-history/index.json", ReleaseKind.Index, MediaType.HalJson) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()

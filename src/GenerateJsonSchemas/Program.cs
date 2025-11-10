@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 using DotnetRelease.Index;
 using DotnetRelease.ReleaseInfo;
 using DotnetRelease.Support;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 
 // GenerateJsonSchemas - Generate JSON Schema files for data models
 // Usage:

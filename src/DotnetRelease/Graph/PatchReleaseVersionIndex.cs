@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 
 namespace DotnetRelease.Graph;
 

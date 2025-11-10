@@ -1,4 +1,4 @@
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 
 namespace DotnetRelease;
 
@@ -34,7 +34,7 @@ public static class CveFilter
 
         // Return CVEs with IDs in the affected set
         return cveRecords
-            .SelectMany(r => r.Cves)
+            .SelectMany(r => r.Disclosures)
             .Where(c => affectedCveIds.Contains(c.Id))
             .DistinctBy(c => c.Id);
     }
@@ -88,7 +88,7 @@ public static class CveFilter
         ArgumentNullException.ThrowIfNull(cves);
         ArgumentNullException.ThrowIfNullOrEmpty(severity);
 
-        return cves.Where(c => c.Severity.Equals(severity, StringComparison.OrdinalIgnoreCase));
+        return cves.Where(c => c.Cvss.Severity.Equals(severity, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -98,8 +98,8 @@ public static class CveFilter
     {
         ArgumentNullException.ThrowIfNull(cves);
         return cves.Where(c =>
-            c.Severity.Equals("Critical", StringComparison.OrdinalIgnoreCase) ||
-            c.Severity.Equals("High", StringComparison.OrdinalIgnoreCase)
+            c.Cvss.Severity.Equals("Critical", StringComparison.OrdinalIgnoreCase) ||
+            c.Cvss.Severity.Equals("High", StringComparison.OrdinalIgnoreCase)
         );
     }
 

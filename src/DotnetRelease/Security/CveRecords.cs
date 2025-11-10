@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace DotnetRelease.Cves;
+namespace DotnetRelease.Security;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A set of CVEs with affected products, packages, and commit information.")]
@@ -13,8 +13,9 @@ public record CveRecords(
     [property: Description("Title of the CVE disclosure.")]
     string Title,
 
-    [property: Description("Set of CVEs disclosed.")]
-    IList<Cve> Cves,
+    [property: Description("Set of CVEs disclosed."),
+        JsonPropertyName("disclosures")]
+    IList<Cve> Disclosures,
 
     [property: Description("Set of products affected by CVEs.")]
     IList<Product> Products,
@@ -86,13 +87,28 @@ public record Cve(
 );
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-[Description("Timeline of CVE disclosure and fix.")]
+[Description("Timeline of CVE lifecycle events.")]
 public record Timeline(
     [property: Description("Date when the CVE was publicly disclosed.")]
-    string Disclosed,
+    Event Disclosure,
 
-    [property: Description("Date when the CVE fix was released.")]
-    string Fixed
+    [property: Description("Date when the CVE fix was released."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    Event? Fixed = null,
+
+    [property: Description("Additional timeline events (e.g., reported, embargo start, validation)."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IList<Event>? Other = null
+);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("A dated event in the CVE lifecycle.")]
+public record Event(
+    [property: Description("Date of the event.")]
+    DateOnly Date,
+
+    [property: Description("Description of what occurred on this date.")]
+    string Description
 );
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -110,7 +126,15 @@ public record Cvss(
 
     [property: Description("CVSS severity rating (low/medium/high/critical) derived from base score."),
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    string Severity = ""
+    string Severity = "",
+
+    [property: Description("Source of the CVSS score calculation (e.g., 'microsoft', 'nvd')."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? Source = null,
+
+    [property: Description("CVSS temporal score, adjusted for exploit maturity, remediation level, and report confidence."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    decimal? TemporalScore = null
 );
 
 [Description("CVE Numbering Authority information.")]
@@ -119,68 +143,32 @@ public record Cna(
     [property: Description("Name of the CVE Numbering Authority.")]
     string Name,
 
-    [property: Description("CNA-specific severity rating (e.g., Microsoft's 'Important', 'Critical')."),
+    [property: Description("CNA-specific severity rating (e.g., Microsoft's 'Low', 'Moderate', 'Important', 'Critical'). This is the vendor's business risk assessment, which may differ from CVSS severity."),
         JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? Severity = null,
 
-    [property: Description("Impact type of the vulnerability (e.g., Elevation of Privilege, Security Feature Bypass)."),
-        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    string Impact = ""
+    [property: Description("Impact type/category of the vulnerability as defined by the CNA (e.g., 'Denial of Service', 'Elevation of Privilege', 'Remote Code Execution', 'Information Disclosure')."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? Impact = null,
+
+    [property: Description("Acknowledgments for researchers who discovered or reported the CVE."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IList<string>? Acknowledgments = null,
+
+    [property: Description("Frequently Asked Questions from the CNA about this CVE."),
+        JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IList<CnaFaq>? Faq = null
 );
 
-public class CnaJsonConverter : JsonConverter<Cna>
-{
-    public override Cna? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        if (reader.TokenType == JsonTokenType.String)
-        {
-            // Legacy format: just a string
-            var name = reader.GetString();
-            return new Cna(name ?? "");
-        }
-        else if (reader.TokenType == JsonTokenType.StartObject)
-        {
-            // New format: object with properties
-            string? name = null;
-            string? severity = null;
-            string? impact = null;
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[Description("FAQ entry from the CVE Numbering Authority.")]
+public record CnaFaq(
+    [property: Description("The question being asked.")]
+    string Question,
 
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.EndObject)
-                    break;
-
-                if (reader.TokenType == JsonTokenType.PropertyName)
-                {
-                    var propertyName = reader.GetString();
-                    reader.Read();
-
-                    if (propertyName == "name")
-                        name = reader.GetString();
-                    else if (propertyName == "severity")
-                        severity = reader.GetString();
-                    else if (propertyName == "impact")
-                        impact = reader.GetString();
-                }
-            }
-
-            return new Cna(name ?? "", severity, impact ?? "");
-        }
-
-        throw new JsonException("Invalid CNA format");
-    }
-
-    public override void Write(Utf8JsonWriter writer, Cna value, JsonSerializerOptions options)
-    {
-        writer.WriteStartObject();
-        writer.WriteString("name", value.Name);
-        if (value.Severity != null)
-            writer.WriteString("severity", value.Severity);
-        if (!string.IsNullOrEmpty(value.Impact))
-            writer.WriteString("impact", value.Impact);
-        writer.WriteEndObject();
-    }
-}
+    [property: Description("The answer to the question.")]
+    string Answer
+);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 [Description("A product affected by a CVE.")]

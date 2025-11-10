@@ -1,5 +1,5 @@
 ﻿using DotnetRelease;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 using MarkdownHelpers;
 
 // Format is inspired by https://security.alpinelinux.org/vuln/CVE-2024-5535
@@ -113,7 +113,7 @@ static async Task<ProcessResult> ProcessCveFile(string sourceFile, string templa
         using var jsonStream = File.OpenRead(sourceFile);
         var cves = await CveUtils.GetCves(jsonStream);
 
-        if (cves?.Cves is null)
+        if (cves?.Disclosures is null)
         {
             Console.WriteLine($"  ERROR: JSON deserialization failed");
             return ProcessResult.Failed;

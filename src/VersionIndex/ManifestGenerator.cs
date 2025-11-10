@@ -71,7 +71,7 @@ public static class ManifestGenerator
             versionLabel)
         {
             Lifecycle = lifecycle,
-            Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
 
         return manifest;

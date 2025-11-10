@@ -5,9 +5,9 @@ Generates .NET ship history index files organized chronologically by when releas
 ## Purpose
 
 Creates a time-based release calendar:
-- Root `archives/index.json` - Lists all years with releases
-- Per-year `archives/{year}/index.json` - Lists months with releases
-- Per-month `archives/{year}/{month}/index.json` - Lists releases on specific days
+- Root `release-history/index.json` - Lists all years with releases
+- Per-year `release-history/{year}/index.json` - Lists months with releases
+- Per-month `release-history/{year}/{month}/index.json` - Lists releases on specific days
 - CVE information linked to ship days
 
 ## Usage
@@ -34,9 +34,9 @@ See `/docs/commit-links-workflow.md` for details on using commit-specific links 
 
 ## Generated Files
 
-- `archives/index.json` - Root ship history index with all years
-- `archives/{year}/index.json` - Year index with all months (e.g., `archives/2024/index.json`)
-- `archives/{year}/{month}/index.json` - Month index with ship days (e.g., `archives/2024/11/index.json`)
+- `release-history/index.json` - Root ship history index with all years
+- `release-history/{year}/index.json` - Year index with all months (e.g., `release-history/2024/index.json`)
+- `release-history/{year}/{month}/index.json` - Month index with ship days (e.g., `release-history/2024/11/index.json`)
 - CVE records linked to relevant ship days
 
 ## Cross-Linking
@@ -52,6 +52,8 @@ Generates links to VersionIndex based on shipped versions:
 - **Cache-friendly** - Past months/years are immutable
 - **Independent** - Can run in any order relative to VersionIndex
 - **CVE-authoritative** - Owns the canonical CVE records
+
+> **Note on CVE Files**: The `last-updated` field in `cve.json` files should be set to the current date when initially publishing the history index (baseline date). The disclosure dates in individual CVE records represent when vulnerabilities were publicly disclosed, but the `last-updated` field tracks when the CVE data file itself was last modified.
 
 See `/docs/version-ship-cross-linking.md` for cross-linking design details.
 

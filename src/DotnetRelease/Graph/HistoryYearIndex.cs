@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 
 namespace DotnetRelease.Graph;
 
@@ -106,10 +106,23 @@ public record HistoryMonthIndex(
 [Description("Container for embedded month-level release entries")]
 public record HistoryMonthIndexEmbedded
 {
-    [Description("List of .NET major version identifiers that had releases this month")]
-    public IList<string>? DotnetReleases { get; set; }
-    [Description("List of specific patch version identifiers released this month")]
-    public IList<string>? DotnetPatchReleases { get; set; }
+    [Description("Releases grouped by major version with patch releases and links (keyed by version)")]
+    public Dictionary<string, MajorReleaseHistory>? Releases { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("CVE security vulnerability disclosures for this month")]
+    public IReadOnlyList<CveRecordSummary>? Disclosures { get; set; }
+}
+
+[Description("Release history for a major version during a specific time period")]
+public record MajorReleaseHistory(
+    [Description("Patch releases grouped by component type (dotnet-runtime, dotnet-sdk, etc.)")]
+    Dictionary<string, IList<string>> Patches)
+{
+    [JsonPropertyName("_links"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("HAL+JSON links to version index and release resources")]
+    public Dictionary<string, object>? Links { get; set; }
 }
 
 [Description("CVE summary information for a specific version")]

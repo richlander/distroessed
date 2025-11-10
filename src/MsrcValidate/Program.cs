@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using CveInfo;
+using DotnetRelease.Cves;
 
 if (args.Length < 2)
 {
@@ -82,7 +82,7 @@ static async Task<int> ProcessCveFile(string cveFilePath, bool updateMode)
     int issueCount = 0;
     bool modified = false;
 
-    foreach (var cve in cveRecords.Cves)
+    foreach (var cve in cveRecords.Disclosures)
     {
         if (msrcData.TryGetValue(cve.Id, out var msrcCve))
         {
@@ -92,12 +92,12 @@ static async Task<int> ProcessCveFile(string cveFilePath, bool updateMode)
             if (updateMode && updatedCve != null)
             {
                 // Replace CVE in list
-                var index = cveRecords.Cves.ToList().IndexOf(cve);
+                var index = cveRecords.Disclosures.ToList().IndexOf(cve);
                 if (index >= 0)
                 {
-                    var cveList = cveRecords.Cves.ToList();
+                    var cveList = cveRecords.Disclosures.ToList();
                     cveList[index] = updatedCve;
-                    cveRecords = cveRecords with { Cves = cveList };
+                    cveRecords = cveRecords with { Disclosures = cveList };
                     modified = true;
                 }
             }

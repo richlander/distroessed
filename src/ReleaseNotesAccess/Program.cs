@@ -133,11 +133,11 @@ if (firstMonthWithCves is not null)
     if (cveRecords is not null)
     {
         Console.WriteLine($"   Title: {cveRecords.Title}");
-        Console.WriteLine($"   CVEs: {cveRecords.Cves.Count}");
+        Console.WriteLine($"   CVEs: {cveRecords.Disclosures.Count}");
         Console.WriteLine($"   Affected Products: {cveRecords.Products.Count}");
         Console.WriteLine($"   Affected Packages: {cveRecords.Packages.Count}");
 
-        var firstCve = cveRecords.Cves.FirstOrDefault();
+        var firstCve = cveRecords.Disclosures.FirstOrDefault();
         if (firstCve is not null)
         {
             Console.WriteLine($"   First CVE: {firstCve.Id} - {firstCve.Problem} (Severity: {firstCve.Severity})");

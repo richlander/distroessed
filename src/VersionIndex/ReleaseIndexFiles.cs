@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using DotnetRelease;
-using DotnetRelease.Cves;
+using DotnetRelease.Security;
 using DotnetRelease.Graph;
 using DotnetRelease.Summary;
 using JsonSchemaInjector;
@@ -60,7 +60,7 @@ public class ReleaseIndexFiles
         {"../llms/README.md", new FileLink("../llms/README.md", "Usage Guide", LinkStyle.Prod | LinkStyle.GitHub) },
         {"../llms/quick-ref.md", new FileLink("../llms/quick-ref.md", "Quick Reference", LinkStyle.Prod | LinkStyle.GitHub) },
         {"../llms/glossary.md", new FileLink("../llms/glossary.md", "Glossary", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"archives/index.json", new FileLink("archives/index.json", "Security Advisories", LinkStyle.Prod) },
+        {"release-history/index.json", new FileLink("release-history/index.json", "History of .NET releases", LinkStyle.Prod) },
         {"support.md", new FileLink("support.md", "Support Policy", LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
@@ -205,19 +205,39 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // 3. Add JSON-only links from base mappings
+            // 3. Add release-history year links - HAL+JSON
+            // Get unique years from patch releases for this major version
+            var releaseYears = summary.PatchReleases
+                .Select(p => p.ReleaseDate.Year)
+                .Distinct()
+                .OrderByDescending(y => y)
+                .ToList();
+
+            foreach (var year in releaseYears)
+            {
+                var yearHistoryPath = $"release-history/{year}/index.json";
+                var linkKey = releaseYears.Count == 1 ? "release-history" : $"release-history-{year}";
+                orderedMajorVersionLinks[linkKey] = new HalLink($"{Location.GitHubBaseUri}{yearHistoryPath}")
+                {
+                    Relative = yearHistoryPath,
+                    Title = $".NET Release History {year} (chronological)",
+                    Type = MediaType.HalJson
+                };
+            }
+
+            // 4. Add JSON-only links from base mappings
             foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
             {
                 orderedMajorVersionLinks[link.Key] = link.Value;
             }
 
-            // 4. Add JSON-only links from aux mappings
+            // 5. Add JSON-only links from aux mappings
             foreach (var link in auxLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
             {
                 orderedMajorVersionLinks[link.Key] = link.Value;
             }
 
-            // 5. Add markdown links from aux mappings
+            // 6. Add markdown links from aux mappings
             foreach (var link in auxLinks.Where(kvp => kvp.Value.Type == MediaType.Markdown))
             {
                 orderedMajorVersionLinks[link.Key] = link.Value;
@@ -248,7 +268,7 @@ public class ReleaseIndexFiles
                 Usage = CreateUsage(usageLinksForPatch),
                 Embedded = patchEntries.Count > 0 ? new ReleaseVersionIndexEmbedded(patchEntries) : null,
                 Lifecycle = lifecycle,
-                Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+                Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
             };
 
             // Serialize to string first to add schema reference
@@ -447,7 +467,7 @@ public class ReleaseIndexFiles
         {
             Usage = CreateUsage(usageLinksForRoot),
             Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
-            Metadata = new GenerationMetadata(DateTimeOffset.UtcNow, "UpdateIndexes")
+            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
 
         // Serialize to string first to add schema reference
@@ -545,7 +565,12 @@ public class ReleaseIndexFiles
             {
                 cveRecords = summary.CveList.Select(cve => new CveRecordSummary(cve.CveId, $"CVE {cve.CveId}")
                 {
-                    Href = cve.CveUrl
+                    Links = cve.CveUrl != null 
+                        ? new Dictionary<string, object> 
+                        { 
+                            ["announcement"] = new HalLink(cve.CveUrl) { Title = $"Details for {cve.CveId}" }
+                        } 
+                        : null
                 }).ToList();
             }
 

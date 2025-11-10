@@ -49,7 +49,7 @@ public class MediaType
     {
         "index.json",
         "manifest.json",
-        "archives/index.json",
+        "release-history/index.json",
     };
 
     public static string GetFileType(string filename)
@@ -95,6 +95,9 @@ public class Hal
 
 [Description("Metadata about when and how this document was generated")]
 public record GenerationMetadata(
+    [property: JsonPropertyName("schema-version"),
+     Description("Version of the schema used for this document")]
+    string SchemaVersion,
     [property: JsonPropertyName("generated-on"),
      Description("ISO 8601 timestamp when this document was generated")]
     DateTimeOffset GeneratedOn,
