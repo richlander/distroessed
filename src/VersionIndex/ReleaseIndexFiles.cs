@@ -60,7 +60,7 @@ public class ReleaseIndexFiles
         {"../llms/README.md", new FileLink("../llms/README.md", "Usage Guide", LinkStyle.Prod | LinkStyle.GitHub) },
         {"../llms/quick-ref.md", new FileLink("../llms/quick-ref.md", "Quick Reference", LinkStyle.Prod | LinkStyle.GitHub) },
         {"../llms/glossary.md", new FileLink("../llms/glossary.md", "Glossary", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"release-history/index.json", new FileLink("release-history/index.json", "History of .NET releases", LinkStyle.Prod) },
+        {"timeline/index.json", new FileLink("timeline/index.json", "Timeline of .NET releases", LinkStyle.Prod) },
         {"support.md", new FileLink("support.md", "Support Policy", LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
@@ -175,7 +175,7 @@ public class ReleaseIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Generate patch version index; release-notes/8.0/index.json
-            var patchEntries = GetPatchIndexEntries(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, inputDir), lifecycle);
+            var patchEntries = await GetPatchIndexEntriesAsync(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, inputDir), lifecycle, outputDir, majorVersionDirName);
 
             // Generate aux links
             var auxLinks = halLinkGenerator.Generate(
@@ -205,7 +205,7 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // 3. Add release-history year links - HAL+JSON
+            // 3. Add release timeline year links - HAL+JSON
             // Get unique years from patch releases for this major version
             var releaseYears = summary.PatchReleases
                 .Select(p => p.ReleaseDate.Year)
@@ -215,12 +215,12 @@ public class ReleaseIndexFiles
 
             foreach (var year in releaseYears)
             {
-                var yearHistoryPath = $"release-history/{year}/index.json";
-                var linkKey = releaseYears.Count == 1 ? "release-history" : $"release-history-{year}";
+                var yearHistoryPath = $"timeline/{year}/index.json";
+                var linkKey = releaseYears.Count == 1 ? "release-timeline" : $"release-timeline-{year}";
                 orderedMajorVersionLinks[linkKey] = new HalLink($"{Location.GitHubBaseUri}{yearHistoryPath}")
                 {
                     Relative = yearHistoryPath,
-                    Title = $".NET Release History {year} (chronological)",
+                    Title = $".NET Release Timeline {year} (chronological)",
                     Type = MediaType.HalJson
                 };
             }
@@ -258,23 +258,37 @@ public class ReleaseIndexFiles
             var maxPatchVersion = patchVersions.Max(numericStringComparer);
             var patchVersionRange = $"{minPatchVersion}–{maxPatchVersion}";
 
+            // Collect all CVE IDs for this major version
+            var allCveIds = patchEntries
+                .Where(e => e.CveRecords?.Count > 0)
+                .SelectMany(e => e.CveRecords!)
+                .Distinct()
+                .OrderBy(id => id)
+                .ToList();
+
             var patchDescription = $"Index of .NET versions {patchVersionRange} (latest first); {Location.CacheFriendlyNote}";
-            var patchVersionIndex = new ReleaseVersionIndex(
+            var patchVersionIndex = new PatchReleaseVersionIndex(
                 ReleaseKind.Index,
                 $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Patch Release Index",
                 patchDescription,
                 remainingMajorVersionLinks)
             {
                 Usage = CreateUsage(usageLinksForPatch),
-                Embedded = patchEntries.Count > 0 ? new ReleaseVersionIndexEmbedded(patchEntries) : null,
+                Embedded = patchEntries.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
+                    patchEntries.Select(e => new PatchReleaseVersionIndexEntry(e.Version, e.Kind, e.Links)
+                    {
+                        Lifecycle = e.Lifecycle,
+                        CveRecords = e.CveRecords
+                    }).ToList()) : null,
                 Lifecycle = lifecycle,
+                CveRecords = allCveIds.Count > 0 ? allCveIds : null,
                 Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
             };
 
             // Serialize to string first to add schema reference
             var patchIndexJson = JsonSerializer.Serialize(
                 patchVersionIndex,
-                ReleaseVersionIndexSerializerContext.Default.ReleaseVersionIndex);
+                ReleaseVersionIndexSerializerContext.Default.PatchReleaseVersionIndex);
 
             // Add schema reference
             var schemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-version-index.json";
@@ -512,7 +526,12 @@ public class ReleaseIndexFiles
     }
 
     // Generates index containing each patch release in the major version directory
-    private static List<ReleaseVersionIndexEntry> GetPatchIndexEntries(IList<PatchReleaseSummary> summaries, PathContext pathContext, Lifecycle? majorVersionLifecycle)
+    private static async Task<List<ReleaseVersionIndexEntry>> GetPatchIndexEntriesAsync(
+        IList<PatchReleaseSummary> summaries, 
+        PathContext pathContext, 
+        Lifecycle? majorVersionLifecycle,
+        string outputDir,
+        string majorVersion)
     {
         var (rootDir, urlRootDir) = pathContext;
 
@@ -555,23 +574,11 @@ public class ReleaseIndexFiles
                     }
                 };
 
-
-
-            // Add CVE links - not included in VersionIndex (handled by ShipIndex)
-            IReadOnlyList<CveRecordSummary>? cveRecords = null;
-
-            // Add CVE records from the summary object
+            // Extract CVE IDs for the patch index entry
+            IReadOnlyList<string>? cveIds = null;
             if (summary.CveList?.Count > 0)
             {
-                cveRecords = summary.CveList.Select(cve => new CveRecordSummary(cve.CveId, $"CVE {cve.CveId}")
-                {
-                    Links = cve.CveUrl != null 
-                        ? new Dictionary<string, object> 
-                        { 
-                            ["announcement"] = new HalLink(cve.CveUrl) { Title = $"Details for {cve.CveId}" }
-                        } 
-                        : null
-                }).ToList();
+                cveIds = summary.CveList.Select(cve => cve.CveId).ToList();
             }
 
             // Create simplified lifecycle for patch releases (per spec: only phase and release-date)
@@ -598,14 +605,131 @@ public class ReleaseIndexFiles
 
             var patchLifecycle = new PatchLifecycle(patchPhase, patchReleaseDate);
 
+            // Generate patch detail index if there are CVEs
+            if (cveIds?.Count > 0)
+            {
+                await GeneratePatchDetailIndexAsync(
+                    patchDir, 
+                    outputDir,
+                    majorVersion,
+                    summary.PatchVersion, 
+                    patchLifecycle, 
+                    cveIds);
+                
+                // Add link to patch detail index
+                var patchIndexPath = $"{majorVersion}/{summary.PatchVersion}/index.json";
+                links["patch-index"] = new HalLink(IndexHelpers.GetProdPath(patchIndexPath))
+                {
+                    Relative = patchIndexPath,
+                    Title = $"{summary.PatchVersion} Patch Index with CVE Details",
+                    Type = MediaType.HalJson
+                };
+            }
+
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
             {
-                CveRecords = cveRecords,
+                CveRecords = cveIds,
                 Lifecycle = patchLifecycle
             };
             indexEntries.Add(indexEntry);
         }
 
         return indexEntries;
+    }
+
+    // Generates a detailed patch index file with CVE disclosures
+    private static async Task GeneratePatchDetailIndexAsync(
+        string patchDir,
+        string outputDir,
+        string majorVersion,
+        string patchVersion,
+        PatchLifecycle lifecycle,
+        IReadOnlyList<string> cveIds)
+    {
+        // Load CVE data from the major version directory
+        var majorVersionDir = Path.GetDirectoryName(patchDir);
+        if (majorVersionDir == null)
+        {
+            return;
+        }
+
+        var cveRecords = await CveHandler.CveLoader.LoadCveRecordsFromDirectoryAsync(majorVersionDir);
+        if (cveRecords == null)
+        {
+            return;
+        }
+
+        // Filter CVE records to only include those for this patch
+        var filteredCveRecords = CveHandler.CveTransformer.FilterByRelease(cveRecords, patchVersion);
+        if (filteredCveRecords == null || filteredCveRecords.Disclosures.Count == 0)
+        {
+            return;
+        }
+
+        // Convert to summaries
+        var cveDisclosures = CveHandler.CveTransformer.ToSummaries(filteredCveRecords);
+
+        // Create patch detail index
+        var links = new Dictionary<string, HalLink>
+        {
+            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/index.json")
+            {
+                Relative = $"{majorVersion}/{patchVersion}/index.json",
+                Title = $"{patchVersion} Patch Index",
+                Type = MediaType.HalJson
+            }
+        };
+
+        // Add link to CVE JSON if it exists
+        var cveJsonPath = Path.Combine(majorVersionDir, "cve.json");
+        if (File.Exists(cveJsonPath))
+        {
+            links["cve-json"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/cve.json")
+            {
+                Relative = $"{majorVersion}/cve.json",
+                Title = "CVE Information",
+                Type = MediaType.Json
+            };
+        }
+
+        var patchDetailIndex = new PatchDetailIndex(
+            ReleaseKind.Index,
+            patchVersion,
+            $".NET {patchVersion} Patch Index",
+            $"Detailed patch information for .NET {patchVersion} including CVE disclosures",
+            links)
+        {
+            Lifecycle = lifecycle,
+            Disclosures = cveDisclosures,
+            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+        };
+
+        // Serialize
+        var patchDetailJson = JsonSerializer.Serialize(
+            patchDetailIndex,
+            ReleaseVersionIndexSerializerContext.Default.PatchDetailIndex);
+
+        // Add schema reference
+        var schemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-patch-detail-index.json";
+        var updatedJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchDetailJson, schemaUri);
+
+        // Write to file
+        var outputPatchDir = Path.Combine(outputDir, majorVersion, patchVersion);
+        if (!Directory.Exists(outputPatchDir))
+        {
+            Directory.CreateDirectory(outputPatchDir);
+        }
+
+        var indexPath = Path.Combine(outputPatchDir, "index.json");
+        var finalJson = (updatedJson ?? patchDetailJson) + '\n';
+        
+        if (HalJsonComparer.ShouldWriteFile(indexPath, finalJson))
+        {
+            await File.WriteAllTextAsync(indexPath, finalJson);
+        }
+        else
+        {
+            _skippedFilesCount++;
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace DotnetRelease.Graph;
 
 [Description("Provides chronological access to .NET releases organized by time periods (years → months → releases)")]
 public record ReleaseHistoryIndex(
-    [Description("Type of history index (release-history-index, history-year-index, history-month-index)")]
+    [Description("Type of timeline index (release-timeline-index, timeline-year-index, timeline-month-index)")]
     HistoryKind Kind,
     [Description("Concise title for the document")]
     string Title,
@@ -68,15 +68,15 @@ public record HistoryYearEntry(
 };
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<HistoryKind>))]
-[Description("Identifies the type of history index document")]
+[Description("Identifies the type of timeline index document")]
 public enum HistoryKind
 {
     [Description("Root chronological index")]
-    ReleaseHistoryIndex,
+    ReleaseTimelineIndex,
     [Description("Year-specific index")]
-    HistoryYearIndex,
+    TimelineYearIndex,
     [Description("Month-specific index")]
-    HistoryMonthIndex,
+    TimelineMonthIndex,
 }
 
 /*

@@ -32,9 +32,9 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             bool isMarkdown = ".md".Equals(extension, StringComparison.OrdinalIgnoreCase);
             
             // Map files to semantic HAL+JSON relations
-            if (filename == "release-history/index.json")
+            if (filename == "timeline/index.json")
             {
-                name = "release-history";
+                name = "release-timeline";
             }
             else if (filename == "usage.md")
             {

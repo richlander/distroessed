@@ -156,7 +156,7 @@ public class Summary
 
     public static void PopulateCveInformation(ReleaseHistory releaseHistory, string rootDir)
     {
-        var historyDir = Path.Combine(rootDir, "release-history");
+        var historyDir = Path.Combine(rootDir, "timeline");
         if (!Directory.Exists(historyDir))
         {
             return;

@@ -89,8 +89,9 @@ public record ReleaseVersionIndexEntry(
     public PatchLifecycle? Lifecycle { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE security vulnerability records associated with this release")]
-    public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
+     JsonPropertyName("cve-records"),
+     Description("CVE IDs associated with this release")]
+    public IReadOnlyList<string>? CveRecords { get; set; }
 }
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]

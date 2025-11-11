@@ -2,10 +2,10 @@
 using DotnetRelease.Summary;
 using ShipIndex;
 
-// Generates .NET ship history index files (chronological: years -> months -> days)
-// - Root release-history/index.json with all years
-// - Per-year release-history/{year}/index.json files
-// - Per-month release-history/{year}/{month}/index.json files
+// Generates .NET ship timeline index files (chronological: years -> months -> days)
+// - Root timeline/index.json with all years
+// - Per-year timeline/{year}/index.json files
+// - Per-month timeline/{year}/{month}/index.json files
 // - CVE information linked to ship days
 
 if (args.Length == 0)
@@ -82,7 +82,7 @@ var summaries = await Summary.GetReleaseSummariesAsync(inputDir)
 ReleaseHistory history = Summary.GetReleaseCalendar(summaries);
 Summary.PopulateCveInformation(history, inputDir);
 
-// Generate ship history index files (release-history/index.json, year/month indexes)
+// Generate ship timeline index files (timeline/index.json, year/month indexes)
 await ShipIndexFiles.GenerateAsync(inputDir, outputDir, history);
 
 // Display skipped files count

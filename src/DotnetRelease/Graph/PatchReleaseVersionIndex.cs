@@ -34,6 +34,11 @@ public record PatchReleaseVersionIndex(
      Description("Lifecycle information (GA date, EOL date, release type, phase) for the major version")]
     public Lifecycle? Lifecycle { get; set; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     JsonPropertyName("cve-records"),
+     Description("CVE IDs affecting this major version")]
+    public IReadOnlyList<string>? CveRecords { get; set; }
+
     [property: JsonPropertyName("_metadata"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
@@ -61,6 +66,7 @@ public record PatchReleaseVersionIndexEntry(
     public PatchLifecycle? Lifecycle { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE security vulnerability records associated with this release")]
-    public IReadOnlyList<CveRecordSummary>? CveRecords { get; set; }
+     JsonPropertyName("cve-records"),
+     Description("CVE IDs associated with this release")]
+    public IReadOnlyList<string>? CveRecords { get; set; }
 }

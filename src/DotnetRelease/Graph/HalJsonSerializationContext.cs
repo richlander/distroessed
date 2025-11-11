@@ -8,6 +8,7 @@ namespace DotnetRelease.Graph;
     WriteIndented = true)]
 [JsonSerializable(typeof(MajorReleaseVersionIndex))]
 [JsonSerializable(typeof(PatchReleaseVersionIndex))]
+[JsonSerializable(typeof(PatchDetailIndex))]
 [JsonSerializable(typeof(ReleaseVersionIndex))]
 [JsonSerializable(typeof(MajorReleaseVersionIndexEntry))]
 [JsonSerializable(typeof(PatchReleaseVersionIndexEntry))]

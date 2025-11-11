@@ -49,7 +49,7 @@ public class MediaType
     {
         "index.json",
         "manifest.json",
-        "release-history/index.json",
+        "timeline/index.json",
     };
 
     public static string GetFileType(string filename)

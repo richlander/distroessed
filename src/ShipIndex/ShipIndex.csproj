@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
+    <ProjectReference Include="..\CveHandler\CveHandler.csproj" />
     <ProjectReference Include="..\JsonSchemaInjector\JsonSchemaInjector.csproj" />
   </ItemGroup>
 

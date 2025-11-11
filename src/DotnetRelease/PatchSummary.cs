@@ -33,9 +33,9 @@ public class PatchSummary
     public DateTimeOffset? ReleaseDate => _entry.Lifecycle?.ReleaseDate;
 
     /// <summary>
-    /// CVE security vulnerability records associated with this patch
+    /// CVE IDs associated with this patch
     /// </summary>
-    public IReadOnlyList<CveRecordSummary>? CveRecords => _entry.CveRecords;
+    public IReadOnlyList<string>? CveRecords => _entry.CveRecords;
 
     /// <summary>
     /// True if this patch includes CVE fixes

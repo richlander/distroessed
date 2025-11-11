@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShipIndex", "ShipIndex\Ship
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CveValidate", "CveValidate\CveValidate.csproj", "{897FC735-4467-4E95-80F8-4A0B6EF5C54D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CveHandler", "CveHandler\CveHandler.csproj", "{53E73F20-04FA-4598-836A-2662881D3EA5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -251,6 +253,18 @@ Global
 		{897FC735-4467-4E95-80F8-4A0B6EF5C54D}.Release|x64.Build.0 = Release|Any CPU
 		{897FC735-4467-4E95-80F8-4A0B6EF5C54D}.Release|x86.ActiveCfg = Release|Any CPU
 		{897FC735-4467-4E95-80F8-4A0B6EF5C54D}.Release|x86.Build.0 = Release|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Debug|x64.Build.0 = Debug|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Debug|x86.Build.0 = Debug|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Release|x64.ActiveCfg = Release|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Release|x64.Build.0 = Release|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Release|x86.ActiveCfg = Release|Any CPU
+		{53E73F20-04FA-4598-836A-2662881D3EA5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
