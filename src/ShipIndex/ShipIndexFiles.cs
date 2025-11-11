@@ -24,15 +24,15 @@ public class ShipIndexFiles
 
     public static readonly OrderedDictionary<string, FileLink> HistoryFileMappings = new()
     {
-        {"index.json", new FileLink("index.json", "History Index", LinkStyle.Prod) },
-        {"cve.json", new FileLink("cve.json", "CVE Information", LinkStyle.Prod) },
-        {"cve.md", new FileLink("cve.md", "CVE Information", LinkStyle.Prod | LinkStyle.GitHub) },
+        {"index.json", new FileLink("index.json", LinkTitles.HistoryIndex, LinkStyle.Prod) },
+        {"cve.json", new FileLink("cve.json", LinkTitles.CveInformation, LinkStyle.Prod) },
+        {"cve.md", new FileLink("cve.md", LinkTitles.CveInformation, LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
     public static readonly OrderedDictionary<string, FileLink> ReleaseFileMappings = new()
     {
-        {"index.json", new FileLink("index.json", ".NET Release Index", LinkStyle.Prod) },
-        {"README.md", new FileLink("README.md", ".NET Release Notes", LinkStyle.GitHub) },
+        {"index.json", new FileLink("index.json", LinkTitles.DotNetReleaseIndex, LinkStyle.Prod) },
+        {"README.md", new FileLink("README.md", LinkTitles.DotNetReleaseNotes, LinkStyle.GitHub) },
     };
 
     public static async Task GenerateAsync(string inputPath, string outputPath, ReleaseHistory releaseHistory)
@@ -84,7 +84,7 @@ public class ShipIndexFiles
                 var monthHistoryLinks = halLinkGenerator.Generate(
                     monthPath,
                     HistoryFileMappings.Values,
-                    (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}-{month.Month}" : fileLink.Title);
+                    (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineMonthLink(year.Year, month.Month) : fileLink.Title);
 
                 HashSet<string> monthReleases = [];
                 Dictionary<string, Dictionary<string, PatchReleaseInfo>> releasesByMajor = new();
@@ -141,7 +141,7 @@ public class ShipIndexFiles
                     [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
                     {
                         Relative = monthIndexRelativePath,
-                        Title = $"Release history for {year.Year}-{month.Month}",
+                        Title = IndexTitles.TimelineMonthLink(year.Year, month.Month),
                         Type = MediaType.HalJson
                     }
                 };
@@ -154,7 +154,7 @@ public class ShipIndexFiles
                     monthSummaryLinks["cve-json"] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
                     {
                         Relative = cveJsonRelativePath,
-                        Title = "CVE Information",
+                        Title = LinkTitles.CveInformation,
                         Type = MediaType.Json
                     };
                 }
@@ -173,7 +173,7 @@ public class ShipIndexFiles
                     [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
                     {
                         Relative = monthIndexRelativePath,
-                        Title = $"Release history for {year.Year}-{month.Month}",
+                        Title = IndexTitles.TimelineMonthLink(year.Year, month.Month),
                         Type = MediaType.HalJson
                     }
                 };
@@ -185,8 +185,8 @@ public class ShipIndexFiles
 
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.TimelineMonthIndex,
-                    $".NET Release History Index - {year.Year}-{month.Month}",
-                    $"Release history for {year.Year}-{month.Month} ({monthVersionRange}, latest first); {Location.CacheFriendlyNote}",
+                    IndexTitles.TimelineMonthTitle(year.Year, month.Month),
+                    IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthVersionRange, Location.CacheFriendlyNote),
                     year.Year,
                     month.Month,
                     monthIndexLinks)
@@ -330,7 +330,7 @@ public class ShipIndexFiles
             var yearHalLinks = halLinkGenerator.Generate(
                 yearPath,
                 HistoryFileMappings.Values,
-                (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title);
+                (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineYearLink(year.Year) : fileLink.Title);
 
             // Calculate version range for year index
             var yearMinVersion = releasesForYear.Min(numericStringComparer);
@@ -340,8 +340,8 @@ public class ShipIndexFiles
             // Create the year index (e.g., release-notes/2025/index.json)
             var yearHistory = new HistoryYearIndex(
                 HistoryKind.TimelineYearIndex,
-                $".NET Release History Index - {year.Year}",
-                $"Release history for {year.Year} ({yearVersionRange}, latest first); {Location.CacheFriendlyNote}",
+                IndexTitles.TimelineYearTitle(year.Year),
+                IndexTitles.TimelineYearIndexDescription(year.Year, yearVersionRange, Location.CacheFriendlyNote),
                 year.Year,
                 yearHalLinks)
             {
@@ -389,11 +389,11 @@ public class ShipIndexFiles
             var overallYearHalLinks = halLinkGenerator.Generate(
                 yearPath,
                 HistoryFileMappings.Values,
-                (fileLink, key) => key == HalTerms.Self ? $"Release history for {year.Year}" : fileLink.Title);
+                (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineYearLink(year.Year) : fileLink.Title);
 
             yearEntries.Add(new HistoryYearEntry(
                 HistoryKind.TimelineYearIndex,
-                $".NET release history for {year.Year}",
+                IndexTitles.TimelineYearDescription(year.Year),
                 year.Year,
                 overallYearHalLinks)
             {
@@ -405,13 +405,13 @@ public class ShipIndexFiles
         var fullIndexLinks = halLinkGenerator.Generate(
             historyPath,
             HistoryFileMappings.Values,
-            (fileLink, key) => key == HalTerms.Self ? "History of .NET releases" : fileLink.Title);
+            (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineIndexLink : fileLink.Title);
 
         // Add release-version-index link pointing back to root index.json
         fullIndexLinks["release-version-index"] = new HalLink($"{Location.GitHubBaseUri}index.json")
         {
             Relative = "index.json",
-            Title = ".NET Release Version Index",
+            Title = IndexTitles.VersionIndexTitle,
             Type = MediaType.HalJson
         };
 
@@ -423,8 +423,8 @@ public class ShipIndexFiles
         // Create the history index
         var historyIndex = new ReleaseHistoryIndex(
             HistoryKind.ReleaseTimelineIndex,
-            ".NET Release History Index",
-            $"History of .NET releases {rootVersionRange} (latest first); {Location.CacheFriendlyNote}",
+            IndexTitles.TimelineIndexTitle,
+            IndexTitles.TimelineIndexDescription(rootVersionRange, Location.CacheFriendlyNote),
             fullIndexLinks
             )
         {

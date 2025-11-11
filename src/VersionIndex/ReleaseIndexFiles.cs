@@ -56,29 +56,29 @@ public class ReleaseIndexFiles
 
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
-        {"index.json", new FileLink("index.json", ".NET Release Index", LinkStyle.Prod) },
-        {"../llms/README.md", new FileLink("../llms/README.md", "Usage Guide", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"../llms/quick-ref.md", new FileLink("../llms/quick-ref.md", "Quick Reference", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"../llms/glossary.md", new FileLink("../llms/glossary.md", "Glossary", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"timeline/index.json", new FileLink("timeline/index.json", "Timeline of .NET releases", LinkStyle.Prod) },
-        {"support.md", new FileLink("support.md", "Support Policy", LinkStyle.Prod | LinkStyle.GitHub) }
+        {"index.json", new FileLink("index.json", LinkTitles.DotNetReleaseIndex, LinkStyle.Prod) },
+        {"../llms/README.md", new FileLink("../llms/README.md", LinkTitles.UsageGuide, LinkStyle.Prod | LinkStyle.GitHub) },
+        {"../llms/quick-ref.md", new FileLink("../llms/quick-ref.md", LinkTitles.QuickReference, LinkStyle.Prod | LinkStyle.GitHub) },
+        {"../llms/glossary.md", new FileLink("../llms/glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
+        {"timeline/index.json", new FileLink("timeline/index.json", IndexTitles.TimelineIndexLink, LinkStyle.Prod) },
+        {"support.md", new FileLink("support.md", LinkTitles.SupportPolicy, LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
     {
-        {"index.json", new FileLink("index.json", "Index", LinkStyle.Prod) },
-        {"manifest.json", new FileLink("manifest.json", "Release manifest", LinkStyle.Prod) },
-        {"releases.json", new FileLink("releases.json", "Complete (large file) release information for all patch releases", LinkStyle.Prod) },
-        {"release.json", new FileLink("release.json", "Release", LinkStyle.Prod) }
+        {"index.json", new FileLink("index.json", LinkTitles.Index, LinkStyle.Prod) },
+        {"manifest.json", new FileLink("manifest.json", LinkTitles.ReleaseManifest, LinkStyle.Prod) },
+        {"releases.json", new FileLink("releases.json", LinkTitles.CompleteReleaseInformation, LinkStyle.Prod) },
+        {"release.json", new FileLink("release.json", LinkTitles.Release, LinkStyle.Prod) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
     {
-        {"supported-os.json", new FileLink("supported-os.json", "Supported OSes", LinkStyle.Prod) },
-        {"supported-os.md", new FileLink("supported-os.md", "Supported OSes", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"linux-packages.json", new FileLink("linux-packages.json", "Linux Packages", LinkStyle.Prod) },
-        {"linux-packages.md", new FileLink("linux-packages.md", "Linux Packages", LinkStyle.Prod | LinkStyle.GitHub) },
-        {"README.md", new FileLink("README.md", "Release Notes", LinkStyle.GitHub) }
+        {"supported-os.json", new FileLink("supported-os.json", LinkTitles.SupportedOSes, LinkStyle.Prod) },
+        {"supported-os.md", new FileLink("supported-os.md", LinkTitles.SupportedOSes, LinkStyle.Prod | LinkStyle.GitHub) },
+        {"linux-packages.json", new FileLink("linux-packages.json", LinkTitles.LinuxPackages, LinkStyle.Prod) },
+        {"linux-packages.md", new FileLink("linux-packages.md", LinkTitles.LinuxPackages, LinkStyle.Prod | LinkStyle.GitHub) },
+        {"README.md", new FileLink("README.md", LinkTitles.ReleaseNotes, LinkStyle.GitHub) }
     };
 
     private readonly List<string> _leafFiles = ["releases.json", "release.json", "manifest.json"];
@@ -387,7 +387,7 @@ public class ReleaseIndexFiles
         var rootLinks = halLinkGenerator.Generate(
             inputDir,
             MainFileMappings.Values,
-            (fileLink, key) => key == HalTerms.Self ? ".NET Release" : fileLink.Title);
+            (fileLink, key) => key == HalTerms.Self ? IndexTitles.VersionIndexLink : fileLink.Title);
 
         // Insert dynamic HAL+JSON links after release-history-index but before markdown files
         if (majorEntries.Count > 0)
@@ -475,7 +475,7 @@ public class ReleaseIndexFiles
         
         var majorIndex = new MajorReleaseVersionIndex(
                 ReleaseKind.Index,
-                ".NET Release Version Index",
+                IndexTitles.VersionIndexTitle,
                 description,
                 remainingRootLinks)
         {
@@ -687,7 +687,7 @@ public class ReleaseIndexFiles
             links["cve-json"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/cve.json")
             {
                 Relative = $"{majorVersion}/cve.json",
-                Title = "CVE Information",
+                Title = LinkTitles.CveInformation,
                 Type = MediaType.Json
             };
         }
