@@ -50,45 +50,46 @@ public class ArchivesSummary
     }
 
     /// <summary>
-    /// Gets all CVE summaries across all years.
-    /// Note: This requires fetching each year's index to get month-level CVE data.
+    /// Gets all CVE IDs across all years (year-level data only).
+    /// For full CVE summaries, fetch month-level indices directly.
     /// </summary>
-    public async Task<IEnumerable<CveRecordSummary>> GetAllCveSummariesAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<string>> GetAllCveIdsAsync(CancellationToken cancellationToken = default)
     {
         var years = await GetAllYearsAsync(cancellationToken);
-        var allCves = new List<CveRecordSummary>();
+        var allCveIds = new List<string>();
 
         foreach (var year in years)
         {
             var navigator = GetNavigator(year.Year);
-            var yearCves = await navigator.GetCveSummariesAsync(cancellationToken);
-            allCves.AddRange(yearCves);
+            var yearCveIds = await navigator.GetCveIdsAsync(cancellationToken);
+            allCveIds.AddRange(yearCveIds);
         }
 
-        return allCves;
+        return allCveIds.Distinct();
     }
 
     /// <summary>
-    /// Gets all CVE IDs across all years (simple string list).
+    /// Gets all CVE summaries across all years.
     /// </summary>
-    public async Task<IEnumerable<string>> GetAllCveIdsAsync(CancellationToken cancellationToken = default)
+    [Obsolete("CVE summaries are now at month level. Use GetAllCveIdsAsync() for CVE IDs or fetch month indices directly.")]
+    public async Task<IEnumerable<CveRecordSummary>> GetAllCveSummariesAsync(CancellationToken cancellationToken = default)
     {
-        var summaries = await GetAllCveSummariesAsync(cancellationToken);
-        return summaries.Select(c => c.Id);
+        throw new NotSupportedException("CVE summaries are now only available at the month level. Use GetAllCveIdsAsync() for CVE IDs.");
     }
 
     /// <summary>
-    /// Gets CVE summaries for a specific date range.
+    /// Gets CVE IDs for a specific date range (year-level data only).
+    /// For full CVE summaries, fetch month-level indices directly.
     /// </summary>
     /// <param name="startYear">Start year (inclusive)</param>
     /// <param name="startMonth">Start month (inclusive, 1-12)</param>
     /// <param name="endYear">End year (inclusive)</param>
     /// <param name="endMonth">End month (inclusive, 1-12)</param>
-    public async Task<IEnumerable<CveRecordSummary>> GetCvesInDateRangeAsync(
+    public async Task<IEnumerable<string>> GetCveIdsInDateRangeAsync(
         int startYear, int startMonth, int endYear, int endMonth,
         CancellationToken cancellationToken = default)
     {
-        var allCves = new List<CveRecordSummary>();
+        var allCveIds = new List<string>();
 
         for (int year = startYear; year <= endYear; year++)
         {
@@ -105,28 +106,50 @@ public class ArchivesSummary
 
                 if (month.CveRecords is not null)
                 {
-                    allCves.AddRange(month.CveRecords);
+                    allCveIds.AddRange(month.CveRecords);
                 }
             }
         }
 
-        return allCves;
+        return allCveIds;
     }
 
     /// <summary>
-    /// Gets CVEs from the last N months.
+    /// Gets CVE summaries for a specific date range.
     /// </summary>
-    public async Task<IEnumerable<CveRecordSummary>> GetRecentCvesAsync(
+    [Obsolete("CVE summaries are now at month level. Use GetCveIdsInDateRangeAsync() for CVE IDs or fetch month indices directly.")]
+    public async Task<IEnumerable<CveRecordSummary>> GetCvesInDateRangeAsync(
+        int startYear, int startMonth, int endYear, int endMonth,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("CVE summaries are now only available at the month level. Use GetCveIdsInDateRangeAsync() for CVE IDs.");
+    }
+
+    /// <summary>
+    /// Gets CVE IDs from the last N months.
+    /// </summary>
+    public async Task<IEnumerable<string>> GetRecentCveIdsAsync(
         int monthsBack,
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
         var start = now.AddMonths(-monthsBack);
 
-        return await GetCvesInDateRangeAsync(
+        return await GetCveIdsInDateRangeAsync(
             start.Year, start.Month,
             now.Year, now.Month,
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets CVEs from the last N months.
+    /// </summary>
+    [Obsolete("CVE summaries are now at month level. Use GetRecentCveIdsAsync() for CVE IDs or fetch month indices directly.")]
+    public async Task<IEnumerable<CveRecordSummary>> GetRecentCvesAsync(
+        int monthsBack,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("CVE summaries are now only available at the month level. Use GetRecentCveIdsAsync() for CVE IDs.");
     }
 
     /// <summary>

@@ -57,9 +57,9 @@ public class ArchiveNavigator
     }
 
     /// <summary>
-    /// Gets all CVE summaries for this year (from embedded data).
+    /// Gets all CVE IDs for this year (from embedded data).
     /// </summary>
-    public async Task<IEnumerable<CveRecordSummary>> GetCveSummariesAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<string>> GetCveIdsAsync(CancellationToken cancellationToken = default)
     {
         var months = await GetAllMonthsAsync(cancellationToken);
         return months
@@ -68,12 +68,12 @@ public class ArchiveNavigator
     }
 
     /// <summary>
-    /// Gets all CVE IDs for this year (simple string list).
+    /// Gets all CVE summaries for this year (requires fetching month-level data).
     /// </summary>
-    public async Task<IEnumerable<string>> GetCveIdsAsync(CancellationToken cancellationToken = default)
+    [Obsolete("CVE summaries are now at month level. Use GetCveIdsAsync() for year-level data or fetch month indices directly.")]
+    public async Task<IEnumerable<CveRecordSummary>> GetCveSummariesAsync(CancellationToken cancellationToken = default)
     {
-        var summaries = await GetCveSummariesAsync(cancellationToken);
-        return summaries.Select(c => c.Id);
+        throw new NotSupportedException("CVE summaries are now only available at the month level. Use GetCveIdsAsync() for CVE IDs at year level.");
     }
 
     /// <summary>
@@ -81,8 +81,8 @@ public class ArchiveNavigator
     /// </summary>
     public async Task<int> GetCveCountAsync(CancellationToken cancellationToken = default)
     {
-        var summaries = await GetCveSummariesAsync(cancellationToken);
-        return summaries.Count();
+        var cveIds = await GetCveIdsAsync(cancellationToken);
+        return cveIds.Count();
     }
 
     /// <summary>

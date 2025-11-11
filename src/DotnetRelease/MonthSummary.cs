@@ -41,9 +41,9 @@ public class MonthSummary
     public IList<string>? DotnetReleases => _monthSummary.DotnetReleases;
 
     /// <summary>
-    /// CVE security vulnerability records for this month
+    /// CVE identifiers for this month
     /// </summary>
-    public IReadOnlyList<CveRecordSummary>? CveRecords => _monthSummary.CveRecords;
+    public IList<string>? CveRecords => _monthSummary.CveRecords;
 
     /// <summary>
     /// True if this month has CVE records
@@ -56,11 +56,11 @@ public class MonthSummary
     public int CveCount => CveRecords?.Count ?? 0;
 
     /// <summary>
-    /// Gets just the CVE IDs for this month
+    /// Gets the CVE IDs for this month
     /// </summary>
     public IEnumerable<string> GetCveIds()
     {
-        return CveRecords?.Select(c => c.Id) ?? Enumerable.Empty<string>();
+        return CveRecords ?? Enumerable.Empty<string>();
     }
 
     /// <summary>

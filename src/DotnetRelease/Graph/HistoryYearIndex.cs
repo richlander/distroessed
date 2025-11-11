@@ -70,8 +70,8 @@ public record HistoryMonthSummary(
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this month's content")]
     Dictionary<string, HalLink> Links,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("CVE security vulnerability records for this month")]
-    IReadOnlyList<CveRecordSummary>? CveRecords,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("CVE identifiers for this month")]
+    IList<string>? CveRecords,
     [Description("List of .NET major version identifiers that had releases this month")]
     IList<string> DotnetReleases
 );
@@ -119,6 +119,10 @@ public record MajorReleaseHistory(
     [Description("Patch releases grouped by component type (dotnet-runtime, dotnet-sdk, etc.)")]
     Dictionary<string, IList<string>> Patches)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("CVE identifiers affecting this release")]
+    public IList<string>? CveRecords { get; set; }
+    
     [JsonPropertyName("_links"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("HAL+JSON links to version index and release resources")]

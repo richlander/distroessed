@@ -130,6 +130,9 @@ public class ShipIndexFiles
                 // Load CVE information for the month
                 var inputMonthPath = Path.Combine(inputPath, "timeline", year.Year, month.Month);
                 var cveRecords = await CveHandler.CveLoader.LoadCveRecordsFromDirectoryAsync(inputMonthPath);
+                
+                // Generate CVE summaries once for the month
+                var cveSummariesForMonth = cveRecords != null ? CveHandler.CveTransformer.ToSummaries(cveRecords) : null;
 
                 // Prepare month index path for links
                 var monthIndexPath = Path.Combine(monthPath, "index.json");
@@ -162,7 +165,7 @@ public class ShipIndexFiles
                 var monthSummary = new HistoryMonthSummary(
                     month.Month,
                     monthSummaryLinks,
-                    cveRecords != null ? CveHandler.CveTransformer.ToSummaries(cveRecords) : null,
+                    cveSummariesForMonth?.Select(s => s.Id).ToList(),
                     [.. monthReleases]
                 );
                 monthSummaries.Add(monthSummary);
@@ -290,13 +293,29 @@ public class ShipIndexFiles
                                         }
                                     }
 
+                                    // Filter CVE IDs for this major version
+                                    IList<string>? majorVersionCveIds = null;
+                                    if (cveSummariesForMonth != null)
+                                    {
+                                        majorVersionCveIds = cveSummariesForMonth
+                                            .Where(cve => cve.AffectedReleases?.Contains(majorVersion) == true)
+                                            .Select(cve => cve.Id)
+                                            .ToList();
+                                        
+                                        if (majorVersionCveIds.Count == 0)
+                                        {
+                                            majorVersionCveIds = null;
+                                        }
+                                    }
+
                                     var majorReleaseHistory = new MajorReleaseHistory(patchesDict)
                                     {
+                                        CveRecords = majorVersionCveIds,
                                         Links = links
                                     };
                                     return majorReleaseHistory;
                                 }),
-                        Disclosures = cveRecords != null ? CveHandler.CveTransformer.ToSummaries(cveRecords) : null
+                        Disclosures = cveSummariesForMonth
                     },
                     Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
                 };
