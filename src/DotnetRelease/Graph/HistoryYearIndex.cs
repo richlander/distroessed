@@ -154,7 +154,7 @@ public record ReleaseMetadata(
     "year": "2025",
     "_links": {
         "self": {
-            "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/archives/2025/index.json",
+            "href": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/archives/2025/index.json",
             "relative": "index.json",
             "title": "2025 Release History Index",
             "type": "application/hal+json"

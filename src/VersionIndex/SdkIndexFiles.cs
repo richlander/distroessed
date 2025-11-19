@@ -98,13 +98,14 @@ public class SdkIndexFiles
         var indexPath = Path.Combine(sdkDir, "index.json");
         var rootDir = Path.GetDirectoryName(Path.GetDirectoryName(sdkDir)) ?? throw new InvalidOperationException("Unable to determine root directory");
         var indexRelativePath = Path.GetRelativePath(rootDir, indexPath);
+        var indexPathValue = "/" + indexRelativePath.Replace("\\", "/");
         
         // Create main links
         var links = new Dictionary<string, HalLink>
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelativePath}")
             {
-                Relative = indexRelativePath,
+                Path = indexPathValue,
                 Title = $".NET SDK {summary.MajorVersion}",
                 Type = MediaType.HalJson
             }
@@ -120,12 +121,13 @@ public class SdkIndexFiles
             var bandFileName = $"sdk-{bandVersion}.json";
             var bandFilePath = Path.Combine(sdkDir, bandFileName);
             var bandRelativePath = Path.GetRelativePath(rootDir, bandFilePath);
+            var bandPathValue = "/" + bandRelativePath.Replace("\\", "/");
             
             var bandLinks = new Dictionary<string, HalLink>
             {
                 [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{bandRelativePath}")
                 {
-                    Relative = bandRelativePath,
+                    Path = bandPathValue,
                     Title = $".NET SDK {bandVersion}",
                     Type = MediaType.Json
                 }
@@ -178,9 +180,10 @@ public class SdkIndexFiles
             {
                 // Use the ReleaseJsonPath directly since it's already the correct relative path for URLs
                 var releaseJsonRelativePath = patchRelease.ReleaseJsonPath;
+                var releaseJsonPathValue = "/" + releaseJsonRelativePath;
                 releaseLinks[HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{releaseJsonRelativePath}")
                 {
-                    Relative = releaseJsonRelativePath,
+                    Path = releaseJsonPathValue,
                     Title = $"{patchRelease.PatchVersion} Release Information",
                     Type = MediaType.Json
                 };
@@ -205,9 +208,10 @@ public class SdkIndexFiles
             }
             
             var markdownRelativePath = Path.GetRelativePath(rootDir, markdownPath);
+            var markdownPathValue = "/" + markdownRelativePath.Replace("\\", "/");
             releaseLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{markdownRelativePath}")
             {
-                Relative = markdownRelativePath,
+                Path = markdownPathValue,
                 Title = $"Release Notes",
                 Type = MediaType.Markdown
             };
@@ -277,7 +281,7 @@ public class SdkIndexFiles
             {
                 ["self"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/sdk/{fileName}")
                 {
-                    Relative = $"{summary.MajorVersion}/sdk/{fileName}",
+                    Path = $"/{summary.MajorVersion}/sdk/{fileName}",
                     Title = $".NET SDK {bandXX} Downloads",
                     Type = MediaType.Json
                 }

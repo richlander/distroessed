@@ -18,7 +18,7 @@ using DotnetRelease.Security;
 //   - Query dictionaries (cve_releases, product_cves, package_cves, etc.)
 //   - CVSS scores and severity ratings from authoritative CVE.org data
 //   - CWE/weakness information from CVE.org
-//   - Acknowledgments from MSRC (when --msrc flag is used)
+//   - CNA severity, impact, acknowledgments, and FAQs from MSRC (when --msrc flag is used)
 //   - Cve_commits dictionary
 
 const string jsonFilename = "cve.json";
@@ -172,6 +172,7 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool val
         ValidateTaxonomy(cves, errors);
         ValidateProblemDescriptionMatch(cves, errors);
         ValidateVersionCoherence(cves, errors);
+        ValidateReleaseFields(cves, errors);
         ValidateCommitBranchMatch(cves, errors);
         ValidateForeignKeys(cves, errors);
         ValidateDictionaries(cves, errors);
@@ -297,12 +298,12 @@ static async Task<IList<Cve>> UpdateCvssScores(IList<Cve> cves)
     return updatedCves;
 }
 
-static async Task<IList<Cve>> UpdateAcknowledgmentsFromMsrc(string filePath, IList<Cve> cves)
+static async Task<IList<Cve>> UpdateCnaDataFromMsrc(string filePath, IList<Cve> cves)
 {
     var msrcData = await FetchMsrcDataForFile(filePath);
     if (msrcData is null)
     {
-        Console.WriteLine("  Warning: Could not fetch MSRC data for acknowledgments and FAQs");
+        Console.WriteLine("  Warning: Could not fetch MSRC data for CNA information");
         return cves;
     }
 
@@ -313,6 +314,22 @@ static async Task<IList<Cve>> UpdateAcknowledgmentsFromMsrc(string filePath, ILi
         {
             var updatedCna = cve.Cna ?? new Cna("microsoft");
             bool hasUpdates = false;
+
+            // Add severity if available
+            if (!string.IsNullOrEmpty(msrcCve.CnaSeverity))
+            {
+                Console.WriteLine($"  Adding severity for {cve.Id}: {msrcCve.CnaSeverity}");
+                updatedCna = updatedCna with { Severity = msrcCve.CnaSeverity };
+                hasUpdates = true;
+            }
+
+            // Add impact if available
+            if (!string.IsNullOrEmpty(msrcCve.Impact))
+            {
+                Console.WriteLine($"  Adding impact for {cve.Id}: {msrcCve.Impact}");
+                updatedCna = updatedCna with { Impact = msrcCve.Impact };
+                hasUpdates = true;
+            }
 
             // Add acknowledgments if available
             if (msrcCve.Acknowledgments is not null && msrcCve.Acknowledgments.Count > 0)
@@ -371,10 +388,10 @@ static async Task<bool> UpdateCveFile(string filePath, bool validateMsrc)
         // Fetch and update CVSS scores from CVE.org
         var updatedCves = await UpdateCvssScores(cveRecords.Disclosures);
         
-        // Optionally fetch acknowledgments from MSRC
+        // Optionally fetch CNA data from MSRC
         if (validateMsrc)
         {
-            updatedCves = await UpdateAcknowledgmentsFromMsrc(filePath, updatedCves);
+            updatedCves = await UpdateCnaDataFromMsrc(filePath, updatedCves);
         }
         
         // Create new record with updated dictionaries
@@ -572,6 +589,33 @@ static void ValidateVersionCoherence(CveRecords cves, List<string> errors)
             if (!IsVersionCoherent(package.MinVulnerable, package.MaxVulnerable, package.Fixed))
             {
                 errors.Add($"Incoherent versions for {package.CveId} in package {package.Name}: min={package.MinVulnerable}, max={package.MaxVulnerable}, fixed={package.Fixed}");
+            }
+        }
+    }
+}
+
+static void ValidateReleaseFields(CveRecords cves, List<string> errors)
+{
+    // Validate products have non-empty release
+    if (cves.Products is not null)
+    {
+        foreach (var product in cves.Products)
+        {
+            if (string.IsNullOrEmpty(product.Release))
+            {
+                errors.Add($"Product '{product.Name}' for {product.CveId} has null or empty release field (required)");
+            }
+        }
+    }
+
+    // Validate packages have non-empty release
+    if (cves.Packages is not null)
+    {
+        foreach (var package in cves.Packages)
+        {
+            if (string.IsNullOrEmpty(package.Release))
+            {
+                errors.Add($"Package '{package.Name}' for {package.CveId} has null or empty release field (required)");
             }
         }
     }
@@ -1369,6 +1413,34 @@ static async Task ValidateMsrcData(string filePath, CveRecords cves, List<string
             if (cve.Weakness != msrcCve.Weakness)
             {
                 errors.Add($"MSRC: {cve.Id} weakness/CWE mismatch");
+            }
+
+            // Validate CNA impact
+            if (!string.IsNullOrEmpty(msrcCve.Impact))
+            {
+                var actualImpact = cve.Cna?.Impact;
+                if (string.IsNullOrEmpty(actualImpact))
+                {
+                    errors.Add($"MSRC: {cve.Id} missing cna.impact - Expected: '{msrcCve.Impact}'");
+                }
+                else if (actualImpact != msrcCve.Impact)
+                {
+                    errors.Add($"MSRC: {cve.Id} cna.impact mismatch - Expected: '{msrcCve.Impact}', Actual: '{actualImpact}'");
+                }
+            }
+
+            // Validate CNA severity
+            if (!string.IsNullOrEmpty(msrcCve.CnaSeverity))
+            {
+                var actualSeverity = cve.Cna?.Severity;
+                if (string.IsNullOrEmpty(actualSeverity))
+                {
+                    errors.Add($"MSRC: {cve.Id} missing cna.severity - Expected: '{msrcCve.CnaSeverity}'");
+                }
+                else if (actualSeverity != msrcCve.CnaSeverity)
+                {
+                    errors.Add($"MSRC: {cve.Id} cna.severity mismatch - Expected: '{msrcCve.CnaSeverity}', Actual: '{actualSeverity}'");
+                }
             }
         }
     }

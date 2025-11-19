@@ -59,6 +59,7 @@ public class IndexHelpers
 
             string relativePath = Path.GetRelativePath(pathContext.Basepath, file);
             string urlRelativePath = Path.GetRelativePath(pathContext.UrlBasePath ?? pathContext.Basepath, file);
+            string pathValue = "/" + relativePath.Replace("\\", "/");
             string filename = mapping.File;
             string name = Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
             string extension = Path.GetExtension(filename).ToLowerInvariant();
@@ -70,7 +71,7 @@ public class IndexHelpers
                 var key = isMarkdown ? $"{name}-markdown-raw" : name;
                 yield return new HalTuple(key, ReleaseKind.Content, new HalLink(GetProdPath(urlRelativePath))
                 {
-                    Relative = relativePath,
+                    Path = pathValue,
                     Title = title,
                     Type = extension switch
                     {
@@ -86,7 +87,7 @@ public class IndexHelpers
                 var key = isMarkdown ? $"{name}-markdown" : name;
                 yield return new HalTuple(key, ReleaseKind.Content, new HalLink(GetGitHubPath(urlRelativePath))
                 {
-                    Relative = relativePath,
+                    Path = pathValue,
                     Title = mapping.Title,
                     Type = MediaType.Markdown
                 });
@@ -104,13 +105,14 @@ public class IndexHelpers
         var filename = Path.GetFileNameWithoutExtension(file);
         var relativePath = Path.GetRelativePath(pathContext.Basepath, file);
         var urlRelativePath = Path.GetRelativePath(pathContext.UrlBasePath ?? pathContext.Basepath, file);
+        var pathValue = "/" + relativePath.Replace("\\", "/");
         var kind = _halFileMappings.TryGetValue(relativePath, out var mapping) ? mapping.Kind : ReleaseKind.Unknown;
         var type = _halFileMappings.TryGetValue(relativePath, out var fileType) ? fileType.FileType : MediaType.Text;
         var prodPath = GetProdPath(urlRelativePath);
 
         var link = new HalLink(prodPath)
         {
-            Relative = relativePath,
+            Path = pathValue,
             Title = $"{subtitle} {kind}",
             Type = type
         };

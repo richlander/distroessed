@@ -98,19 +98,44 @@ public record ReleaseVersionIndexEntry(
 [Description("Identifies the type of release or index document")]
 public enum ReleaseKind
 {
-    [Description("Version-based index document")]
-    Index,
-    [Description("Release metadata document")]
+    [Description("Root index of all .NET releases")]
+    ReleaseIndex,
+    
+    [Description("Index of patches within a major .NET version")]
+    MajorReleaseIndex,
+    
+    [Description("Index for a specific patch release with details")]
+    PatchReleaseIndex,
+    
+    [Description("Root release timeline index")]
+    TimelineIndex,
+    
+    [Description("Year-specific release timeline index")]
+    YearTimelineIndex,
+    
+    [Description("Month-specific release timeline index")]
+    MonthTimelineIndex,
+    
+    [Description("Release metadata document (manifest.json)")]
     Manifest,
-    [Description("Major version content")]
-    MajorRelease,
-    [Description("Patch version content")]
-    PatchRelease,
+    
     [Description("SDK feature band content")]
     Band,
+    
     [Description("General content document")]
     Content,
+    
     [Description("Unspecified type")]
-    Unknown
+    Unknown,
+    
+    // Legacy values (deprecated, for backwards compatibility)
+    [Description("Legacy: Generic index (use more specific types)")]
+    Index,
+    
+    [Description("Legacy: Major version content")]
+    MajorRelease,
+    
+    [Description("Legacy: Patch version content")]
+    PatchRelease
 }
 

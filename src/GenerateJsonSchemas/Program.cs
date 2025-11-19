@@ -10,11 +10,16 @@ using DotnetRelease.Support;
 using DotnetRelease.Security;
 
 // GenerateJsonSchemas - Generate JSON Schema files for data models
-// Usage:
-//   GenerateJsonSchemas [target-directory]
-//   target-directory: Directory where schema files will be written (optional, defaults to current directory)
 
-string targetDirectory = args.Length > 0 ? args[0] : Directory.GetCurrentDirectory();
+Console.WriteLine("GenerateJsonSchemas");
+
+if (args.Length < 2 || args[0] != "generate")
+{
+    ReportInvalidArgs();
+    return 1;
+}
+
+string targetDirectory = args[1];
 
 if (!Directory.Exists(targetDirectory))
 {
@@ -99,6 +104,23 @@ void WriteSchema(ModelInfo modelInfo)
 
 static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? provider, bool inherit = false) where TAttribute : Attribute
     => provider?.GetCustomAttributes(typeof(TAttribute), inherit).FirstOrDefault() as TAttribute;
+
+static void ReportInvalidArgs()
+{
+    Console.WriteLine();
+    Console.WriteLine("Usage:");
+    Console.WriteLine("  GenerateJsonSchemas generate <target-directory>");
+    Console.WriteLine();
+    Console.WriteLine("Commands:");
+    Console.WriteLine("  generate            Generate JSON schema files");
+    Console.WriteLine();
+    Console.WriteLine("Arguments:");
+    Console.WriteLine("  <target-directory>  Directory where schema files will be written");
+    Console.WriteLine();
+    Console.WriteLine("Examples:");
+    Console.WriteLine("  GenerateJsonSchemas generate ./schemas");
+    Console.WriteLine("  GenerateJsonSchemas generate ~/git/core/release-notes/schemas");
+}
 
 record ModelInfo(Type Type, string TargetFile, JsonKnownNamingPolicy NamingPolicy = JsonKnownNamingPolicy.KebabCaseLower);
 

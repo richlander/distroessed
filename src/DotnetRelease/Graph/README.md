@@ -35,12 +35,12 @@ The HAL+JSON object models follow the [HAL specification](https://datatracker.ie
 **Example**:
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-version-index.json",
+  "$schema": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/schemas/release-version-index.json",
   "kind": "index",
   "description": "Index of .NET major versions",
   "_links": {
     "self": {
-      "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/index.json",
+      "href": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/index.json",
       "relative": "index.json",
       "title": ".NET Release",
       "type": "application/hal+json"
@@ -87,7 +87,7 @@ The HAL+JSON object models follow the [HAL specification](https://datatracker.ie
 **Example**:
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-history-index.json",
+  "$schema": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/schemas/release-history-index.json",
   "kind": "release-history-index",
   "description": "History of .NET releases",
   "_embedded": {
@@ -128,7 +128,7 @@ The HAL+JSON object models follow the [HAL specification](https://datatracker.ie
 **Example**:
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/release-manifest.json",
+  "$schema": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/schemas/release-manifest.json",
   "kind": "manifest",
   "version": "8.0",
   "label": ".NET 8.0",
@@ -234,7 +234,7 @@ All generated JSON documents automatically include `$schema` references:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/richlander/core/main/release-notes/schemas/[schema-name].json",
+  "$schema": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/schemas/[schema-name].json",
   ...
 }
 ```
@@ -271,5 +271,5 @@ The HAL+JSON format supports extensibility:
 ## Related Documentation
 
 - [HAL Specification](https://datatracker.ietf.org/doc/html/draft-kelly-json-hal)
-- [.NET Release Terminology](https://raw.githubusercontent.com/richlander/core/main/release-notes/terminology.md)
+- [.NET Release Terminology](https://raw.githubusercontent.com/dotnet/core/main/release-notes/terminology.md)
 - [UpdateIndexes Tool Documentation](../../UpdateIndexes/README.md)

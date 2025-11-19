@@ -10,23 +10,24 @@ using ShipIndex;
 
 if (args.Length == 0)
 {
-    Console.Error.WriteLine("Usage: ShipIndex <input-directory> [output-directory] [--commit <sha>]");
+    Console.Error.WriteLine("Usage: ShipIndex <input-directory> [output-directory] [--url-root <url>]");
     Console.Error.WriteLine("  input-directory:  Directory containing release-notes data to read");
     Console.Error.WriteLine("  output-directory: Directory to write generated index files (optional, defaults to input-directory)");
-    Console.Error.WriteLine("  --commit <sha>:   Git commit SHA to use in generated links (optional, defaults to 'main')");
+    Console.Error.WriteLine("  --url-root <url>: Base URL root (before /release-notes/) for generated links (optional, defaults to GitHub main)");
+    Console.Error.WriteLine("                    Example: https://raw.githubusercontent.com/dotnet/core/commit-sha");
     return 1;
 }
 
 string? inputDir = null;
 string? outputDir = null;
-string? commitSha = null;
+string? urlRoot = null;
 
 // Parse arguments
 for (int i = 0; i < args.Length; i++)
 {
-    if (args[i] == "--commit" && i + 1 < args.Length)
+    if (args[i] == "--url-root" && i + 1 < args.Length)
     {
-        commitSha = args[++i];
+        urlRoot = args[++i];
     }
     else if (inputDir == null)
     {
@@ -52,11 +53,11 @@ if (!Directory.Exists(inputDir))
     return 1;
 }
 
-// Set commit SHA if provided
-if (commitSha != null)
+// Set URL root if provided
+if (urlRoot != null)
 {
-    Location.SetGitHubCommit(commitSha);
-    Console.WriteLine($"Using commit: {commitSha}");
+    Location.SetUrlRoot(urlRoot);
+    Console.WriteLine($"Using URL root: {urlRoot}");
 }
 
 // Create output directory if it doesn't exist and it's different from input

@@ -40,7 +40,17 @@ public static class ManifestGenerator
         Lifecycle? lifecycle = null;
         if (partialManifest?.ReleaseDate.HasValue == true && partialManifest?.EolDate.HasValue == true)
         {
+            // Auto-transition from Preview/GoLive to Active if release date has passed
+            if ((supportPhase == SupportPhase.Preview || supportPhase == SupportPhase.GoLive) && 
+                partialManifest.ReleaseDate.Value <= DateTimeOffset.UtcNow)
+            {
+                supportPhase = SupportPhase.Active;
+            }
+            
             lifecycle = new Lifecycle(releaseType, supportPhase, partialManifest.ReleaseDate.Value, partialManifest.EolDate.Value);
+            
+            // Set supported flag based on current stability
+            lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
         }
         else
         {

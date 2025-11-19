@@ -13,24 +13,27 @@ Creates a hierarchical version index:
 ## Usage
 
 ```bash
-dotnet run --project VersionIndex -- <input-directory> [output-directory] [--commit <sha>]
+dotnet run --project VersionIndex -- <input-directory> [output-directory] [--url-root <url>]
 ```
 
 **Arguments:**
-- `input-directory` - Directory containing release-notes data (e.g., `~/git/core-rich/release-notes`)
+- `input-directory` - Directory containing release-notes data (e.g., `~/git/core/release-notes`)
 - `output-directory` - Optional. Where to write generated files (defaults to input-directory)
-- `--commit <sha>` - Optional. Git commit SHA to use in generated links (defaults to 'main')
+- `--url-root <url>` - Optional. Base URL root (before `/release-notes/`) for generated links (defaults to GitHub main)
 
 **Examples:**
 ```bash
-# Generate with default 'main' branch links
-dotnet run --project VersionIndex -- ~/git/core-rich/release-notes
+# Generate with default GitHub main branch links
+dotnet run --project VersionIndex -- ~/git/core/release-notes
 
-# Generate with commit-specific links (cache-busting for LLM testing)
-dotnet run --project VersionIndex -- ~/git/core-rich/release-notes --commit abc123def456
+# Generate with specific commit links (cache-busting for testing)
+dotnet run --project VersionIndex -- ~/git/core/release-notes --url-root https://raw.githubusercontent.com/dotnet/core/abc123def456
+
+# Generate with custom CDN or mirror
+dotnet run --project VersionIndex -- ~/git/core/release-notes --url-root https://my-cdn.example.com/dotnet/core
 ```
 
-See `/docs/commit-links-workflow.md` for details on using commit-specific links to avoid GitHub caching issues.
+**Note:** The `--url-root` should not include `/release-notes/` - it will be appended automatically.
 
 ## Generated Files
 

@@ -25,19 +25,14 @@ public record PatchReleaseVersionIndex(
      Description("Usage information and term definitions")]
     public UsageWithLinks? Usage { get; set; }
 
-    [JsonPropertyName("_embedded"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Embedded patch release entries")]
-    public PatchReleaseVersionIndexEmbedded? Embedded { get; set; }
-
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Lifecycle information (GA date, EOL date, release type, phase) for the major version")]
     public Lifecycle? Lifecycle { get; set; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     JsonPropertyName("cve-records"),
-     Description("CVE IDs affecting this major version")]
-    public IReadOnlyList<string>? CveRecords { get; set; }
+    [JsonPropertyName("_embedded"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Embedded patch release entries, timeline years, and CVE records")]
+    public PatchReleaseVersionIndexEmbedded? Embedded { get; set; }
 
     [property: JsonPropertyName("_metadata"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
@@ -48,7 +43,17 @@ public record PatchReleaseVersionIndex(
 [Description("Container for embedded patch release entries in a patch release index")]
 public record PatchReleaseVersionIndexEmbedded(
     [Description("List of patch release entries with simplified lifecycle information")]
-    List<PatchReleaseVersionIndexEntry> Releases);
+    List<PatchReleaseVersionIndexEntry> Releases)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release timeline years with links to year-specific timelines")]
+    public List<TimelineYear>? Years { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     JsonPropertyName("cve-records"),
+     Description("CVE IDs affecting this major version")]
+    public IReadOnlyList<string>? CveRecords { get; set; }
+}
 
 [Description("Patch release entry within a major version index, containing simplified lifecycle information")]
 public record PatchReleaseVersionIndexEntry(
@@ -70,3 +75,11 @@ public record PatchReleaseVersionIndexEntry(
      Description("CVE IDs associated with this release")]
     public IReadOnlyList<string>? CveRecords { get; set; }
 }
+
+[Description("Timeline year with links to year-specific timeline")]
+public record TimelineYear(
+    [Description("Year (e.g., '2025')")]
+    string Year,
+    [property: JsonPropertyName("_links"),
+     Description("HAL+JSON links for navigation to this year's timeline")]
+    Dictionary<string, HalLink> Links);

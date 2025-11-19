@@ -10,8 +10,8 @@ public record HalLink(
     string Href)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Relative path from the base URL")]
-    public string? Relative { get; set; }
+     Description("Absolute path from the repository root (starts with /)")]
+    public string? Path { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Descriptive title for the linked resource")]
@@ -35,6 +35,8 @@ public class HalTerms
     public const string ReleaseInfo = "release-info";
     public const string PatchReleasesIndex = "patch-releases-index";
     public const string PatchRelease = "patch-release";
+    public const string Next = "next";
+    public const string Prev = "prev";
 }
 
 public class MediaType

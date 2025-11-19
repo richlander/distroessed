@@ -80,32 +80,38 @@ public static class JsonSchemaInjector
     {
         try
         {
-            // Parse as JsonNode to preserve structure
-            JsonNode? jsonNode = JsonNode.Parse(jsonContent);
-            
-            if (jsonNode is not JsonObject jsonObject)
+            // Parse as JsonDocument to preserve property order
+            using var jsonDoc = JsonDocument.Parse(jsonContent);
+            var root = jsonDoc.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object)
             {
                 return null;
             }
 
-            // Remove existing $schema property if it exists
-            jsonObject.Remove("$schema");
-
-            // Create a new object with $schema at the beginning
-            var newObject = new JsonObject();
-            newObject["$schema"] = schemaUri;
-
-            // Copy all other properties
-            foreach (var property in jsonObject)
+            // Use a MemoryStream and Utf8JsonWriter to build the JSON with proper ordering
+            using var stream = new MemoryStream();
+            using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+            
+            writer.WriteStartObject();
+            
+            // Write $schema first
+            writer.WriteString("$schema", schemaUri);
+            
+            // Copy all other properties in their original order
+            foreach (var property in root.EnumerateObject())
             {
-                newObject[property.Key] = property.Value?.DeepClone();
+                if (property.Name != "$schema") // Skip if it already exists
+                {
+                    property.WriteTo(writer);
+                }
             }
-
-            // Serialize with indentation
-            return newObject.ToJsonString(new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            
+            writer.WriteEndObject();
+            writer.Flush();
+            
+            // Convert to string
+            return System.Text.Encoding.UTF8.GetString(stream.ToArray());
         }
         catch
         {

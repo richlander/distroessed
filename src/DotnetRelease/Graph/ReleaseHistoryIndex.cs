@@ -85,7 +85,7 @@ public enum HistoryKind
     "description": "History of .NET releases",
     "_links": {
         "self": {
-            "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/archives/index.json",
+            "href": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/archives/index.json",
             "relative": "index.json",
             "title": "History Index",
             "type": "application/hal+json"
@@ -98,7 +98,7 @@ public enum HistoryKind
                 "kind": "history-year-index",
                 "_links": {
                     "self": {
-                        "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/archives/2025/index.json",
+                        "href": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/archives/2025/index.json",
                         "relative": "2025/index.json",
                         "title": "2025 History Index",
                         "type": "application/hal+json"
@@ -111,7 +111,7 @@ public enum HistoryKind
                 "kind": "history-year-index",
                 "_links": {
                     "self": {
-                        "href": "https://raw.githubusercontent.com/richlander/core/main/release-notes/archives/2024/index.json",
+                        "href": "https://raw.githubusercontent.com/dotnet/core/main/release-notes/archives/2024/index.json",
                         "relative": "2024/index.json",
                         "title": "2024 History Index",
                         "type": "application/hal+json"

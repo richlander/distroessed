@@ -14,11 +14,21 @@ public record MajorReleaseVersionIndex(
     [Description("Concise title for the document")]
     string Title,
     [Description("Description of the index scope")]
-    string Description,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for hypermedia navigation")]
-    Dictionary<string, HalLink> Links) : IReleaseVersionIndex
+    string Description) : IReleaseVersionIndex
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest stable .NET version")]
+    public string? Latest { get; init; }
+
+    [JsonPropertyName("latest-lts"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest LTS (Long-Term Support) .NET version")]
+    public string? LatestLts { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
+
     [JsonPropertyName("usage"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Usage information and term definitions")]

@@ -27,6 +27,7 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
 
             string filename = fileLink.File;
             string relativePath = Path.GetRelativePath(_rootPath, filePath);
+            string pathValue = "/" + relativePath.Replace("\\", "/");
             string name = Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
             string extension = Path.GetExtension(filename).ToLowerInvariant();
             bool isMarkdown = ".md".Equals(extension, StringComparison.OrdinalIgnoreCase);
@@ -75,7 +76,7 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
                     result[selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown-raw" : "markdown")}" : name)] =
                         new HalLink(urlGenerator(relativePath, style))
                         {
-                            Relative = relativePath,
+                            Path = pathValue,
                             Title = isMarkdown
                                 ? $"{titleGenerator(fileLink, selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown-raw" : "markdown")}" : name))} ({(style == LinkStyle.Prod ? "Raw Markdown" : "Markdown")})"
                                 : titleGenerator(fileLink, selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown-raw" : "markdown")}" : name)),
