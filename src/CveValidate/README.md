@@ -9,8 +9,8 @@ The `cve.json` files contain CVE (Common Vulnerabilities and Exposures) informat
 - Validates version coherence (min ≤ max < fixed)
 - Validates foreign key relationships
 - Validates query dictionaries (product_name, product_cves, cve_releases, release_cves, cve_commits)
-- Validates URLs (optional)
-- Updates query dictionaries and cve_commits
+- Validates URLs and MSRC data (enabled by default, can be skipped with --skip-urls)
+- Updates query dictionaries, cve_commits, and MSRC data
 
 ## Usage
 
@@ -25,7 +25,7 @@ CveValidate validate ~/git/core/release-notes/archives/2024/01/cve.json
 # Validate all cve.json files in a directory tree
 CveValidate validate ~/git/core/release-notes/archives
 
-# Validate without checking URLs (faster, offline-friendly)
+# Validate without checking URLs and MSRC (faster, offline-friendly)
 CveValidate ~/git/core/release-notes/archives --skip-urls
 ```
 
@@ -34,7 +34,8 @@ The tool will report any validation errors found:
 - Incoherent version numbers
 - Foreign key violations
 - Dictionary discrepancies
-- Broken URLs
+- Broken URLs (when not using --skip-urls)
+- MSRC data mismatches (when not using --skip-urls)
 
 ### Update Dictionaries
 
@@ -52,7 +53,9 @@ The tool will:
 1. Read the existing `cve.json` file
 2. Generate the dictionaries from the `products` and `packages` sections
 3. Generate the `cve_commits` dictionary from product and package commits
-4. Update the file with the corrected dictionaries
+4. Fetch CVSS scores from CVE.org API
+5. Fetch CNA data (severity, impact, acknowledgments, FAQs) from MSRC (unless --skip-urls is used)
+6. Update the file with the corrected dictionaries and data
 
 ## Dictionary Types
 
@@ -142,10 +145,13 @@ When a `commits` dictionary exists:
 - All products must have non-null, non-empty commits arrays
 - All packages must have non-null, non-empty commits arrays
 
-### URL Validation
-When not skipped, validates that:
+### URL and MSRC Validation
+When not skipped (enabled by default), validates that:
 - All URLs in CVE references return HTTP 200-299
 - All commit URLs are accessible
+- MSRC data matches (CVSS scores, vectors, CWE, CNA severity, CNA impact)
+
+Use `--skip-urls` to skip these validations for faster, offline operation.
 
 ## How It Works
 

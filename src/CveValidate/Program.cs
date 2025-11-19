@@ -7,7 +7,7 @@ using DotnetRelease.Security;
 // CveValidate - Validate and update CVE JSON files
 // Usage:
 //   CveValidate validate <path> [--skip-urls]    - Validate cve.json file(s)
-//   CveValidate update <path>                    - Update dictionaries and CVSS scores in cve.json file(s)
+//   CveValidate update <path> [--skip-urls]      - Update dictionaries and CVSS scores in cve.json file(s)
 //
 // Examples:
 //   CveValidate validate ~/git/core/release-notes/archives
@@ -18,7 +18,7 @@ using DotnetRelease.Security;
 //   - Query dictionaries (cve_releases, product_cves, package_cves, etc.)
 //   - CVSS scores and severity ratings from authoritative CVE.org data
 //   - CWE/weakness information from CVE.org
-//   - CNA severity, impact, acknowledgments, and FAQs from MSRC (when --msrc flag is used)
+//   - CNA severity, impact, acknowledgments, and FAQs from MSRC (unless --skip-urls is used)
 //   - Cve_commits dictionary
 
 const string jsonFilename = "cve.json";
@@ -35,7 +35,6 @@ if (args.Length < 1)
 string? command = null;
 string? inputPath = null;
 bool skipUrls = false;
-bool validateMsrc = false;
 bool quietMode = false;
 
 foreach (var arg in args)
@@ -43,10 +42,6 @@ foreach (var arg in args)
     if (arg == "--skip-urls")
     {
         skipUrls = true;
-    }
-    else if (arg == "--msrc")
-    {
-        validateMsrc = true;
     }
     else if (arg == "--quiet" || arg == "-q")
     {
@@ -128,8 +123,8 @@ int failureCount = 0;
 foreach (var cveFile in cveFiles)
 {
     bool success = command == "validate" 
-        ? await ValidateCveFile(cveFile, skipUrls, validateMsrc, quietMode) 
-        : await UpdateCveFile(cveFile, validateMsrc);
+        ? await ValidateCveFile(cveFile, skipUrls, quietMode) 
+        : await UpdateCveFile(cveFile, skipUrls);
     
     if (success)
     {
@@ -150,7 +145,7 @@ string action = command == "validate" ? "Validation" : "Update";
 Console.WriteLine($"{action} complete: {successCount} succeeded, {failureCount} failed");
 return failureCount > 0 ? 1 : 0;
 
-static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool validateMsrc, bool quietMode)
+static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool quietMode)
 {
     var errors = new List<string>();
 
@@ -181,10 +176,6 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool val
         if (!skipUrls)
         {
             await ValidateUrls(cves, errors);
-        }
-
-        if (validateMsrc)
-        {
             await ValidateMsrcData(filePath, cves, errors);
         }
 
@@ -365,7 +356,7 @@ static async Task<IList<Cve>> UpdateCnaDataFromMsrc(string filePath, IList<Cve> 
     return updatedCves;
 }
 
-static async Task<bool> UpdateCveFile(string filePath, bool validateMsrc)
+static async Task<bool> UpdateCveFile(string filePath, bool skipUrls)
 {
     try
     {
@@ -388,8 +379,8 @@ static async Task<bool> UpdateCveFile(string filePath, bool validateMsrc)
         // Fetch and update CVSS scores from CVE.org
         var updatedCves = await UpdateCvssScores(cveRecords.Disclosures);
         
-        // Optionally fetch CNA data from MSRC
-        if (validateMsrc)
+        // Fetch CNA data from MSRC (unless --skip-urls is specified)
+        if (!skipUrls)
         {
             updatedCves = await UpdateCnaDataFromMsrc(filePath, updatedCves);
         }
@@ -596,7 +587,7 @@ static void ValidateVersionCoherence(CveRecords cves, List<string> errors)
 
 static void ValidateReleaseFields(CveRecords cves, List<string> errors)
 {
-    // Validate products have non-empty release
+    // Validate products have non-empty release (required for products only)
     if (cves.Products is not null)
     {
         foreach (var product in cves.Products)
@@ -608,17 +599,7 @@ static void ValidateReleaseFields(CveRecords cves, List<string> errors)
         }
     }
 
-    // Validate packages have non-empty release
-    if (cves.Packages is not null)
-    {
-        foreach (var package in cves.Packages)
-        {
-            if (string.IsNullOrEmpty(package.Release))
-            {
-                errors.Add($"Package '{package.Name}' for {package.CveId} has null or empty release field (required)");
-            }
-        }
-    }
+    // Note: release field is optional for packages
 }
 
 static void ValidateCommitBranchMatch(CveRecords cves, List<string> errors)
@@ -1375,16 +1356,15 @@ static void ReportInvalidArgs()
     Console.WriteLine("  <path>      Path to a cve.json file or directory containing cve.json files");
     Console.WriteLine();
     Console.WriteLine("Options:");
-    Console.WriteLine("  --skip-urls Skip URL validation (faster, useful for offline validation)");
-    Console.WriteLine("  --msrc      Validate/update against MSRC data");
+    Console.WriteLine("  --skip-urls Skip URL and MSRC validation/updates (faster, useful for offline)");
     Console.WriteLine("  --quiet, -q Only show files with errors (suppress success messages)");
     Console.WriteLine();
     Console.WriteLine("Examples:");
     Console.WriteLine("  CveValidate validate ~/git/core/release-notes/archives");
     Console.WriteLine("  CveValidate ~/git/core/release-notes/archives --skip-urls --quiet");
     Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json");
-    Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json --msrc");
-    Console.WriteLine("  CveValidate validate ~/git/core/release-notes/archives --msrc -q");
+    Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json --skip-urls");
+    Console.WriteLine("  CveValidate validate ~/git/core/release-notes/archives -q");
 }
 
 static async Task ValidateMsrcData(string filePath, CveRecords cves, List<string> errors)
