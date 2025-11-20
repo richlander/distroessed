@@ -7,8 +7,8 @@ namespace DotnetRelease.Graph;
 public static class IndexTitles
 {
     // Version Index (organized by version number)
-    public static readonly string VersionIndexTitle = string.Intern(".NET Version Index");
-    public static readonly string VersionIndexLink = string.Intern(".NET Version Index");
+    public static readonly string VersionIndexTitle = string.Intern(".NET Release Index");
+    public static readonly string VersionIndexLink = string.Intern(".NET Release Index");
     
     // Timeline Index (organized chronologically)
     public static readonly string TimelineIndexTitle = string.Intern(".NET Release Timeline Index");

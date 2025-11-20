@@ -14,7 +14,7 @@ public record MajorReleaseVersionIndex(
     [Description("Concise title for the document")]
     string Title,
     [Description("Description of the index scope")]
-    string Description) : IReleaseVersionIndex
+    string Description)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest stable .NET version")]
@@ -31,8 +31,13 @@ public record MajorReleaseVersionIndex(
 
     [JsonPropertyName("usage"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Usage information and term definitions")]
-    public UsageWithLinks? Usage { get; set; }
+     Description("Usage links to documentation and help resources")]
+    public UsageLinks? Usage { get; set; }
+
+    [JsonPropertyName("glossary"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Glossary of terms and definitions")]
+    public Dictionary<string, string>? Glossary { get; set; }
 
     [JsonPropertyName("_embedded"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),

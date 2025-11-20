@@ -9,6 +9,8 @@ namespace DotnetRelease.Graph;
 [JsonSerializable(typeof(MajorReleaseVersionIndex))]
 [JsonSerializable(typeof(PatchReleaseVersionIndex))]
 [JsonSerializable(typeof(PatchDetailIndex))]
+[JsonSerializable(typeof(PatchDetailIndexEmbedded))]
+[JsonSerializable(typeof(PatchSdkInfo))]
 [JsonSerializable(typeof(ReleaseVersionIndex))]
 [JsonSerializable(typeof(MajorReleaseVersionIndexEntry))]
 [JsonSerializable(typeof(PatchReleaseVersionIndexEntry))]

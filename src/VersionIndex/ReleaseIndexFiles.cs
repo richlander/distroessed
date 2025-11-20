@@ -16,20 +16,29 @@ public class ReleaseIndexFiles
     
     public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
     
-    private static UsageWithLinks CreateUsage(Dictionary<string, HalLink>? usageLinks = null)
+    private static UsageLinks? CreateUsageLinks(Dictionary<string, HalLink>? usageLinks = null)
     {
-        return new UsageWithLinks
+        if (usageLinks == null || usageLinks.Count == 0)
         {
-            Links = usageLinks,
-            Glossary = new Dictionary<string, string>
-            {
-                ["lts"] = "Long-Term Support – 3-year support window",
-                ["sts"] = "Standard-Term Support – 18-month support window",
-                ["release"] = "General Availability – Production-ready release",
-                ["eol"] = "End of Life – No longer supported",
-                ["preview"] = "Pre-release phase with previews and release candidates",
-                ["active"] = "Full support with regular updates and security fixes"
-            }
+            return null;
+        }
+        
+        return new UsageLinks
+        {
+            Links = usageLinks
+        };
+    }
+    
+    private static Dictionary<string, string> CreateGlossary()
+    {
+        return new Dictionary<string, string>
+        {
+            ["lts"] = "Long-Term Support – 3-year support window",
+            ["sts"] = "Standard-Term Support – 18-month support window",
+            ["release"] = "General Availability – Production-ready release",
+            ["eol"] = "End of Life – No longer supported",
+            ["preview"] = "Pre-release phase with previews and release candidates",
+            ["active"] = "Full support with regular updates and security fixes"
         };
     }
 
@@ -235,8 +244,8 @@ public class ReleaseIndexFiles
 
             majorVersionLinks = orderedMajorVersionLinks;
 
-            // Extract usage links from majorVersionLinks
-            var (remainingMajorVersionLinks, usageLinksForPatch) = ExtractUsageLinks(majorVersionLinks);
+            // Extract usage links from majorVersionLinks (we don't include them at major version level)
+            var (remainingMajorVersionLinks, _) = ExtractUsageLinks(majorVersionLinks);
 
             // write major version index.json if there are patch releases found
             var majorIndexPath = Path.Combine(outputMajorVersionDir, "index.json");
@@ -285,7 +294,6 @@ public class ReleaseIndexFiles
                 patchDescription,
                 remainingMajorVersionLinks)
             {
-                Usage = CreateUsage(usageLinksForPatch),
                 Lifecycle = lifecycle,
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
                     patchEntries.Select(e => new PatchReleaseVersionIndexEntry(e.Version, e.Kind, e.Links)
@@ -500,7 +508,8 @@ public class ReleaseIndexFiles
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
             Links = remainingRootLinks,
-            Usage = CreateUsage(usageLinksForRoot),
+            Usage = CreateUsageLinks(usageLinksForRoot),
+            Glossary = CreateGlossary(),
             Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
@@ -596,13 +605,6 @@ public class ReleaseIndexFiles
                             Title = $"{summary.PatchVersion} Patch Index",
                             Type = MediaType.HalJson
                         }
-                    },
-                    { "release", new HalLink(IndexHelpers.GetProdPath(urlRelativePath))
-                        {
-                            Path = releaseJsonPathValue,
-                            Title = $"{summary.PatchVersion} Release Information",
-                            Type = MediaType.Json
-                        }
                     }
                 };
 
@@ -683,6 +685,25 @@ public class ReleaseIndexFiles
             }
         };
 
+        // Add link to major version index
+        links["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/index.json")
+        {
+            Path = $"/{majorVersion}/index.json",
+            Title = $".NET {majorVersion} Patch Release Index",
+            Type = MediaType.HalJson
+        };
+
+        // Add SDK index link if version supports SDK (8.0+)
+        if (IsVersionSdkSupported(majorVersion))
+        {
+            links["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/sdk/index.json")
+            {
+                Path = $"/{majorVersion}/sdk/index.json",
+                Title = $".NET SDK {majorVersion} Release Information",
+                Type = MediaType.HalJson
+            };
+        }
+
         // Add README link if it exists
         var readmePath = Path.Combine(patchDir, "README.md");
         if (File.Exists(readmePath))
@@ -693,6 +714,79 @@ public class ReleaseIndexFiles
                 Title = $"{patchVersion} Release Notes (Markdown)",
                 Type = MediaType.Markdown
             };
+        }
+
+        // Load SDK versions from release.json
+        PatchSdkInfo? sdkInfo = null;
+        var releaseJsonPath = Path.Combine(patchDir, "release.json");
+        if (File.Exists(releaseJsonPath) && IsVersionSdkSupported(majorVersion))
+        {
+            try
+            {
+                var releaseJson = await File.ReadAllTextAsync(releaseJsonPath);
+                var releaseDoc = JsonDocument.Parse(releaseJson);
+                
+                // Extract SDK versions
+                var sdkVersions = new List<string>();
+                if (releaseDoc.RootElement.TryGetProperty("sdks", out var sdksElement))
+                {
+                    foreach (var sdkElement in sdksElement.EnumerateArray())
+                    {
+                        if (sdkElement.TryGetProperty("version", out var versionElement))
+                        {
+                            var version = versionElement.GetString();
+                            if (!string.IsNullOrEmpty(version))
+                            {
+                                sdkVersions.Add(version);
+                            }
+                        }
+                    }
+                }
+
+                if (sdkVersions.Count > 0)
+                {
+                    // Create SDK links for feature bands
+                    var sdkLinks = new Dictionary<string, HalLink>();
+                    var featureBands = sdkVersions
+                        .Select(v => {
+                            var parts = v.Split('.');
+                            if (parts.Length >= 3)
+                            {
+                                // Extract feature band (e.g., "9.0.2xx" from "9.0.202")
+                                return $"{parts[0]}.{parts[1]}.{parts[2][0]}xx";
+                            }
+                            return null;
+                        })
+                        .Where(fb => fb != null)
+                        .Distinct()
+                        .OrderByDescending(fb => fb)
+                        .ToList();
+
+                    foreach (var featureBand in featureBands)
+                    {
+                        if (featureBand != null)
+                        {
+                            var sdkFeatureBandPath = $"{majorVersion}/sdk/sdk-{featureBand}.json";
+                            sdkLinks[$"sdk-{featureBand}"] = new HalLink($"{Location.GitHubBaseUri}{sdkFeatureBandPath}")
+                            {
+                                Path = $"/{sdkFeatureBandPath}",
+                                Title = $".NET SDK {featureBand}",
+                                Type = MediaType.Json
+                            };
+                        }
+                    }
+
+                    sdkInfo = new PatchSdkInfo
+                    {
+                        DotnetSdk = sdkVersions,
+                        Links = sdkLinks.Count > 0 ? sdkLinks : null
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Failed to extract SDK versions from {releaseJsonPath}: {ex.Message}");
+            }
         }
 
         // Load CVE disclosures if there are CVEs
@@ -726,6 +820,18 @@ public class ReleaseIndexFiles
             }
         }
 
+        // Build embedded content if we have SDK or CVE data
+        PatchDetailIndexEmbedded? embedded = null;
+        if (sdkInfo != null || cveDisclosures != null || cveIds != null)
+        {
+            embedded = new PatchDetailIndexEmbedded
+            {
+                Sdks = sdkInfo,
+                CveRecords = cveIds,
+                Disclosures = cveDisclosures
+            };
+        }
+
         var patchDetailIndex = new PatchDetailIndex(
             ReleaseKind.PatchReleaseIndex,
             patchVersion,
@@ -734,7 +840,8 @@ public class ReleaseIndexFiles
             links)
         {
             Lifecycle = lifecycle,
-            Disclosures = cveDisclosures,
+            Embedded = embedded,
+            Disclosures = cveDisclosures, // Keep for backward compatibility
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
 

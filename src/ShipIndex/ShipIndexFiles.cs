@@ -515,19 +515,16 @@ public class ShipIndexFiles
             fullIndexLinks
             )
         {
-            Usage = new UsageWithLinks
+            Glossary = new Dictionary<string, string>
             {
-                Glossary = new Dictionary<string, string>
-                {
-                    ["lts"] = "Long-Term Support – 3-year support window",
-                    ["sts"] = "Standard-Term Support – 18-month support window",
-                    ["cve"] = "Common Vulnerabilities and Exposures – Security vulnerability identifiers",
-                    ["cvss"] = "Common Vulnerability Scoring System – Vulnerability severity ratings",
-                    ["release"] = "General Availability – Production-ready release",
-                    ["eol"] = "End of Life – No longer supported",
-                    ["preview"] = "Pre-release phase with previews and release candidates",
-                    ["active"] = "Full support with regular updates and security fixes"
-                }
+                ["lts"] = "Long-Term Support – 3-year support window",
+                ["sts"] = "Standard-Term Support – 18-month support window",
+                ["cve"] = "Common Vulnerabilities and Exposures – Security vulnerability identifiers",
+                ["cvss"] = "Common Vulnerability Scoring System – Vulnerability severity ratings",
+                ["release"] = "General Availability – Production-ready release",
+                ["eol"] = "End of Life – No longer supported",
+                ["preview"] = "Pre-release phase with previews and release candidates",
+                ["active"] = "Full support with regular updates and security fixes"
             },
             Embedded = new ReleaseHistoryIndexEmbedded
             {

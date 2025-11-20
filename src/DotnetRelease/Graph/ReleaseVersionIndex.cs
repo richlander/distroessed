@@ -5,6 +5,17 @@ using DotnetRelease.Security;
 namespace DotnetRelease.Graph;
 
 /// <summary>
+/// Usage links pointing to documentation and help resources.
+/// </summary>
+[Description("Usage links for documentation and help resources")]
+public record UsageLinks
+{
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for usage-related resources")]
+    public Dictionary<string, HalLink> Links { get; set; } = new();
+}
+
+/// <summary>
 /// Usage structure that combines terminology definitions with related navigation links.
 /// </summary>
 [Description("Usage information containing term definitions and related navigation links")]
