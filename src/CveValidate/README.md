@@ -124,6 +124,10 @@ Example:
 - Severity must be: `critical`, `high`, `medium`, `low`
 - CNA must be: `microsoft`
 
+### Release Version Format Validation
+- **Products**: The `release` field must be a two-part version (e.g., `9.0`, `8.0`)
+- **Packages**: The `release` field can be multi-part versions (e.g., `9.0.1.2`, `8.0.5`)
+
 ### Version Coherence
 Validates that for each product/package: `minVulnerable ≤ maxVulnerable < fixed`
 

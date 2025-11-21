@@ -192,4 +192,35 @@ public static class CveTransformer
             filteredCveCommits
         );
     }
+
+    /// <summary>
+    /// Validates that CVE records match what's in a release (from releases.json)
+    /// Logs warnings for any mismatches
+    /// </summary>
+    /// <param name="releaseVersion">Version being validated (e.g., "9.0.3")</param>
+    /// <param name="cveIdsFromRelease">CVE IDs from releases.json</param>
+    /// <param name="cveIdsFromCveJson">CVE IDs from cve.json (filtered)</param>
+    public static void ValidateCveData(string releaseVersion, IReadOnlyList<string>? cveIdsFromRelease, IReadOnlyList<string>? cveIdsFromCveJson)
+    {
+        var releaseCves = cveIdsFromRelease?.ToHashSet() ?? new HashSet<string>();
+        var cveJsonCves = cveIdsFromCveJson?.ToHashSet() ?? new HashSet<string>();
+
+        if (releaseCves.Count == 0 && cveJsonCves.Count == 0)
+        {
+            return; // No CVEs in either source - OK
+        }
+
+        var inReleaseOnly = releaseCves.Except(cveJsonCves).ToList();
+        var inCveJsonOnly = cveJsonCves.Except(releaseCves).ToList();
+
+        if (inReleaseOnly.Count > 0)
+        {
+            Console.WriteLine($"Warning: {releaseVersion} - CVE IDs in releases.json but not in cve.json: {string.Join(", ", inReleaseOnly)}");
+        }
+
+        if (inCveJsonOnly.Count > 0)
+        {
+            Console.WriteLine($"Warning: {releaseVersion} - CVE IDs in cve.json but not in releases.json: {string.Join(", ", inCveJsonOnly)}");
+        }
+    }
 }

@@ -643,6 +643,7 @@ public class ReleaseIndexFiles
             await GeneratePatchDetailIndexAsync(
                 patchDir, 
                 outputDir,
+                urlRootDir ?? rootDir,
                 majorVersion,
                 summary.PatchVersion, 
                 patchLifecycle, 
@@ -663,6 +664,7 @@ public class ReleaseIndexFiles
     private static async Task GeneratePatchDetailIndexAsync(
         string patchDir,
         string outputDir,
+        string inputDir,
         string majorVersion,
         string patchVersion,
         PatchLifecycle lifecycle,
@@ -789,45 +791,76 @@ public class ReleaseIndexFiles
             }
         }
 
-        // Load CVE disclosures if there are CVEs
+        // Load CVE disclosures from timeline directory based on release date
         List<CveRecordSummary>? cveDisclosures = null;
-        if (cveIds?.Count > 0)
+        string? timelineCveJsonPath = null;
+        
+        if (lifecycle?.ReleaseDate != null)
         {
-            var majorVersionDir = Path.GetDirectoryName(patchDir);
-            if (majorVersionDir != null)
+            var releaseDate = lifecycle.ReleaseDate;
+            var year = releaseDate.Year.ToString("D4");
+            var month = releaseDate.Month.ToString("D2");
+            timelineCveJsonPath = $"timeline/{year}/{month}/cve.json";
+            
+            // Load CVE records from timeline directory
+            var cveRecords = await CveHandler.CveLoader.LoadCveRecordsForReleaseDateAsync(inputDir, releaseDate);
+            
+            if (cveRecords != null)
             {
-                var cveRecords = await CveHandler.CveLoader.LoadCveRecordsFromDirectoryAsync(majorVersionDir);
-                if (cveRecords != null)
+                // Filter by major version (e.g., "9.0")
+                var filteredCveRecords = CveHandler.CveTransformer.FilterByRelease(cveRecords, majorVersion);
+                
+                if (filteredCveRecords?.Disclosures.Count > 0)
                 {
-                    var filteredCveRecords = CveHandler.CveTransformer.FilterByRelease(cveRecords, patchVersion);
-                    if (filteredCveRecords?.Disclosures.Count > 0)
+                    // Sort disclosures by CVE ID for consistent ordering
+                    var sortedDisclosures = filteredCveRecords.Disclosures.OrderBy(d => d.Id).ToList();
+                    cveDisclosures = CveHandler.CveTransformer.ToSummaries(
+                        new DotnetRelease.Security.CveRecords(
+                            filteredCveRecords.LastUpdated,
+                            filteredCveRecords.Title,
+                            sortedDisclosures,
+                            filteredCveRecords.Products,
+                            filteredCveRecords.Packages,
+                            filteredCveRecords.Commits,
+                            filteredCveRecords.ProductName,
+                            filteredCveRecords.ProductCves,
+                            filteredCveRecords.PackageCves,
+                            filteredCveRecords.ReleaseCves,
+                            filteredCveRecords.CveReleases,
+                            filteredCveRecords.CveCommits
+                        )
+                    );
+                    
+                    // Validate CVE data matches releases.json
+                    var cveIdsFromCveJson = sortedDisclosures.Select(d => d.Id).ToList();
+                    CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIds, cveIdsFromCveJson);
+                    
+                    // Add link to timeline CVE JSON
+                    links["cve-json"] = new HalLink($"{Location.GitHubBaseUri}{timelineCveJsonPath}")
                     {
-                        cveDisclosures = CveHandler.CveTransformer.ToSummaries(filteredCveRecords);
-                        
-                        // Add link to CVE JSON if it exists
-                        var cveJsonPath = Path.Combine(majorVersionDir, "cve.json");
-                        if (File.Exists(cveJsonPath))
-                        {
-                            links["cve-json"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/cve.json")
-                            {
-                                Path = $"/{majorVersion}/cve.json",
-                                Title = LinkTitles.CveInformation,
-                                Type = MediaType.Json
-                            };
-                        }
-                    }
+                        Path = $"/{timelineCveJsonPath}",
+                        Title = LinkTitles.CveInformation,
+                        Type = MediaType.Json
+                    };
                 }
             }
         }
 
         // Build embedded content if we have SDK or CVE data
+        // Extract sorted CVE IDs from disclosures (source of truth from cve.json)
+        IReadOnlyList<string>? sortedCveIds = null;
+        if (cveDisclosures != null && cveDisclosures.Count > 0)
+        {
+            sortedCveIds = cveDisclosures.Select(d => d.Id).ToList();
+        }
+        
         PatchDetailIndexEmbedded? embedded = null;
-        if (sdkInfo != null || cveDisclosures != null || cveIds != null)
+        if (sdkInfo != null || cveDisclosures != null || sortedCveIds != null)
         {
             embedded = new PatchDetailIndexEmbedded
             {
                 Sdks = sdkInfo,
-                CveRecords = cveIds,
+                CveRecords = sortedCveIds,
                 Disclosures = cveDisclosures
             };
         }
@@ -841,7 +874,6 @@ public class ReleaseIndexFiles
         {
             Lifecycle = lifecycle,
             Embedded = embedded,
-            Disclosures = cveDisclosures, // Keep for backward compatibility
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
 

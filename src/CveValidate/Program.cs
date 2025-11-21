@@ -168,6 +168,7 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool qui
         ValidateProblemDescriptionMatch(cves, errors);
         ValidateVersionCoherence(cves, errors);
         ValidateReleaseFields(cves, errors);
+        ValidateReleaseVersionFormats(cves, errors);
         ValidateCommitBranchMatch(cves, errors);
         ValidateForeignKeys(cves, errors);
         ValidateDictionaries(cves, errors);
@@ -600,6 +601,34 @@ static void ValidateReleaseFields(CveRecords cves, List<string> errors)
     }
 
     // Note: release field is optional for packages
+}
+
+static void ValidateReleaseVersionFormats(CveRecords cves, List<string> errors)
+{
+    // Validate products have two-part versions (e.g., "9.0")
+    if (cves.Products is not null)
+    {
+        foreach (var product in cves.Products)
+        {
+            if (!string.IsNullOrEmpty(product.Release) && !IsTwoPartVersion(product.Release))
+            {
+                errors.Add($"Product '{product.Name}' for {product.CveId} has invalid release version '{product.Release}' (must be two-part version like '9.0')");
+            }
+        }
+    }
+
+    // Note: packages can have multi-part versions (more relaxed)
+}
+
+static bool IsTwoPartVersion(string version)
+{
+    // Split by dot and check that we have exactly two parts
+    var parts = version.Split('.');
+    if (parts.Length != 2)
+        return false;
+
+    // Each part should be a valid integer
+    return int.TryParse(parts[0], out _) && int.TryParse(parts[1], out _);
 }
 
 static void ValidateCommitBranchMatch(CveRecords cves, List<string> errors)
