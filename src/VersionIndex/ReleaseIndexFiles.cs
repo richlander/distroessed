@@ -794,6 +794,7 @@ public class ReleaseIndexFiles
         // Load CVE disclosures from timeline directory based on release date
         List<CveRecordSummary>? cveDisclosures = null;
         string? timelineCveJsonPath = null;
+        string? timelineMonthIndexPath = null;
         
         if (lifecycle?.ReleaseDate != null)
         {
@@ -801,6 +802,15 @@ public class ReleaseIndexFiles
             var year = releaseDate.Year.ToString("D4");
             var month = releaseDate.Month.ToString("D2");
             timelineCveJsonPath = $"timeline/{year}/{month}/cve.json";
+            timelineMonthIndexPath = $"timeline/{year}/{month}/index.json";
+            
+            // Add link to timeline month index
+            links["month-timeline-index"] = new HalLink($"{Location.GitHubBaseUri}{timelineMonthIndexPath}")
+            {
+                Path = $"/{timelineMonthIndexPath}",
+                Title = $"Release timeline index for {year}-{month}",
+                Type = MediaType.HalJson
+            };
             
             // Load CVE records from timeline directory
             var cveRecords = await CveHandler.CveLoader.LoadCveRecordsForReleaseDateAsync(inputDir, releaseDate);
