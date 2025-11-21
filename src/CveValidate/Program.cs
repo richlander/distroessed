@@ -173,6 +173,7 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool qui
         ValidateForeignKeys(cves, errors);
         ValidateDictionaries(cves, errors);
         await ValidateNuGetPackages(cves, errors);
+        await ValidateAgainstReleasesJson(filePath, cves, errors);
 
         if (!skipUrls)
         {
@@ -1394,6 +1395,127 @@ static void ReportInvalidArgs()
     Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json");
     Console.WriteLine("  CveValidate update ~/git/core/release-notes/archives/2024/01/cve.json --skip-urls");
     Console.WriteLine("  CveValidate validate ~/git/core/release-notes/archives -q");
+}
+
+static async Task ValidateAgainstReleasesJson(string cveFilePath, CveRecords cves, List<string> errors)
+{
+    // CVE files are in timeline/{year}/{month}/cve.json
+    // We need to find releases in releases.json that were released in this month
+    // and validate that their CVE IDs match what's in the timeline cve.json
+    
+    // Parse the path to extract year/month and find release-notes root
+    var parts = cveFilePath.Replace("\\", "/").Split('/');
+    var timelineIndex = Array.FindIndex(parts, p => p == "timeline");
+    
+    if (timelineIndex == -1 || timelineIndex + 2 >= parts.Length)
+    {
+        // Not in a timeline directory structure, skip this validation
+        return;
+    }
+    
+    var releaseNotesRoot = string.Join("/", parts.Take(timelineIndex));
+    var year = parts[timelineIndex + 1];
+    var month = parts[timelineIndex + 2];
+    
+    if (!Directory.Exists(releaseNotesRoot))
+    {
+        errors.Add($"Cannot find release-notes root directory: {releaseNotesRoot}");
+        return;
+    }
+    
+    // For each major version in release_cves, check releases.json
+    if (cves.ReleaseCves != null)
+    {
+        foreach (var majorVersion in cves.ReleaseCves.Keys)
+        {
+            // Skip SDK feature bands (e.g., "9.0.1xx")
+            if (majorVersion.Contains('.') && majorVersion.EndsWith("xx"))
+            {
+                continue;
+            }
+            
+            var releasesJsonPath = Path.Combine(releaseNotesRoot, majorVersion, "releases.json");
+            if (!File.Exists(releasesJsonPath))
+            {
+                continue; // releases.json might not exist for all versions
+            }
+            
+            try
+            {
+                var releasesJson = await File.ReadAllTextAsync(releasesJsonPath);
+                var releasesDoc = JsonDocument.Parse(releasesJson);
+                
+                // Find releases that were released in this year/month
+                if (releasesDoc.RootElement.TryGetProperty("releases", out var releasesArray))
+                {
+                    foreach (var release in releasesArray.EnumerateArray())
+                    {
+                        if (!release.TryGetProperty("release-date", out var releaseDateProp))
+                        {
+                            continue;
+                        }
+                        
+                        var releaseDate = releaseDateProp.GetString();
+                        if (string.IsNullOrEmpty(releaseDate) || !releaseDate.StartsWith($"{year}-{month}"))
+                        {
+                            continue; // Not released in this month
+                        }
+                        
+                        // This release was released in this month, validate its CVEs
+                        if (!release.TryGetProperty("release-version", out var versionProp))
+                        {
+                            continue;
+                        }
+                        
+                        var patchVersion = versionProp.GetString();
+                        if (string.IsNullOrEmpty(patchVersion))
+                        {
+                            continue;
+                        }
+                        
+                        // Extract CVE IDs from this release
+                        var cveIdsFromRelease = new HashSet<string>();
+                        if (release.TryGetProperty("cve-list", out var cveListArray))
+                        {
+                            foreach (var cveEntry in cveListArray.EnumerateArray())
+                            {
+                                if (cveEntry.TryGetProperty("cve-id", out var cveIdProp))
+                                {
+                                    var cveId = cveIdProp.GetString();
+                                    if (!string.IsNullOrEmpty(cveId))
+                                    {
+                                        cveIdsFromRelease.Add(cveId);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (cveIdsFromRelease.Count == 0)
+                        {
+                            continue; // No CVEs in this release
+                        }
+                        
+                        // Get CVE IDs from cve.json for this major version
+                        var cveIdsFromCveJson = new HashSet<string>();
+                        if (cves.ReleaseCves.TryGetValue(majorVersion, out var cvesForVersion))
+                        {
+                            foreach (var cveId in cvesForVersion)
+                            {
+                                cveIdsFromCveJson.Add(cveId);
+                            }
+                        }
+                        
+                        // Validate using shared logic
+                        CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIdsFromRelease.ToList(), cveIdsFromCveJson.ToList());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"Error validating against {releasesJsonPath}: {ex.Message}");
+            }
+        }
+    }
 }
 
 static async Task ValidateMsrcData(string filePath, CveRecords cves, List<string> errors)

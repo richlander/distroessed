@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DotnetRelease\DotnetRelease.csproj" />
+    <ProjectReference Include="..\CveHandler\CveHandler.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
