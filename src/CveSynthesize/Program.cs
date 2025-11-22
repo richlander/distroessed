@@ -106,7 +106,18 @@ foreach (var majorVersionDir in Directory.GetDirectories(releaseNotesPath))
             }
             
             // Check for CVEs
-            if (!release.TryGetProperty("cve-list", out var cveListArray) || cveListArray.GetArrayLength() == 0)
+            if (!release.TryGetProperty("cve-list", out var cveListArray))
+            {
+                continue;
+            }
+            
+            // Handle null cve-list
+            if (cveListArray.ValueKind == JsonValueKind.Null)
+            {
+                continue;
+            }
+            
+            if (cveListArray.GetArrayLength() == 0)
             {
                 continue;
             }
