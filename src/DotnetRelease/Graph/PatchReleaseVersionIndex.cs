@@ -10,16 +10,26 @@ namespace DotnetRelease.Graph;
 /// </summary>
 [Description("Index of patch .NET releases with simplified lifecycle information")]
 public record PatchReleaseVersionIndex(
-    [Description("Type of release document, always 'index' for version-based indexes")]
+    [property: Description("Type of release document, always 'index' for version-based indexes")]
     ReleaseKind Kind,
-    [Description("Concise title for the document")]
+    [property: Description("Concise title for the document")]
     string Title,
-    [Description("Description of the index scope")]
-    string Description,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for hypermedia navigation")]
-    Dictionary<string, HalLink> Links) : IReleaseVersionIndex
+    [property: Description("Description of the index scope")]
+    string Description) : IReleaseVersionIndex
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest patch version")]
+    public string? Latest { get; init; }
+
+    [JsonPropertyName("latest-security"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest patch version with security fixes")]
+    public string? LatestSecurity { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
+
     [JsonPropertyName("usage"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Usage information and term definitions")]

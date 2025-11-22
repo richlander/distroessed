@@ -267,6 +267,34 @@ public class ReleaseIndexFiles
 
             var patchDescription = $"Index of .NET versions {patchVersionRange} (latest first); {Location.CacheFriendlyNote}";
             
+            // Determine latest and latest-security
+            // Patches are ordered latest first, so first entry is latest
+            var latestPatch = patchEntries.FirstOrDefault();
+            var latestSecurityPatch = patchEntries.FirstOrDefault(e => e.CveRecords?.Count > 0);
+            
+            // Add latest and latest-security links if available
+            if (latestPatch != null)
+            {
+                var latestPatchIndexPath = $"{majorVersionDirName}/{latestPatch.Version}/index.json";
+                remainingMajorVersionLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestPatchIndexPath}")
+                {
+                    Path = $"/{latestPatchIndexPath}",
+                    Title = $"Latest patch release ({latestPatch.Version})",
+                    Type = MediaType.HalJson
+                };
+            }
+            
+            if (latestSecurityPatch != null)
+            {
+                var latestSecurityPatchIndexPath = $"{majorVersionDirName}/{latestSecurityPatch.Version}/index.json";
+                remainingMajorVersionLinks["latest-security"] = new HalLink($"{Location.GitHubBaseUri}{latestSecurityPatchIndexPath}")
+                {
+                    Path = $"/{latestSecurityPatchIndexPath}",
+                    Title = $"Latest security patch ({latestSecurityPatch.Version})",
+                    Type = MediaType.HalJson
+                };
+            }
+            
             // Build years array for embedded data
             List<TimelineYear>? yearsEmbedded = null;
             if (releaseYears.Count > 0)
@@ -291,9 +319,11 @@ public class ReleaseIndexFiles
             var patchVersionIndex = new PatchReleaseVersionIndex(
                 ReleaseKind.MajorReleaseIndex,
                 $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Patch Release Index",
-                patchDescription,
-                remainingMajorVersionLinks)
+                patchDescription)
             {
+                Latest = latestPatch?.Version,
+                LatestSecurity = latestSecurityPatch?.Version,
+                Links = remainingMajorVersionLinks,
                 Lifecycle = lifecycle,
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
                     patchEntries.Select(e => new PatchReleaseVersionIndexEntry(e.Version, e.Kind, e.Links)
