@@ -208,7 +208,7 @@ public class ReleaseIndexFiles
                 var sdkIndexPath = Path.Combine(majorVersionDir, "sdk", "index.json");
                 var relativeSdkIndexPath = Path.GetRelativePath(outputDir, sdkIndexPath);
                 var pathValue = "/" + relativeSdkIndexPath.Replace("\\", "/");
-                orderedMajorVersionLinks["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
+                orderedMajorVersionLinks[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
                 {
                     Path = pathValue,
                     Title = $".NET SDK {majorVersionDirName} Release Information",
@@ -317,7 +317,7 @@ public class ReleaseIndexFiles
             }
             
             var patchVersionIndex = new PatchReleaseVersionIndex(
-                ReleaseKind.MajorReleaseIndex,
+                ReleaseKind.MajorVersionIndex,
                 $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Patch Release Index",
                 patchDescription)
             {
@@ -426,7 +426,7 @@ public class ReleaseIndexFiles
             // Major version entries use full lifecycle (not simplified)
             var majorEntry = new MajorReleaseVersionIndexEntry(
                 majorVersionDirName,
-                ReleaseKind.MajorReleaseIndex,
+                ReleaseKind.MajorVersionIndex,
                 majorVersionWithinAllReleasesIndexLinks
                 )
             {
@@ -504,6 +504,22 @@ public class ReleaseIndexFiles
                 };
             }
 
+            // Calculate latest year for cross-reference to timeline
+            var latestYearForLink = summaries
+                .SelectMany(s => s.PatchReleases.Select(p => p.ReleaseDate.Year))
+                .DefaultIfEmpty(0)
+                .Max();
+            
+            if (latestYearForLink > 0)
+            {
+                orderedRootLinks[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}timeline/{latestYearForLink}/index.json")
+                {
+                    Path = $"/timeline/{latestYearForLink}/index.json",
+                    Title = $"Latest year ({latestYearForLink})",
+                    Type = MediaType.HalJson
+                };
+            }
+
             // Add non-HAL+JSON links (markdown files) after
             foreach (var link in rootLinks.Where(kvp => kvp.Value.Type != MediaType.HalJson))
             {
@@ -527,16 +543,24 @@ public class ReleaseIndexFiles
 
         var description = $"Index of .NET versions {versionRange} (latest first); {Location.CacheFriendlyNote}";
         
+        // Calculate latest year from all patch releases across all major versions
+        var latestYear = summaries
+            .SelectMany(s => s.PatchReleases.Select(p => p.ReleaseDate.Year))
+            .DefaultIfEmpty(0)
+            .Max()
+            .ToString();
+        
         // Extract usage links from rootLinks
         var (remainingRootLinks, usageLinksForRoot) = ExtractUsageLinks(rootLinks);
         
         var majorIndex = new MajorReleaseVersionIndex(
-                ReleaseKind.ReleaseIndex,
+                ReleaseKind.ReleasesIndex,
                 IndexTitles.VersionIndexTitle,
                 description)
         {
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
+            LatestYear = latestYear != "0" ? latestYear : null,
             Links = remainingRootLinks,
             Usage = CreateUsageLinks(usageLinksForRoot),
             Glossary = CreateGlossary(),
@@ -718,7 +742,7 @@ public class ReleaseIndexFiles
         };
 
         // Add link to major version index
-        links["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/index.json")
+        links[LinkRelations.MajorVersionIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/index.json")
         {
             Path = $"/{majorVersion}/index.json",
             Title = $".NET {majorVersion} Patch Release Index",
@@ -728,7 +752,7 @@ public class ReleaseIndexFiles
         // Add SDK index link if version supports SDK (8.0+)
         if (IsVersionSdkSupported(majorVersion))
         {
-            links["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/sdk/index.json")
+            links[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/sdk/index.json")
             {
                 Path = $"/{majorVersion}/sdk/index.json",
                 Title = $".NET SDK {majorVersion} Release Information",
@@ -835,7 +859,7 @@ public class ReleaseIndexFiles
             timelineMonthIndexPath = $"timeline/{year}/{month}/index.json";
             
             // Add link to timeline month index
-            links["month-timeline-index"] = new HalLink($"{Location.GitHubBaseUri}{timelineMonthIndexPath}")
+            links[LinkRelations.MonthIndex] = new HalLink($"{Location.GitHubBaseUri}{timelineMonthIndexPath}")
             {
                 Path = $"/{timelineMonthIndexPath}",
                 Title = $"Release timeline index for {year}-{month}",
@@ -876,7 +900,7 @@ public class ReleaseIndexFiles
                     CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIds, cveIdsFromCveJson);
                     
                     // Add link to timeline CVE JSON
-                    links["cve-json"] = new HalLink($"{Location.GitHubBaseUri}{timelineCveJsonPath}")
+                    links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{timelineCveJsonPath}")
                     {
                         Path = $"/{timelineCveJsonPath}",
                         Title = LinkTitles.CveInformation,
@@ -906,7 +930,7 @@ public class ReleaseIndexFiles
         }
 
         var patchDetailIndex = new PatchDetailIndex(
-            ReleaseKind.PatchReleaseIndex,
+            ReleaseKind.PatchVersionIndex,
             patchVersion,
             $".NET {patchVersion} Patch Index",
             $"Patch information for .NET {patchVersion}",

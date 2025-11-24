@@ -104,7 +104,7 @@ public class ArchiveNavigator
         ArgumentNullException.ThrowIfNullOrEmpty(month);
 
         var monthIndex = await _graph.GetMonthIndexAsync(_year, month, cancellationToken);
-        if (monthIndex?.Links is null || !monthIndex.Links.TryGetValue("cve-json", out var cveLink))
+        if (monthIndex?.Links is null || !monthIndex.Links.TryGetValue(LinkRelations.CveJson, out var cveLink))
         {
             return null;
         }

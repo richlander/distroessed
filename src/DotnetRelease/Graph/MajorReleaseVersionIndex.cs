@@ -25,6 +25,11 @@ public record MajorReleaseVersionIndex(
      Description("Latest LTS (Long-Term Support) .NET version")]
     public string? LatestLts { get; init; }
 
+    [JsonPropertyName("latest-year"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest year with .NET releases (cross-reference to timeline)")]
+    public string? LatestYear { get; init; }
+
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];

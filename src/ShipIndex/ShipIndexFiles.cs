@@ -35,7 +35,7 @@ public class ShipIndexFiles
         {"README.md", new FileLink("README.md", LinkTitles.DotNetReleaseNotes, LinkStyle.GitHub) },
     };
 
-    public static async Task GenerateAsync(string inputPath, string outputPath, ReleaseHistory releaseHistory)
+    public static async Task GenerateAsync(string inputPath, string outputPath, ReleaseHistory releaseHistory, List<MajorReleaseSummary> summaries)
     {
         var historyPath = Path.Combine(outputPath, "timeline");
 
@@ -162,7 +162,7 @@ public class ShipIndexFiles
                     var cveJsonRelativePath = Path.GetRelativePath(inputPath, Path.Combine(monthPath, "cve.json"));
                     var cveJsonPathValue = "/" + cveJsonRelativePath.Replace("\\", "/");
 
-                    monthSummaryLinks["cve-json"] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
+                    monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
                     {
                         Path = cveJsonPathValue,
                         Title = LinkTitles.CveInformation,
@@ -224,7 +224,7 @@ public class ShipIndexFiles
                 var monthVersionRange = $"{monthMinVersion}–{monthMaxVersion}";
 
                 var monthIndex = new HistoryMonthIndex(
-                    HistoryKind.TimelineMonthIndex,
+                    HistoryKind.MonthIndex,
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
                     IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthVersionRange, Location.CacheFriendlyNote),
                     year.Year,
@@ -262,7 +262,7 @@ public class ShipIndexFiles
                                     
                                     var links = new Dictionary<string, object>
                                     {
-                                        ["version-index"] = new HalLink($"{Location.GitHubBaseUri}{versionIndexPath}")
+                                        [LinkRelations.MajorVersionIndex] = new HalLink($"{Location.GitHubBaseUri}{versionIndexPath}")
                                         {
                                             Path = "/" + versionIndexPath,
                                             Title = $".NET {majorVersion} Version Index",
@@ -297,7 +297,7 @@ public class ShipIndexFiles
                                     if (int.TryParse(majorVersion.Split('.')[0], out int majorVersionNumber) && majorVersionNumber >= 8)
                                     {
                                         var sdkIndexPath = $"{majorVersion}/sdk/index.json";
-                                        links["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
+                                        links[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
                                         {
                                             Path = "/" + sdkIndexPath,
                                             Title = $".NET SDK {majorVersion} Release Information",
@@ -424,14 +424,32 @@ public class ShipIndexFiles
             var yearMaxVersion = releasesForYear.Max(numericStringComparer);
             var yearVersionRange = $"{yearMinVersion}–{yearMaxVersion}";
 
+            // Calculate latest month for this year (months are ordered latest first)
+            var latestMonth = monthSummaries.FirstOrDefault()?.Month;
+
+            // Add latest-month link if available
+            if (latestMonth != null)
+            {
+                var latestMonthPath = Path.Combine(yearPath, latestMonth, "index.json");
+                var latestMonthRelativePath = Path.GetRelativePath(inputPath, latestMonthPath);
+                var latestMonthPathValue = "/" + latestMonthRelativePath.Replace("\\", "/");
+                yearHalLinks[LinkRelations.LatestMonth] = new HalLink(urlGenerator(latestMonthRelativePath, LinkStyle.Prod))
+                {
+                    Path = latestMonthPathValue,
+                    Title = $"Latest month ({IndexTitles.TimelineMonthLink(year.Year, latestMonth)})",
+                    Type = MediaType.HalJson
+                };
+            }
+
             // Create the year index (e.g., release-notes/2025/index.json)
             var yearHistory = new HistoryYearIndex(
-                HistoryKind.TimelineYearIndex,
+                HistoryKind.YearIndex,
                 IndexTitles.TimelineYearTitle(year.Year),
                 IndexTitles.TimelineYearIndexDescription(year.Year, yearVersionRange, Location.CacheFriendlyNote),
                 year.Year,
                 yearHalLinks)
             {
+                LatestMonth = latestMonth,
                 Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
             };
 
@@ -479,7 +497,7 @@ public class ShipIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineYearLink(year.Year) : fileLink.Title);
 
             yearEntries.Add(new HistoryYearEntry(
-                HistoryKind.TimelineYearIndex,
+                HistoryKind.YearIndex,
                 IndexTitles.TimelineYearDescription(year.Year),
                 year.Year,
                 overallYearHalLinks)
@@ -494,13 +512,61 @@ public class ShipIndexFiles
             HistoryFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineIndexLink : fileLink.Title);
 
-        // Add release-version-index link pointing back to root index.json
-        fullIndexLinks["release-version-index"] = new HalLink($"{Location.GitHubBaseUri}index.json")
+        // Calculate latest year
+        var latestYear = sortedYears.LastOrDefault();
+
+        // Find latest stable release and latest LTS release for cross-references
+        var latestRelease = summaries
+            .Where(s => s.Lifecycle != null && ReleaseStability.IsStable(s.Lifecycle.Phase))
+            .OrderByDescending(s => s.MajorVersion, numericStringComparer)
+            .FirstOrDefault();
+
+        var latestLtsRelease = summaries
+            .Where(s => s.Lifecycle != null && 
+                       ReleaseStability.IsStable(s.Lifecycle.Phase) &&
+                       s.Lifecycle.ReleaseType == ReleaseType.LTS)
+            .OrderByDescending(s => s.MajorVersion, numericStringComparer)
+            .FirstOrDefault();
+
+        // Add releases-index link pointing back to root index.json
+        fullIndexLinks[LinkRelations.ReleasesIndex] = new HalLink($"{Location.GitHubBaseUri}index.json")
         {
             Path = "/index.json",
             Title = IndexTitles.VersionIndexTitle,
             Type = MediaType.HalJson
         };
+
+        // Add cross-reference links to latest versions (from releases-index)
+        if (latestRelease != null)
+        {
+            fullIndexLinks[LinkRelations.Latest] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.MajorVersion}/index.json")
+            {
+                Path = $"/{latestRelease.MajorVersion}/index.json",
+                Title = $"Latest .NET release (.NET {latestRelease.MajorVersion})",
+                Type = MediaType.HalJson
+            };
+        }
+
+        if (latestLtsRelease != null)
+        {
+            fullIndexLinks[LinkRelations.LatestLts] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.MajorVersion}/index.json")
+            {
+                Path = $"/{latestLtsRelease.MajorVersion}/index.json",
+                Title = $"Latest LTS release (.NET {latestLtsRelease.MajorVersion})",
+                Type = MediaType.HalJson
+            };
+        }
+
+        // Add latest-year link
+        if (latestYear != null)
+        {
+            fullIndexLinks[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}timeline/{latestYear}/index.json")
+            {
+                Path = $"/timeline/{latestYear}/index.json",
+                Title = $"Latest year ({latestYear})",
+                Type = MediaType.HalJson
+            };
+        }
 
         // Calculate version range for root history index
         var minVersion = allReleases.Min(numericStringComparer);
@@ -509,12 +575,15 @@ public class ShipIndexFiles
 
         // Create the history index
         var historyIndex = new ReleaseHistoryIndex(
-            HistoryKind.ReleaseTimelineIndex,
+            HistoryKind.TimelineIndex,
             IndexTitles.TimelineIndexTitle,
             IndexTitles.TimelineIndexDescription(rootVersionRange, Location.CacheFriendlyNote),
             fullIndexLinks
             )
         {
+            LatestYear = latestYear,
+            Latest = latestRelease?.MajorVersion,
+            LatestLts = latestLtsRelease?.MajorVersion,
             Glossary = new Dictionary<string, string>
             {
                 ["lts"] = "Long-Term Support – 3-year support window",

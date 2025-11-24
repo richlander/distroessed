@@ -99,13 +99,19 @@ public class Summary
             var gaRelease = major.Releases.Where(p => !p.ReleaseVersion.Contains("preview", StringComparison.OrdinalIgnoreCase)).LastOrDefault();
             DateOnly gaDate = gaRelease?.ReleaseDate ?? DateOnly.MinValue;
 
-            MajorReleaseSummary majorSummary = new MajorReleaseSummary(
-                major.ChannelVersion,
-                $".NET " + major.ChannelVersion,
+            // Create Lifecycle object with all lifecycle information
+            var lifecycle = new Lifecycle(
                 major.ReleaseType,
                 major.SupportPhase,
                 new DateTimeOffset(gaDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
-                new DateTimeOffset(major.EolDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
+                new DateTimeOffset(major.EolDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero)
+            );
+            lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
+
+            MajorReleaseSummary majorSummary = new MajorReleaseSummary(
+                major.ChannelVersion,
+                $".NET " + major.ChannelVersion,
+                lifecycle,
                 sdkBands,
                 patchVersions
             );

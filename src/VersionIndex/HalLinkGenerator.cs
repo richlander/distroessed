@@ -50,7 +50,7 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             // Map files to semantic HAL+JSON relations
             if (filename == "timeline/index.json")
             {
-                name = "release-timeline-index";
+                name = LinkRelations.TimelineIndex;
             }
             else if (filename == "release-history/index.json")
             {

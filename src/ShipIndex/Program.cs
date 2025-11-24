@@ -84,7 +84,7 @@ ReleaseHistory history = Summary.GetReleaseCalendar(summaries);
 Summary.PopulateCveInformation(history, inputDir);
 
 // Generate ship timeline index files (timeline/index.json, year/month indexes)
-await ShipIndexFiles.GenerateAsync(inputDir, outputDir, history);
+await ShipIndexFiles.GenerateAsync(inputDir, outputDir, history, summaries);
 
 // Display skipped files count
 Console.WriteLine($"Skipped {ShipIndexFiles.SkippedFilesCount} files because they did not change.");

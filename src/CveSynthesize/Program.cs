@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CveHandler;
 using DotnetRelease.Security;
 
 // CveSynthesize - Synthesize CVE JSON files for historical releases
@@ -178,10 +179,61 @@ Console.WriteLine();
 Console.WriteLine($"Found {releasesByCveMonth.Count} month(s) with CVE data to synthesize");
 Console.WriteLine();
 
-// TODO: Generate cve.json files for each month
-// This will be implemented in the next phase
+// Generate cve.json files for each month
+int createdCount = 0;
+int skippedCount = 0;
+int errorCount = 0;
 
-return 0;
+foreach (var (yearMonth, releases) in releasesByCveMonth.OrderBy(kvp => kvp.Key))
+{
+    try
+    {
+        var parts = yearMonth.Split('-');
+        var year = parts[0];
+        var month = parts[1];
+        
+        var monthDir = Path.Combine(timelinePath, year, month);
+        var cveJsonPath = Path.Combine(monthDir, "cve.json");
+        
+        // Skip if cve.json already exists
+        if (File.Exists(cveJsonPath))
+        {
+            Console.WriteLine($"Skipping {yearMonth} (cve.json already exists)");
+            skippedCount++;
+            continue;
+        }
+        
+        Console.WriteLine($"Generating cve.json for {yearMonth}...");
+        
+        // Create directory if it doesn't exist
+        Directory.CreateDirectory(monthDir);
+        
+        // Fetch MSRC data for this month
+        var msrcId = $"{year}-{new DateTime(int.Parse(year), int.Parse(month), 1):MMM}";
+        Console.WriteLine($"  Fetching MSRC data for {msrcId}...");
+        var msrcData = await MsrcClient.FetchDataAsync(msrcId);
+        
+        // Build CVE records
+        var cveRecords = await BuildCveRecords(yearMonth, releases, msrcData);
+        
+        // Write to file
+        string json = JsonSerializer.Serialize(cveRecords, CveSerializerContext.Default.CveRecords);
+        await File.WriteAllTextAsync(cveJsonPath, json);
+        
+        Console.WriteLine($"  Created {cveJsonPath}");
+        Console.WriteLine($"  Contains {cveRecords.Disclosures.Count} CVE(s) from {releases.Count} release(s)");
+        createdCount++;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"  Error processing {yearMonth}: {ex.Message}");
+        errorCount++;
+    }
+}
+
+Console.WriteLine();
+Console.WriteLine($"Summary: Created {createdCount}, Skipped {skippedCount}, Errors {errorCount}");
+return errorCount > 0 ? 1 : 0;
 
 static DateOnly? FindEarliestTimelineCveDate(string timelinePath)
 {
@@ -221,6 +273,126 @@ static DateOnly? FindEarliestTimelineCveDate(string timelinePath)
     }
     
     return earliest;
+}
+
+static async Task<CveRecords> BuildCveRecords(string yearMonth, List<ReleaseWithCves> releases, Dictionary<string, MsrcCveData>? msrcData)
+{
+    var parts = yearMonth.Split('-');
+    var year = int.Parse(parts[0]);
+    var month = int.Parse(parts[1]);
+    var monthName = new DateTime(year, month, 1).ToString("MMMM");
+    
+    // Collect all unique CVE IDs
+    var allCveIds = releases.SelectMany(r => r.CveIds).Distinct().OrderBy(id => id).ToList();
+    
+    // Build disclosures list
+    var disclosures = new List<Cve>();
+    foreach (var cveId in allCveIds)
+    {
+        // Get MSRC data if available
+        MsrcCveData? msrcCve = null;
+        msrcData?.TryGetValue(cveId, out msrcCve);
+        
+        // Find the earliest release date for this CVE
+        var earliestRelease = releases
+            .Where(r => r.CveIds.Contains(cveId))
+            .OrderBy(r => r.ReleaseDate)
+            .First();
+        
+        // Build CVE record with MSRC data
+        var cvss = new Cvss(
+            Version: "3.1",
+            Vector: msrcCve?.Vector ?? "",
+            Score: msrcCve?.Score ?? 0.0m,
+            Severity: "",
+            Source: "microsoft"
+        );
+        
+        var timeline = new Timeline(
+            Disclosure: new Event(earliestRelease.ReleaseDate, "Publicly disclosed"),
+            Fixed: new Event(earliestRelease.ReleaseDate, $"Fixed in {earliestRelease.Version}")
+        );
+        
+        Cna? cna = null;
+        if (msrcCve is not null && 
+            (!string.IsNullOrEmpty(msrcCve.Impact) || 
+             !string.IsNullOrEmpty(msrcCve.CnaSeverity) ||
+             msrcCve.Acknowledgments is not null ||
+             msrcCve.Faqs is not null))
+        {
+            cna = new Cna(
+                Name: "microsoft",
+                Severity: msrcCve.CnaSeverity,
+                Impact: msrcCve.Impact,
+                Acknowledgments: msrcCve.Acknowledgments,
+                Faq: msrcCve.Faqs
+            );
+        }
+        
+        var cve = new Cve(
+            Id: cveId,
+            Problem: msrcCve?.Impact ?? "Security Vulnerability",
+            Description: new List<string> { $"A security vulnerability exists in .NET. See {cveId} for details." },
+            Cvss: cvss,
+            Timeline: timeline,
+            Platforms: new List<string> { "all" },
+            Architectures: new List<string> { "all" },
+            References: new List<string> 
+            { 
+                $"https://msrc.microsoft.com/update-guide/vulnerability/{cveId}",
+                $"https://nvd.nist.gov/vuln/detail/{cveId}"
+            },
+            Weakness: msrcCve?.Weakness,
+            Cna: cna
+        );
+        
+        disclosures.Add(cve);
+    }
+    
+    // Build products and packages lists
+    var products = new List<Product>();
+    var packages = new List<Package>();
+    
+    foreach (var release in releases)
+    {
+        foreach (var cveId in release.CveIds)
+        {
+            // Add a product entry for dotnet-runtime
+            products.Add(new Product(
+                CveId: cveId,
+                Name: "dotnet-runtime",
+                MinVulnerable: release.MajorVersion,
+                MaxVulnerable: release.Version,
+                Fixed: release.Version,
+                Release: release.MajorVersion,
+                Commits: new List<string>()
+            ));
+        }
+    }
+    
+    // Generate dictionaries
+    var generated = CveDictionaryGenerator.GenerateAll(new CveRecords(
+        LastUpdated: "",
+        Title: "",
+        Disclosures: disclosures,
+        Products: products,
+        Packages: packages
+    ));
+    
+    return new CveRecords(
+        LastUpdated: DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+        Title: $".NET {monthName} {year}",
+        Disclosures: disclosures,
+        Products: products,
+        Packages: packages,
+        Commits: null,
+        ProductName: generated.ProductName,
+        ProductCves: generated.ProductCves,
+        PackageCves: generated.PackageCves,
+        ReleaseCves: generated.ReleaseCves,
+        CveReleases: generated.CveReleases,
+        CveCommits: null
+    );
 }
 
 record ReleaseWithCves(

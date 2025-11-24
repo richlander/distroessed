@@ -68,3 +68,48 @@ This avoids duplication and ensures a single source of truth for CVE data.
 ## Dependencies
 
 - **DotnetRelease**: For CVE data structures (`CveRecords`, `CveRecordSummary`, etc.)
+
+## Additional Components
+
+### MsrcClient
+Fetches and parses CVE data from Microsoft Security Response Center (MSRC) API.
+
+```csharp
+// Fetch MSRC data for a specific security update
+var msrcData = await MsrcClient.FetchDataAsync("2024-Jan");
+
+// Returns dictionary of CVE metadata
+// - CVSS v3.1 scores and vectors
+// - CNA severity ratings
+// - Impact categories
+// - CWE identifiers
+// - Acknowledgments
+// - FAQ entries
+```
+
+### CveDictionaryGenerator
+Generates lookup dictionaries from CVE records for efficient querying.
+
+```csharp
+// Generate all dictionaries
+var dictionaries = CveDictionaryGenerator.GenerateAll(cveRecords);
+// Returns: cve_releases, release_cves, product_cves, package_cves, product_name
+
+// Generate CVE-to-commits mapping
+var cveCommits = CveDictionaryGenerator.GenerateCommits(cveRecords);
+```
+
+### ProductNameHelper
+Standardizes product display names.
+
+```csharp
+var displayName = ProductNameHelper.GetDisplayName("dotnet-runtime");
+// Returns: ".NET Runtime Libraries"
+```
+
+## Used By
+
+- **CveSynthesize**: Uses MsrcClient and CveDictionaryGenerator
+- **CveValidate**: Uses MsrcClient and CveDictionaryGenerator
+- **VersionIndex**: Uses CveLoader and CveTransformer
+- **ShipIndex**: Uses CveLoader and CveTransformer

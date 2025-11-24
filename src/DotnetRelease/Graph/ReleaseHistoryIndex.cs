@@ -15,6 +15,19 @@ public record ReleaseHistoryIndex(
      Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links)
 {
+    [JsonPropertyName("latest-year"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest year with .NET releases (primary)")]
+    public string? LatestYear { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest major .NET version (cross-reference to releases)")]
+    public string? Latest { get; init; }
+
+    [JsonPropertyName("latest-lts"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest LTS .NET version (cross-reference to releases)")]
+    public string? LatestLts { get; init; }
 
     [JsonPropertyName("glossary"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
@@ -72,10 +85,18 @@ public record HistoryYearEntry(
 public enum HistoryKind
 {
     [Description("Root chronological index")]
-    ReleaseTimelineIndex,
+    TimelineIndex,
     [Description("Year-specific index")]
-    TimelineYearIndex,
+    YearIndex,
     [Description("Month-specific index")]
+    MonthIndex,
+    
+    // Legacy values (deprecated, for backwards compatibility)
+    [Description("Legacy: Use TimelineIndex instead")]
+    ReleaseTimelineIndex,
+    [Description("Legacy: Use YearIndex instead")]
+    TimelineYearIndex,
+    [Description("Legacy: Use MonthIndex instead")]
     TimelineMonthIndex,
 }
 

@@ -18,6 +18,10 @@ public record HistoryYearIndex(
      Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links)
 {
+    [JsonPropertyName("latest-month"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest month with .NET releases in this year")]
+    public string? LatestMonth { get; init; }
 
     [JsonPropertyName("_embedded"),
      Description("Embedded monthly summaries and release listings")]

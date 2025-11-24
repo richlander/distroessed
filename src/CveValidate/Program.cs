@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using CveHandler;
 using DotnetRelease;
 using DotnetRelease.Security;
 
@@ -373,10 +374,10 @@ static async Task<bool> UpdateCveFile(string filePath, bool skipUrls)
             return false;
         }
 
-        var generated = GenerateDictionaries(cveRecords);
+        var generated = CveDictionaryGenerator.GenerateAll(cveRecords);
         
         // Update cve_commits dictionary
-        var cveCommits = GenerateCveCommits(cveRecords);
+        var cveCommits = CveDictionaryGenerator.GenerateCommits(cveRecords);
         
         // Fetch and update CVSS scores from CVE.org
         var updatedCves = await UpdateCvssScores(cveRecords.Disclosures);
@@ -1091,202 +1092,9 @@ static void ReportErrors(List<string> errors)
     }
 }
 
-static GeneratedDictionaries GenerateDictionaries(CveRecords cveRecords)
-{
-    var productName = new Dictionary<string, string>();
-    var productCves = new Dictionary<string, List<string>>();
-    var packageCves = new Dictionary<string, List<string>>();
-    var cveReleases = new Dictionary<string, List<string>>();
-    var releaseCves = new Dictionary<string, List<string>>();
-
-    // Build a set of valid CVE IDs
-    var validCveIds = new HashSet<string>(cveRecords.Disclosures.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
-
-    // Build product_name and product_cves from products ONLY
-    foreach (var product in cveRecords.Products)
-    {
-        if (!productName.ContainsKey(product.Name))
-        {
-            productName[product.Name] = GetProductDisplayName(product.Name);
-        }
-
-        // Only add CVE if it exists in the cves property
-        if (validCveIds.Contains(product.CveId))
-        {
-            if (!productCves.ContainsKey(product.Name))
-            {
-                productCves[product.Name] = new List<string>();
-            }
-            if (!productCves[product.Name].Contains(product.CveId))
-            {
-                productCves[product.Name].Add(product.CveId);
-            }
-
-            // Only process release mappings if release is not empty
-            if (!string.IsNullOrEmpty(product.Release))
-            {
-                string release = product.Release;
-
-                if (!cveReleases.ContainsKey(product.CveId))
-                {
-                    cveReleases[product.CveId] = new List<string>();
-                }
-                if (!cveReleases[product.CveId].Contains(release))
-                {
-                    cveReleases[product.CveId].Add(release);
-                }
-
-                if (!releaseCves.ContainsKey(release))
-                {
-                    releaseCves[release] = new List<string>();
-                }
-                if (!releaseCves[release].Contains(product.CveId))
-                {
-                    releaseCves[release].Add(product.CveId);
-                }
-            }
-        }
-    }
-
-    // Build package_cves from packages (no need to add to product_name)
-    foreach (var package in cveRecords.Packages)
-    {
-        // Only add CVE if it exists in the cves property
-        if (validCveIds.Contains(package.CveId))
-        {
-            if (!packageCves.ContainsKey(package.Name))
-            {
-                packageCves[package.Name] = new List<string>();
-            }
-            if (!packageCves[package.Name].Contains(package.CveId))
-            {
-                packageCves[package.Name].Add(package.CveId);
-            }
-
-            // Only process release mappings if release is not empty
-            if (!string.IsNullOrEmpty(package.Release))
-            {
-                string release = package.Release;
-
-                if (!cveReleases.ContainsKey(package.CveId))
-                {
-                    cveReleases[package.CveId] = new List<string>();
-                }
-                if (!cveReleases[package.CveId].Contains(release))
-                {
-                    cveReleases[package.CveId].Add(release);
-                }
-
-                if (!releaseCves.ContainsKey(release))
-                {
-                    releaseCves[release] = new List<string>();
-                }
-                if (!releaseCves[release].Contains(package.CveId))
-                {
-                    releaseCves[release].Add(package.CveId);
-                }
-            }
-        }
-    }
-
-    // Sort all lists for consistency
-    foreach (var list in productCves.Values)
-        list.Sort();
-    foreach (var list in packageCves.Values)
-        list.Sort();
-    foreach (var list in cveReleases.Values)
-        list.Sort();
-    foreach (var list in releaseCves.Values)
-        list.Sort();
-
-    // Return dictionaries with sorted keys
-    return new GeneratedDictionaries(
-        CveReleases: cveReleases.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
-        ProductCves: productCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
-        PackageCves: packageCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
-        ProductName: productName.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => v.Value),
-        ReleaseCves: releaseCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value)
-    );
-}
-
-static IDictionary<string, IList<string>> GenerateCveCommits(CveRecords cveRecords)
-{
-    var cveCommits = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-
-    // Build a set of valid commit hashes and CVE IDs
-    var validCommits = cveRecords.Commits is not null 
-        ? new HashSet<string>(cveRecords.Commits.Keys, StringComparer.OrdinalIgnoreCase)
-        : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    var validCveIds = new HashSet<string>(cveRecords.Disclosures.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
-
-    // Collect commits from products
-    foreach (var product in cveRecords.Products)
-    {
-        // Only process if CVE exists in cves property
-        if (validCveIds.Contains(product.CveId) && product.Commits is not null && product.Commits.Count > 0)
-        {
-            if (!cveCommits.ContainsKey(product.CveId))
-            {
-                cveCommits[product.CveId] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }
-            foreach (var commit in product.Commits)
-            {
-                // Only add commit if it exists in commits property
-                if (validCommits.Contains(commit))
-                {
-                    cveCommits[product.CveId].Add(commit);
-                }
-            }
-        }
-    }
-
-    // Collect commits from packages
-    foreach (var package in cveRecords.Packages)
-    {
-        // Only process if CVE exists in cves property
-        if (validCveIds.Contains(package.CveId) && package.Commits is not null && package.Commits.Count > 0)
-        {
-            if (!cveCommits.ContainsKey(package.CveId))
-            {
-                cveCommits[package.CveId] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }
-            foreach (var commit in package.Commits)
-            {
-                // Only add commit if it exists in commits property
-                if (validCommits.Contains(commit))
-                {
-                    cveCommits[package.CveId].Add(commit);
-                }
-            }
-        }
-    }
-
-    // Convert to sorted dictionary with sorted lists
-    return cveCommits
-        .OrderBy(k => k.Key)
-        .ToDictionary(
-            k => k.Key,
-            v => (IList<string>)v.Value.OrderBy(c => c).ToList()
-        );
-}
-
-static string GetProductDisplayName(string productName)
-{
-    return productName switch
-    {
-        "dotnet-runtime-libraries" => ".NET Runtime Libraries",
-        "dotnet-runtime-aspnetcore" => "ASP.NET Core Runtime",
-        "dotnet-runtime" => ".NET Runtime Libraries",
-        "dotnet-aspnetcore" => "ASP.NET Core Runtime",
-        "dotnet-sdk" => ".NET SDK",
-        "aspnetcore-runtime" => "ASP.NET Core Runtime",
-        _ => productName
-    };
-}
-
 static void ValidateDictionaries(CveRecords cveRecords, List<string> errors)
 {
-    var expected = GenerateDictionaries(cveRecords);
+    var expected = CveDictionaryGenerator.GenerateAll(cveRecords);
 
     // Validate cve_releases
     ValidateDictionary(cveRecords.CveReleases, expected.CveReleases, "cve_releases", errors);
@@ -1304,7 +1112,7 @@ static void ValidateDictionaries(CveRecords cveRecords, List<string> errors)
     ValidateDictionary(cveRecords.ReleaseCves, expected.ReleaseCves, "release_cves", errors);
 
     // Validate cve_commits
-    var expectedCveCommits = GenerateCveCommits(cveRecords);
+    var expectedCveCommits = CveDictionaryGenerator.GenerateCommits(cveRecords);
     if (expectedCveCommits.Count > 0)
     {
         ValidateDictionary(cveRecords.CveCommits, expectedCveCommits, "cve_commits", errors);
@@ -1591,193 +1399,5 @@ static async Task<Dictionary<string, MsrcCveData>?> FetchMsrcDataForFile(string 
     string monthName = new DateTime(int.Parse(year), int.Parse(month), 1).ToString("MMM");
     string msrcId = $"{year}-{monthName}";
     
-    return await FetchMsrcData(msrcId);
+    return await MsrcClient.FetchDataAsync(msrcId);
 }
-
-static async Task<Dictionary<string, MsrcCveData>?> FetchMsrcData(string msrcId)
-{
-    using var httpClient = new HttpClient();
-    var url = $"https://api.msrc.microsoft.com/cvrf/v2.0/cvrf/{msrcId}";
-    
-    try
-    {
-        var xmlContent = await httpClient.GetStringAsync(url);
-        return ParseMsrcXml(xmlContent);
-    }
-    catch (Exception)
-    {
-        return null;
-    }
-}
-
-static Dictionary<string, MsrcCveData> ParseMsrcXml(string xmlContent)
-{
-    var result = new Dictionary<string, MsrcCveData>();
-    
-    // Parse embedded HTML table from DocumentNotes
-    var tableMatch = Regex.Match(xmlContent, @"&lt;table&gt;.*?&lt;/table&gt;", RegexOptions.Singleline);
-    if (!tableMatch.Success)
-        return result;
-
-    var tableHtml = tableMatch.Value
-        .Replace("&lt;", "<")
-        .Replace("&gt;", ">")
-        .Replace("&amp;", "&");
-
-    // Extract rows
-    var rowMatches = Regex.Matches(tableHtml, @"<tr>(.*?)</tr>", RegexOptions.Singleline);
-    
-    foreach (Match rowMatch in rowMatches)
-    {
-        var row = rowMatch.Groups[1].Value;
-        var cells = Regex.Matches(row, @"<td>(.*?)</td>", RegexOptions.Singleline)
-            .Select(m => Regex.Replace(m.Groups[1].Value, @"<a[^>]*>(.*?)</a>", "$1").Trim())
-            .ToList();
-
-        if (cells.Count >= 4 && cells[1].StartsWith("CVE-"))
-        {
-            var cveId = cells[1];
-            var scoreText = cells[2];
-            var vector = cells[3];
-
-            if (decimal.TryParse(scoreText, out decimal score))
-            {
-                result[cveId] = new MsrcCveData
-                {
-                    CveId = cveId,
-                    Score = score,
-                    Vector = vector,
-                    Impact = "",
-                    Weakness = null,
-                    CnaSeverity = null
-                };
-            }
-        }
-    }
-
-    // Parse XML for Impact, Weakness (CWE), and MSRC Severity
-    var xdoc = XDocument.Parse(xmlContent);
-    XNamespace vulnNs = "http://www.icasi.org/CVRF/schema/vuln/1.1";
-
-    foreach (var vuln in xdoc.Descendants(vulnNs + "Vulnerability"))
-    {
-        var cveElem = vuln.Element(vulnNs + "CVE");
-        if (cveElem is null) continue;
-
-        var cveId = cveElem.Value;
-        if (!result.ContainsKey(cveId)) continue;
-
-        // Get Impact
-        var impactElem = vuln.Descendants(vulnNs + "Threat")
-            .FirstOrDefault(t => t.Attribute("Type")?.Value == "Impact");
-        if (impactElem is not null)
-        {
-            var impactDesc = impactElem.Element(vulnNs + "Description")?.Value ?? "";
-            result[cveId] = result[cveId] with { Impact = impactDesc };
-        }
-
-        // Get CNA Severity
-        var severityElem = vuln.Descendants(vulnNs + "Threat")
-            .FirstOrDefault(t => t.Attribute("Type")?.Value == "Severity");
-        if (severityElem is not null)
-        {
-            var severityDesc = severityElem.Element(vulnNs + "Description")?.Value ?? "";
-            result[cveId] = result[cveId] with { CnaSeverity = severityDesc };
-        }
-
-        // Get CWE
-        var cweElem = vuln.Element(vulnNs + "CWE");
-        if (cweElem is not null)
-        {
-            var cweId = cweElem.Attribute("ID")?.Value;
-            if (cweId is not null)
-            {
-                result[cveId] = result[cveId] with { Weakness = cweId };
-            }
-        }
-
-        // Get Acknowledgments
-        var acknowledgments = new List<string>();
-        var acknowledgementsElem = vuln.Element(vulnNs + "Acknowledgments");
-        if (acknowledgementsElem is not null)
-        {
-            foreach (var ackElem in acknowledgementsElem.Elements(vulnNs + "Acknowledgment"))
-            {
-                var nameElem = ackElem.Element(vulnNs + "Name");
-                if (nameElem is not null)
-                {
-                    // Strip HTML tags from acknowledgment names
-                    var name = Regex.Replace(nameElem.Value, @"<[^>]+>", "");
-                    name = name.Replace("&amp;", "&").Trim();
-                    if (!string.IsNullOrEmpty(name) && !acknowledgments.Contains(name))
-                    {
-                        acknowledgments.Add(name);
-                    }
-                }
-            }
-        }
-        if (acknowledgments.Count > 0)
-        {
-            result[cveId] = result[cveId] with { Acknowledgments = acknowledgments };
-        }
-
-        // Get FAQs
-        var faqs = new List<CnaFaq>();
-        var notesElems = vuln.Elements(vulnNs + "Notes");
-        foreach (var notesElem in notesElems)
-        {
-            var faqNotes = notesElem.Elements(vulnNs + "Note")
-                .Where(n => n.Attribute("Type")?.Value == "FAQ");
-            
-            foreach (var faqNote in faqNotes)
-            {
-                var htmlContent = faqNote.Value;
-                // Parse the FAQ HTML content
-                var questionMatch = Regex.Match(htmlContent, @"<strong>(.*?)</strong>", RegexOptions.Singleline);
-                var answerMatch = Regex.Match(htmlContent, @"</strong>\s*</p>\s*<p>(.*?)</p>", RegexOptions.Singleline);
-                
-                if (questionMatch.Success)
-                {
-                    var question = Regex.Replace(questionMatch.Groups[1].Value, @"<[^>]+>", "").Trim();
-                    question = question.Replace("&amp;", "&");
-                    
-                    var answer = answerMatch.Success 
-                        ? Regex.Replace(answerMatch.Groups[1].Value, @"<[^>]+>", "").Trim()
-                        : "";
-                    answer = answer.Replace("&amp;", "&");
-                    
-                    if (!string.IsNullOrEmpty(question) && !string.IsNullOrEmpty(answer))
-                    {
-                        faqs.Add(new CnaFaq(question, answer));
-                    }
-                }
-            }
-        }
-        if (faqs.Count > 0)
-        {
-            result[cveId] = result[cveId] with { Faqs = faqs };
-        }
-    }
-
-    return result;
-}
-
-record MsrcCveData
-{
-    required public string CveId { get; init; }
-    required public decimal Score { get; init; }
-    required public string Vector { get; init; }
-    required public string Impact { get; init; }
-    public string? Weakness { get; init; }
-    public string? CnaSeverity { get; init; }
-    public List<string>? Acknowledgments { get; init; }
-    public List<CnaFaq>? Faqs { get; init; }
-}
-
-record GeneratedDictionaries(
-    IDictionary<string, IList<string>> CveReleases,
-    IDictionary<string, IList<string>> ProductCves,
-    IDictionary<string, IList<string>> PackageCves,
-    IDictionary<string, string> ProductName,
-    IDictionary<string, IList<string>> ReleaseCves
-);

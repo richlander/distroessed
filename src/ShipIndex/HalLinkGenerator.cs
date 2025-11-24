@@ -35,7 +35,7 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             // Map files to semantic HAL+JSON relations
             if (filename == "timeline/index.json")
             {
-                name = "release-timeline";
+                name = LinkRelations.TimelineIndex;
             }
             else if (filename == "usage.md")
             {
@@ -52,7 +52,7 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             // Special case for manifest.json to use correct key name
             else if (filename == "manifest.json")
             {
-                name = "release-manifest";
+                name = LinkRelations.ReleaseManifest;
             }
             // Special case for README.md to use correct key name
             else if (filename == "README.md")
