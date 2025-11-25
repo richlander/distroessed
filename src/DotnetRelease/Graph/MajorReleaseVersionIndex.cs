@@ -20,13 +20,11 @@ public record MajorReleaseVersionIndex(
      Description("Latest stable .NET version")]
     public string? Latest { get; init; }
 
-    [JsonPropertyName("latest-lts"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest LTS (Long-Term Support) .NET version")]
     public string? LatestLts { get; init; }
 
-    [JsonPropertyName("latest-year"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest year with .NET releases (cross-reference to timeline)")]
     public string? LatestYear { get; init; }
 
@@ -34,13 +32,11 @@ public record MajorReleaseVersionIndex(
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
 
-    [JsonPropertyName("usage"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Usage links to documentation and help resources")]
     public UsageLinks? Usage { get; set; }
 
-    [JsonPropertyName("glossary"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Glossary of terms and definitions")]
     public Dictionary<string, string>? Glossary { get; set; }
 
@@ -71,7 +67,6 @@ public record MajorReleaseVersionIndexEntry(
     Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     JsonPropertyName("lifecycle"),
      Description("Full lifecycle information (release-type, phase, eol-date, supported)")]
     public Lifecycle? Lifecycle { get; set; }
 }

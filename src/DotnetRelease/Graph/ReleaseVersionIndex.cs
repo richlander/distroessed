@@ -26,8 +26,7 @@ public record UsageWithLinks
      Description("HAL+JSON links for usage-related resources")]
     public Dictionary<string, HalLink>? Links { get; set; }
     
-    [JsonPropertyName("glossary"),
-     Description("Term definitions (key-value pairs where key is the term and value is the definition)")]
+    [Description("Term definitions (key-value pairs where key is the term and value is the definition)")]
     public Dictionary<string, string> Glossary { get; set; } = new();
 }
 
@@ -59,8 +58,7 @@ public record ReleaseVersionIndex(
      Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links) : IReleaseVersionIndex
 {
-    [JsonPropertyName("usage"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Usage information and term definitions")]
     public UsageWithLinks? Usage { get; set; }
 
@@ -95,12 +93,10 @@ public record ReleaseVersionIndexEntry(
     Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     JsonPropertyName("lifecycle"),
      Description("Lifecycle information (phase and release-date)")]
     public PatchLifecycle? Lifecycle { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     JsonPropertyName("cve-records"),
      Description("CVE IDs associated with this release")]
     public IReadOnlyList<string>? CveRecords { get; set; }
 }

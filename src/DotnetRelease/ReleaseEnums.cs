@@ -31,32 +31,25 @@ public enum ReleaseType
 
 [Description("Lifecycle information for a .NET major release")]
 public record Lifecycle(
-    [property: JsonPropertyName("release-type"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [property:JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Support model (LTS or STS), null for feature bands")]
     ReleaseType? ReleaseType,
-    [property: JsonPropertyName("phase"),
-     Description("Current lifecycle phase")]
+    [property: Description("Current lifecycle phase")]
     SupportPhase Phase,
-    [property: JsonPropertyName("release-date"),
-     Description("Release date when the version became generally available")]
+    [property: Description("Release date when the version became generally available")]
     DateTimeOffset ReleaseDate,
-    [property: JsonPropertyName("eol-date"),
-     Description("End of Life date when support ends")]
+    [property: Description("End of Life date when support ends")]
     DateTimeOffset EolDate)
 {
-    [property: JsonPropertyName("supported"),
-     Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
+    [property: Description("Whether this release is currently supported (based on EOL date and lifecycle phase)")]
     public bool Supported { get; set; } = false;
 };
 
 [Description("Simplified lifecycle information for a .NET patch release")]
 public record PatchLifecycle(
-    [property: JsonPropertyName("phase"),
-     Description("Current lifecycle phase")]
+    [property: Description("Current lifecycle phase")]
     SupportPhase Phase,
-    [property: JsonPropertyName("release-date"),
-     Description("Release date when the patch version became generally available")]
+    [property: Description("Release date when the patch version became generally available")]
     DateTimeOffset ReleaseDate);
 
 public enum ProductComponent

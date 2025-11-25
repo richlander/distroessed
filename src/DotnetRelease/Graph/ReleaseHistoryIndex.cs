@@ -10,27 +10,25 @@ public record ReleaseHistoryIndex(
     [Description("Concise title for the document")]
     string Title,
     [Description("Context-aware description of the time period")]
-    string Description,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for hypermedia navigation")]
-    Dictionary<string, HalLink> Links)
+    string Description)
 {
-    [JsonPropertyName("latest-year"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest year with .NET releases (primary)")]
-    public string? LatestYear { get; init; }
-
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest major .NET version (cross-reference to releases)")]
     public string? Latest { get; init; }
 
-    [JsonPropertyName("latest-lts"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest LTS .NET version (cross-reference to releases)")]
     public string? LatestLts { get; init; }
 
-    [JsonPropertyName("glossary"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest year with .NET releases (primary)")]
+    public string? LatestYear { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Glossary of timeline-specific terms and definitions")]
     public Dictionary<string, string>? Glossary { get; set; }
 
@@ -38,7 +36,7 @@ public record ReleaseHistoryIndex(
      Description("Embedded time-based navigation entries and release summaries")]
     public ReleaseHistoryIndexEmbedded? Embedded { get; set; }
 
-    [property: JsonPropertyName("_metadata"),
+    [JsonPropertyName("_metadata"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }

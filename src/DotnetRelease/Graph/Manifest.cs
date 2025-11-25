@@ -29,17 +29,13 @@ public record ReleaseManifest(
 
 [Description("Partial manifest data for hand-maintained release information")]
 public record PartialManifest(
-    [property: JsonPropertyName("release-date"),
-     Description("Release date in ISO 8601 format")]
+    [Description("Release date in ISO 8601 format")]
     DateTimeOffset? ReleaseDate,
-    [property: JsonPropertyName("eol-date"),
-     Description("End of Life date in ISO 8601 format")]
+    [Description("End of Life date in ISO 8601 format")]
     DateTimeOffset? EolDate,
-    [property: JsonPropertyName("release-type"),
-     Description("Release support model (LTS or STS) - overrides computed value")]
+    [Description("Release support model (LTS or STS) - overrides computed value")]
     ReleaseType? ReleaseType,
-    [property: JsonPropertyName("phase"),
-     Description("Current lifecycle phase - overrides computed value")]
+    [Description("Current lifecycle phase - overrides computed value")]
     SupportPhase? SupportPhase)
 {
     [JsonPropertyName("_links")]

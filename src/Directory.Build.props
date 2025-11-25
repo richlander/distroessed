@@ -2,5 +2,6 @@
   <PropertyGroup>
      <UseArtifactsOutput>true</UseArtifactsOutput>
      <WarningsAsErrors>true</WarningsAsErrors>
+     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 </Project>

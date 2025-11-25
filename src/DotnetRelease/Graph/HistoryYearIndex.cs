@@ -13,21 +13,29 @@ public record HistoryYearIndex(
     [Description("Description of the year's releases")]
     string Description,
     [Description("Year identifier (e.g., '2025')")]
-    string Year,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for hypermedia navigation")]
-    Dictionary<string, HalLink> Links)
+    string Year)
 {
-    [JsonPropertyName("latest-month"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest month with .NET releases in this year")]
     public string? LatestMonth { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest patch release version in this year (e.g., '10.0.0')")]
+    public string? LatestRelease { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Major versions with releases in this year (e.g., ['10.0', '9.0', '8.0'])")]
+    public IList<string>? Releases { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
 
     [JsonPropertyName("_embedded"),
      Description("Embedded monthly summaries and release listings")]
     public HistoryYearIndexEmbedded? Embedded { get; set; }
 
-    [property: JsonPropertyName("_metadata"),
+    [JsonPropertyName("_metadata"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }
@@ -91,17 +99,33 @@ public record HistoryMonthIndex(
     [Description("Year identifier (e.g., '2025')")]
     string Year,
     [Description("Month identifier (e.g., '02' for February)")]
-    string Month,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for hypermedia navigation")]
-    Dictionary<string, HalLink> Links)
+    string Month)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest patch release version in this month (e.g., '10.0.0')")]
+    public string? LatestRelease { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Major versions with releases in this month (e.g., ['10.0', '9.0', '8.0'])")]
+    public IList<string>? Releases { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Runtime patch versions released this month (e.g., ['10.0.0', '9.0.1', '8.0.11'])")]
+    public IList<string>? RuntimePatchReleases { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("SDK patch versions released this month (e.g., ['10.0.100', '9.0.101', '8.0.404'])")]
+    public IList<string>? SdkPatchReleases { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
 
     [JsonPropertyName("_embedded"),
      Description("Embedded release listings for this month")]
     public HistoryMonthIndexEmbedded? Embedded { get; set; }
 
-    [property: JsonPropertyName("_metadata"),
+    [JsonPropertyName("_metadata"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
     public GenerationMetadata? Metadata { get; set; }
@@ -112,7 +136,7 @@ public record HistoryMonthIndexEmbedded
 {
     [Description("Releases grouped by major version with patch releases and links (keyed by version)")]
     public Dictionary<string, MajorReleaseHistory>? Releases { get; set; }
-    
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this month")]
     public IReadOnlyList<CveRecordSummary>? Disclosures { get; set; }
@@ -126,7 +150,7 @@ public record MajorReleaseHistory(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE identifiers affecting this release")]
     public IList<string>? CveRecords { get; set; }
-    
+
     [JsonPropertyName("_links"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("HAL+JSON links to version index and release resources")]

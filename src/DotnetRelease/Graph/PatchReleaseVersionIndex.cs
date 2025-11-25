@@ -21,8 +21,7 @@ public record PatchReleaseVersionIndex(
      Description("Latest patch version")]
     public string? Latest { get; init; }
 
-    [JsonPropertyName("latest-security"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest patch version with security fixes")]
     public string? LatestSecurity { get; init; }
 
@@ -30,8 +29,7 @@ public record PatchReleaseVersionIndex(
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
 
-    [JsonPropertyName("usage"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Usage information and term definitions")]
     public UsageWithLinks? Usage { get; set; }
 
@@ -60,7 +58,6 @@ public record PatchReleaseVersionIndexEmbedded(
     public List<TimelineYear>? Years { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     JsonPropertyName("cve-records"),
      Description("CVE IDs affecting this major version")]
     public IReadOnlyList<string>? CveRecords { get; set; }
 }
@@ -76,12 +73,10 @@ public record PatchReleaseVersionIndexEntry(
     Dictionary<string, HalLink> Links)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     JsonPropertyName("lifecycle"),
      Description("Simplified lifecycle information (phase and release-date only)")]
     public PatchLifecycle? Lifecycle { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     JsonPropertyName("cve-records"),
      Description("CVE IDs associated with this release")]
     public IReadOnlyList<string>? CveRecords { get; set; }
 }

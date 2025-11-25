@@ -21,8 +21,7 @@ public record PatchDetailIndex(
      Description("HAL+JSON links for hypermedia navigation")]
     Dictionary<string, HalLink> Links)
 {
-    [JsonPropertyName("lifecycle"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Simplified lifecycle information (phase and release-date only)")]
     public PatchLifecycle? Lifecycle { get; set; }
 
@@ -31,8 +30,7 @@ public record PatchDetailIndex(
      Description("Embedded SDK and CVE disclosure information")]
     public PatchDetailIndexEmbedded? Embedded { get; set; }
 
-    [JsonPropertyName("disclosures"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this patch release (deprecated, use _embedded.disclosures)")]
     public IReadOnlyList<CveRecordSummary>? Disclosures { get; set; }
 
@@ -48,18 +46,15 @@ public record PatchDetailIndex(
 [Description("Container for embedded SDK versions and CVE disclosures")]
 public record PatchDetailIndexEmbedded
 {
-    [JsonPropertyName("sdks"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK versions shipped with this runtime patch")]
     public PatchSdkInfo? Sdks { get; set; }
 
-    [JsonPropertyName("cve-records"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE IDs associated with this patch release")]
     public IReadOnlyList<string>? CveRecords { get; set; }
 
-    [JsonPropertyName("disclosures"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this patch release")]
     public IReadOnlyList<CveRecordSummary>? Disclosures { get; set; }
 }
@@ -70,8 +65,7 @@ public record PatchDetailIndexEmbedded
 [Description("SDK versions and links for a patch release")]
 public record PatchSdkInfo
 {
-    [JsonPropertyName("dotnet-sdk"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK versions shipped with this runtime")]
     public IReadOnlyList<string>? DotnetSdk { get; set; }
 

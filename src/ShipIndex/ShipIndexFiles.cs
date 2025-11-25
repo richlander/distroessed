@@ -223,14 +223,40 @@ public class ShipIndexFiles
                 var monthMaxVersion = monthReleases.Max(numericStringComparer);
                 var monthVersionRange = $"{monthMinVersion}–{monthMaxVersion}";
 
+                // Collect all runtime and SDK patches for the month (across all major versions)
+                var allRuntimePatches = releasesByMajor.Values
+                    .SelectMany(patches => patches.Keys)
+                    .Distinct()
+                    .OrderByDescending(v => v, numericStringComparer)
+                    .ToList();
+
+                var allSdkPatches = releasesByMajor.Values
+                    .SelectMany(patches => patches.Values)
+                    .SelectMany(p => p.SdkVersions)
+                    .Distinct()
+                    .OrderByDescending(v => v, numericStringComparer)
+                    .ToList();
+
+                // Get sorted major releases for the month
+                var sortedMonthReleases = monthReleases
+                    .OrderByDescending(v => v, numericStringComparer)
+                    .ToList();
+
+                // Latest release is the highest major version (two-part, e.g., "10.0")
+                var latestReleaseForMonth = sortedMonthReleases.FirstOrDefault();
+
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.MonthIndex,
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
                     IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthVersionRange, Location.CacheFriendlyNote),
                     year.Year,
-                    month.Month,
-                    monthIndexLinks)
+                    month.Month)
                 {
+                    LatestRelease = latestReleaseForMonth,
+                    Releases = sortedMonthReleases,
+                    RuntimePatchReleases = allRuntimePatches.Count > 0 ? allRuntimePatches : null,
+                    SdkPatchReleases = allSdkPatches.Count > 0 ? allSdkPatches : null,
+                    Links = monthIndexLinks,
                     Embedded = new HistoryMonthIndexEmbedded
                     {
                         Releases = releasesByMajor
@@ -441,15 +467,24 @@ public class ShipIndexFiles
                 };
             }
 
+            // Calculate latest release and sorted releases for the year
+            var sortedReleasesForYear = releasesForYear
+                .OrderByDescending(v => v, numericStringComparer)
+                .ToList();
+            // Latest release is the highest major version (two-part, e.g., "10.0")
+            var latestReleaseForYear = sortedReleasesForYear.FirstOrDefault();
+
             // Create the year index (e.g., release-notes/2025/index.json)
             var yearHistory = new HistoryYearIndex(
                 HistoryKind.YearIndex,
                 IndexTitles.TimelineYearTitle(year.Year),
                 IndexTitles.TimelineYearIndexDescription(year.Year, yearVersionRange, Location.CacheFriendlyNote),
-                year.Year,
-                yearHalLinks)
+                year.Year)
             {
                 LatestMonth = latestMonth,
+                LatestRelease = latestReleaseForYear,
+                Releases = sortedReleasesForYear.Count > 0 ? sortedReleasesForYear : null,
+                Links = yearHalLinks,
                 Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
             };
 
@@ -577,13 +612,12 @@ public class ShipIndexFiles
         var historyIndex = new ReleaseHistoryIndex(
             HistoryKind.TimelineIndex,
             IndexTitles.TimelineIndexTitle,
-            IndexTitles.TimelineIndexDescription(rootVersionRange, Location.CacheFriendlyNote),
-            fullIndexLinks
-            )
+            IndexTitles.TimelineIndexDescription(rootVersionRange, Location.CacheFriendlyNote))
         {
             LatestYear = latestYear,
             Latest = latestRelease?.MajorVersion,
             LatestLts = latestLtsRelease?.MajorVersion,
+            Links = fullIndexLinks,
             Glossary = new Dictionary<string, string>
             {
                 ["lts"] = "Long-Term Support – 3-year support window",

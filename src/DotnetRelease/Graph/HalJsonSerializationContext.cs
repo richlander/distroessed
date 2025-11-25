@@ -4,7 +4,7 @@ using DotnetRelease.Security;
 namespace DotnetRelease.Graph;
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(MajorReleaseVersionIndex))]
 [JsonSerializable(typeof(PatchReleaseVersionIndex))]
@@ -24,7 +24,7 @@ public partial class ReleaseVersionIndexSerializerContext : JsonSerializerContex
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     WriteIndented = true)]
 
 [JsonSerializable(typeof(ReleaseManifest))]
@@ -34,7 +34,7 @@ public partial class ReleaseManifestSerializerContext : JsonSerializerContext
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(ReleaseHistoryIndex))]
 [JsonSerializable(typeof(ReleaseMetadata))]
@@ -43,7 +43,7 @@ public partial class ReleaseHistoryIndexSerializerContext : JsonSerializerContex
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(HistoryYearIndex))]
 [JsonSerializable(typeof(HistoryMonthIndex))]
@@ -58,7 +58,7 @@ public partial class HistoryYearIndexSerializerContext : JsonSerializerContext
 }
 
 [JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.KebabCaseLower,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     WriteIndented = true)]
 [JsonSerializable(typeof(SdkVersionIndex))]
 [JsonSerializable(typeof(SdkDownloadInfo))]

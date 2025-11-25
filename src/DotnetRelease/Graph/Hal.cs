@@ -97,12 +97,9 @@ public class Hal
 
 [Description("Metadata about when and how this document was generated")]
 public record GenerationMetadata(
-    [property: JsonPropertyName("schema-version"),
-     Description("Version of the schema used for this document")]
+    [Description("Version of the schema used for this document")]
     string SchemaVersion,
-    [property: JsonPropertyName("generated-on"),
-     Description("ISO 8601 timestamp when this document was generated")]
+    [Description("ISO 8601 timestamp when this document was generated")]
     DateTimeOffset GeneratedOn,
-    [property: JsonPropertyName("generated-by"),
-     Description("Name of the tool or script that generated this document")]
+    [Description("Name of the tool or script that generated this document")]
     string GeneratedBy);

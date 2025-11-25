@@ -34,15 +34,12 @@ public record SdkVersionIndex(
 
 [Description("Container for embedded SDK feature band entries and patch releases")]
 public record SdkVersionIndexEmbedded(
-    [property: JsonPropertyName("latest-downloads"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [property:JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest SDK downloads keyed by RID for direct access")]
     Dictionary<string, SdkDownloadFile>? LatestDownloads,
-    [property: JsonPropertyName("sdk-feature-bands"),
-     Description("List of SDK feature band entries with version information and navigation links")]
+    [Description("List of SDK feature band entries with version information and navigation links")]
     List<SdkFeatureBandEntry> SdkFeatureBands,
-    [property: JsonPropertyName("releases"),
-     Description("List of SDK patch release entries with version information and navigation links")]
+    [Description("List of SDK patch release entries with version information and navigation links")]
     List<ReleaseVersionIndexEntry> Releases);
 
 [Description("Individual SDK feature band entry containing version metadata and navigation links")]
@@ -73,8 +70,7 @@ public record SdkDownloadInfo(
     string Version,
     [Description("Descriptive label")]
     string Label,
-    [property: JsonPropertyName("hash-algorithm"),
-     Description("Hash algorithm used for file verification")]
+    [Description("Hash algorithm used for file verification")]
     string HashAlgorithm,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation")]
