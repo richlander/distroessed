@@ -28,9 +28,9 @@ public class PatchSummary
     public SupportPhase? Phase => _entry.Lifecycle?.Phase;
 
     /// <summary>
-    /// Date when this patch was released
+    /// Date when this patch was released (GA date)
     /// </summary>
-    public DateTimeOffset? ReleaseDate => _entry.Lifecycle?.ReleaseDate;
+    public DateTimeOffset? ReleaseDate => _entry.Lifecycle?.GaDate;
 
     /// <summary>
     /// CVE IDs associated with this patch

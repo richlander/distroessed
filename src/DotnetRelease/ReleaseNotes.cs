@@ -14,20 +14,20 @@ public class ReleaseNotes
 
     public static string MajorReleasesIndexUri { get; private set; } = "https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json";
 
-    // File names
-    public static string OSPackages { get; private set; } = "os-packages.json";
+    // File names - use FileNames constants for consistency
+    public static string OSPackages => FileNames.OsPackages;
 
-    public static string PatchReleasesIndex { get; private set; } = "patch-releases-index.json";
+    public static string PatchReleasesIndex => FileNames.PatchReleasesIndex;
 
-    public static string MajorReleasesIndex { get; private set; } = "releases-index.json";
+    public static string MajorReleasesIndex => FileNames.ReleasesIndex;
 
-    public static string Releases { get; private set; } = "releases.json";
+    public static string Releases => FileNames.Releases;
 
-    public static string PatchRelease { get; private set; } = "release.json";
+    public static string PatchRelease => FileNames.Release;
 
-    public static string SupportedOS { get; private set; } = "supported-os.json";
+    public static string SupportedOS => FileNames.SupportedOs;
 
-    public static string PreviewDirectory { get; private set; } = "preview";
+    public static string PreviewDirectory => FileNames.Directories.Preview;
 
     // Deserializer methods
     // Example file: https://github.com/dotnet/core/blob/main/release-notes/releases-index.json

@@ -1314,7 +1314,7 @@ static async Task ValidateAgainstReleasesJson(string cveFilePath, CveRecords cve
                         }
                         
                         // Validate using shared logic
-                        CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIdsFromRelease.ToList(), cveIdsFromCveJson.ToList());
+                        CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIdsFromRelease.ToList(), cveIdsFromCveJson.ToList(), cveFilePath);
                     }
                 }
             }

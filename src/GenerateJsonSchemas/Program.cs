@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
+using DotnetRelease.Graph;
 using DotnetRelease.Index;
 using DotnetRelease.ReleaseInfo;
 using DotnetRelease.Support;
@@ -39,13 +40,19 @@ Console.WriteLine($"Generating JSON schemas in: {targetDirectory}");
 Console.WriteLine();
 
 List<ModelInfo> models = [
-    new (typeof(MajorReleasesIndex), "dotnet-releases-index.json"),
-    new (typeof(MajorReleaseOverview), "dotnet-releases.json"),
-    new (typeof(PatchReleaseOverview), "dotnet-patch-release.json"),
-    new (typeof(OSPackagesOverview), "dotnet-os-packages.json"),
-    new (typeof(SupportedOSMatrix), "dotnet-supported-os-matrix.json"),
-    new (typeof(CveRecords), "dotnet-cves.json", JsonKnownNamingPolicy.SnakeCaseLower),
-    // new (typeof(ReportOverview), "dotnet-support-report.json"),
+    // Legacy schemas (kebab-case)
+    new (typeof(MajorReleasesIndex), DotnetRelease.FileNames.Schemas.ReleasesIndex),
+    new (typeof(MajorReleaseOverview), DotnetRelease.FileNames.Schemas.Releases),
+    new (typeof(PatchReleaseOverview), DotnetRelease.FileNames.Schemas.PatchRelease),
+    new (typeof(OSPackagesOverview), DotnetRelease.FileNames.Schemas.OsPackages),
+    new (typeof(SupportedOSMatrix), DotnetRelease.FileNames.Schemas.SupportedOs),
+    new (typeof(CveRecords), DotnetRelease.FileNames.Schemas.Cves, JsonKnownNamingPolicy.SnakeCaseLower),
+
+    // New index schemas (snake_case)
+    new (typeof(MajorReleaseVersionIndex), DotnetRelease.FileNames.Schemas.ReleaseVersionIndex, JsonKnownNamingPolicy.SnakeCaseLower),
+    new (typeof(ReleaseHistoryIndex), DotnetRelease.FileNames.Schemas.TimelineIndex, JsonKnownNamingPolicy.SnakeCaseLower),
+    new (typeof(PatchDetailIndex), DotnetRelease.FileNames.Schemas.PatchDetailIndex, JsonKnownNamingPolicy.SnakeCaseLower),
+    new (typeof(SdkVersionIndex), DotnetRelease.FileNames.Schemas.SdkVersionIndex, JsonKnownNamingPolicy.SnakeCaseLower),
 ];
 
 
@@ -93,13 +100,28 @@ void WriteSchema(ModelInfo modelInfo)
             JsonKnownNamingPolicy.SnakeCaseLower => JsonNamingPolicy.SnakeCaseLower,
             _ => JsonNamingPolicy.KebabCaseLower
         },
-        TypeInfoResolver = type == typeof(CveRecords) 
-            ? CveSchemaGenerationContext.Default 
-            : SchemaGenerationContext.Default
+        TypeInfoResolver = GetTypeInfoResolver(type, namingPolicy)
     };
     var schema = JsonSchemaExporter.GetJsonSchemaAsNode(serializerOptions, type, exporterOptions);
     File.WriteAllText(outputPath, schema.ToString());
     Console.WriteLine($"  ✓ {targetFile}");
+}
+
+System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver GetTypeInfoResolver(Type type, JsonKnownNamingPolicy namingPolicy)
+{
+    // CVE records use snake_case with dedicated context
+    if (type == typeof(CveRecords))
+        return CveSchemaGenerationContext.Default;
+
+    // New index types use snake_case with dedicated context
+    if (type == typeof(MajorReleaseVersionIndex) ||
+        type == typeof(ReleaseHistoryIndex) ||
+        type == typeof(PatchDetailIndex) ||
+        type == typeof(SdkVersionIndex))
+        return IndexSchemaGenerationContext.Default;
+
+    // Legacy types use kebab-case
+    return SchemaGenerationContext.Default;
 }
 
 static TAttribute? GetCustomAttribute<TAttribute>(ICustomAttributeProvider? provider, bool inherit = false) where TAttribute : Attribute
@@ -137,5 +159,14 @@ partial class SchemaGenerationContext : JsonSerializerContext
 [JsonSerializable(typeof(CveRecords))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 partial class CveSchemaGenerationContext : JsonSerializerContext
+{
+}
+
+[JsonSerializable(typeof(MajorReleaseVersionIndex))]
+[JsonSerializable(typeof(ReleaseHistoryIndex))]
+[JsonSerializable(typeof(PatchDetailIndex))]
+[JsonSerializable(typeof(SdkVersionIndex))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
+partial class IndexSchemaGenerationContext : JsonSerializerContext
 {
 }

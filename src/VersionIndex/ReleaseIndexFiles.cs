@@ -29,18 +29,8 @@ public class ReleaseIndexFiles
         };
     }
     
-    private static Dictionary<string, string> CreateGlossary()
-    {
-        return new Dictionary<string, string>
-        {
-            ["lts"] = "Long-Term Support – 3-year support window",
-            ["sts"] = "Standard-Term Support – 18-month support window",
-            ["release"] = "General Availability – Production-ready release",
-            ["eol"] = "End of Life – No longer supported",
-            ["preview"] = "Pre-release phase with previews and release candidates",
-            ["active"] = "Full support with regular updates and security fixes"
-        };
-    }
+    // Glossary terms to exclude from VersionIndex (CVE-related terms belong in timeline)
+    private static readonly string[] _excludedGlossaryTerms = ["cve", "cvss"];
 
     private static (Dictionary<string, HalLink> remainingLinks, Dictionary<string, HalLink>? usageLinks) ExtractUsageLinks(Dictionary<string, HalLink> allLinks)
     {
@@ -65,32 +55,32 @@ public class ReleaseIndexFiles
 
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
-        {"index.json", new FileLink("index.json", LinkTitles.DotNetReleaseIndex, LinkStyle.Prod) },
+        {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.DotNetReleaseIndex, LinkStyle.Prod) },
         {"../llms/README.md", new FileLink("../llms/README.md", LinkTitles.UsageGuide, LinkStyle.Prod | LinkStyle.GitHub) },
         {"../llms/quick-ref.md", new FileLink("../llms/quick-ref.md", LinkTitles.QuickReference, LinkStyle.Prod | LinkStyle.GitHub) },
         {"../llms/glossary.md", new FileLink("../llms/glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
-        {"timeline/index.json", new FileLink("timeline/index.json", IndexTitles.TimelineIndexLink, LinkStyle.Prod) },
+        {$"{FileNames.Directories.Timeline}/{FileNames.Index}", new FileLink($"{FileNames.Directories.Timeline}/{FileNames.Index}", IndexTitles.TimelineIndexLink, LinkStyle.Prod) },
         {"support.md", new FileLink("support.md", LinkTitles.SupportPolicy, LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
     {
-        {"index.json", new FileLink("index.json", LinkTitles.Index, LinkStyle.Prod) },
-        {"manifest.json", new FileLink("manifest.json", LinkTitles.ReleaseManifest, LinkStyle.Prod) },
-        {"releases.json", new FileLink("releases.json", LinkTitles.CompleteReleaseInformation, LinkStyle.Prod) },
-        {"release.json", new FileLink("release.json", LinkTitles.Release, LinkStyle.Prod) }
+        {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.Index, LinkStyle.Prod) },
+        {FileNames.Manifest, new FileLink(FileNames.Manifest, LinkTitles.ReleaseManifest, LinkStyle.Prod) },
+        {FileNames.Releases, new FileLink(FileNames.Releases, LinkTitles.CompleteReleaseInformation, LinkStyle.Prod) },
+        {FileNames.Release, new FileLink(FileNames.Release, LinkTitles.Release, LinkStyle.Prod) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
     {
-        {"supported-os.json", new FileLink("supported-os.json", LinkTitles.SupportedOSes, LinkStyle.Prod) },
+        {FileNames.SupportedOs, new FileLink(FileNames.SupportedOs, LinkTitles.SupportedOSes, LinkStyle.Prod) },
         {"supported-os.md", new FileLink("supported-os.md", LinkTitles.SupportedOSes, LinkStyle.Prod | LinkStyle.GitHub) },
         {"linux-packages.json", new FileLink("linux-packages.json", LinkTitles.LinuxPackages, LinkStyle.Prod) },
         {"linux-packages.md", new FileLink("linux-packages.md", LinkTitles.LinuxPackages, LinkStyle.Prod | LinkStyle.GitHub) },
         {"README.md", new FileLink("README.md", LinkTitles.ReleaseNotes, LinkStyle.GitHub) }
     };
 
-    private readonly List<string> _leafFiles = ["releases.json", "release.json", "manifest.json"];
+    private readonly List<string> _leafFiles = [FileNames.Releases, FileNames.Release, FileNames.Manifest];
 
     private static bool IsVersionSdkSupported(string version)
     {
@@ -121,6 +111,9 @@ public class ReleaseIndexFiles
         {
             Directory.CreateDirectory(outputDir);
         }
+
+        // Load glossary from centralized file, excluding CVE-related terms
+        var glossary = await GlossaryLoader.LoadExcludingAsync(inputDir, _excludedGlossaryTerms);
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
         List<MajorReleaseVersionIndexEntry> majorEntries = [];
@@ -156,7 +149,7 @@ public class ReleaseIndexFiles
             {
                 Directory.CreateDirectory(outputMajorVersionDir);
             }
-            var manifestPath = Path.Combine(outputMajorVersionDir, "manifest.json");
+            var manifestPath = Path.Combine(outputMajorVersionDir, FileNames.Manifest);
             var manifestJson = JsonSerializer.Serialize(
                 generatedManifest,
                 ReleaseManifestSerializerContext.Default.ReleaseManifest);
@@ -205,7 +198,7 @@ public class ReleaseIndexFiles
             // 2. Add SDK links for supported versions (8.0+) - these are HAL+JSON
             if (IsVersionSdkSupported(majorVersionDirName))
             {
-                var sdkIndexPath = Path.Combine(majorVersionDir, "sdk", "index.json");
+                var sdkIndexPath = Path.Combine(majorVersionDir, FileNames.Directories.Sdk, FileNames.Index);
                 var relativeSdkIndexPath = Path.GetRelativePath(outputDir, sdkIndexPath);
                 var pathValue = "/" + relativeSdkIndexPath.Replace("\\", "/");
                 orderedMajorVersionLinks[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
@@ -248,8 +241,8 @@ public class ReleaseIndexFiles
             var (remainingMajorVersionLinks, _) = ExtractUsageLinks(majorVersionLinks);
 
             // write major version index.json if there are patch releases found
-            var majorIndexPath = Path.Combine(outputMajorVersionDir, "index.json");
-            var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, "index.json"));
+            var majorIndexPath = Path.Combine(outputMajorVersionDir, FileNames.Index);
+            var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, FileNames.Index));
 
             // Calculate version range for patch releases
             var patchVersions = summary.PatchReleases.Select(p => p.PatchVersion).ToList();
@@ -275,7 +268,7 @@ public class ReleaseIndexFiles
             // Add latest and latest-security links if available
             if (latestPatch != null)
             {
-                var latestPatchIndexPath = $"{majorVersionDirName}/{latestPatch.Version}/index.json";
+                var latestPatchIndexPath = $"{majorVersionDirName}/{latestPatch.Version}/{FileNames.Index}";
                 remainingMajorVersionLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestPatchIndexPath}")
                 {
                     Path = $"/{latestPatchIndexPath}",
@@ -286,7 +279,7 @@ public class ReleaseIndexFiles
             
             if (latestSecurityPatch != null)
             {
-                var latestSecurityPatchIndexPath = $"{majorVersionDirName}/{latestSecurityPatch.Version}/index.json";
+                var latestSecurityPatchIndexPath = $"{majorVersionDirName}/{latestSecurityPatch.Version}/{FileNames.Index}";
                 remainingMajorVersionLinks["latest-security"] = new HalLink($"{Location.GitHubBaseUri}{latestSecurityPatchIndexPath}")
                 {
                     Path = $"/{latestSecurityPatchIndexPath}",
@@ -301,7 +294,7 @@ public class ReleaseIndexFiles
             {
                 yearsEmbedded = releaseYears.Select(year =>
                 {
-                    var yearHistoryPath = $"timeline/{year}/index.json";
+                    var yearHistoryPath = $"{FileNames.Directories.Timeline}/{year}/{FileNames.Index}";
                     var pathValue = "/" + yearHistoryPath;
                     var yearLinks = new Dictionary<string, HalLink>
                     {
@@ -344,11 +337,11 @@ public class ReleaseIndexFiles
                 ReleaseVersionIndexSerializerContext.Default.PatchReleaseVersionIndex);
 
             // Add schema reference
-            var schemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-version-index.json";
+            var schemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.ReleaseVersionIndex}";
             var updatedPatchIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchIndexJson, schemaUri);
 
             // Write to file
-            var patchIndexPath = Path.Combine(outputMajorVersionDir, "index.json");
+            var patchIndexPath = Path.Combine(outputMajorVersionDir, FileNames.Index);
             var finalPatchIndexJson = (updatedPatchIndexJson ?? patchIndexJson) + '\n';
             
             if (HalJsonComparer.ShouldWriteFile(patchIndexPath, finalPatchIndexJson))
@@ -459,35 +452,35 @@ public class ReleaseIndexFiles
             }
 
             // Find latest stable and supported release
-            latestRelease = majorEntries
-                .Where(e => e.Lifecycle != null && ReleaseStability.IsStable(e.Lifecycle.Phase))
-                .OrderByDescending(e => e.Version, numericStringComparer)
-                .FirstOrDefault();
-            
+            // Uses shared ReleaseStability methods to ensure consistent logic across tools
+            var releaseData = summaries.Select(s => (s.MajorVersion, (Lifecycle?)s.Lifecycle));
+            var latestVersion = ReleaseStability.FindLatestVersion(releaseData, numericStringComparer);
+            var latestLtsVersion = ReleaseStability.FindLatestLtsVersion(releaseData, numericStringComparer);
+
+            latestRelease = latestVersion != null
+                ? majorEntries.FirstOrDefault(e => e.Version == latestVersion)
+                : null;
+
             if (latestRelease != null)
             {
-                orderedRootLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/index.json")
+                orderedRootLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/{FileNames.Index}")
                 {
-                    Path = $"/{latestRelease.Version}/index.json",
+                    Path = $"/{latestRelease.Version}/{FileNames.Index}",
                     Title = $"Latest .NET release (.NET {latestRelease.Version})",
                     Type = MediaType.HalJson
                 };
             }
 
-            // Find latest stable LTS release (even major versions are LTS)
-            latestLtsRelease = majorEntries
-                .Where(e => e.Lifecycle != null && 
-                           ReleaseStability.IsStable(e.Lifecycle.Phase) &&
-                           int.TryParse(e.Version.Split('.')[0], out int majorVersion) && 
-                           majorVersion % 2 == 0)
-                .OrderByDescending(e => e.Version, numericStringComparer)
-                .FirstOrDefault();
+            // Find latest stable LTS release (uses lifecycle.ReleaseType, not version number heuristics)
+            latestLtsRelease = latestLtsVersion != null
+                ? majorEntries.FirstOrDefault(e => e.Version == latestLtsVersion)
+                : null;
                 
             if (latestLtsRelease != null)
             {
-                orderedRootLinks["latest-lts"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/index.json")
+                orderedRootLinks["latest-lts"] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.Version}/{FileNames.Index}")
                 {
-                    Path = $"/{latestLtsRelease.Version}/index.json",
+                    Path = $"/{latestLtsRelease.Version}/{FileNames.Index}",
                     Title = $"Latest LTS release (.NET {latestLtsRelease.Version})",
                     Type = MediaType.HalJson
                 };
@@ -496,9 +489,9 @@ public class ReleaseIndexFiles
             // Add latest-sdk link if version supports SDK (8.0+)
             if (latestRelease != null && IsVersionSdkSupported(latestRelease.Version))
             {
-                orderedRootLinks["latest-sdk"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/sdk/index.json")
+                orderedRootLinks["latest-sdk"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/{FileNames.Directories.Sdk}/{FileNames.Index}")
                 {
-                    Path = $"/{latestRelease.Version}/sdk/index.json",
+                    Path = $"/{latestRelease.Version}/{FileNames.Directories.Sdk}/{FileNames.Index}",
                     Title = $"Latest .NET SDK ({latestRelease.Version})",
                     Type = MediaType.HalJson
                 };
@@ -512,9 +505,9 @@ public class ReleaseIndexFiles
             
             if (latestYearForLink > 0)
             {
-                orderedRootLinks[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}timeline/{latestYearForLink}/index.json")
+                orderedRootLinks[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestYearForLink}/{FileNames.Index}")
                 {
-                    Path = $"/timeline/{latestYearForLink}/index.json",
+                    Path = $"/{FileNames.Directories.Timeline}/{latestYearForLink}/{FileNames.Index}",
                     Title = $"Latest year ({latestYearForLink})",
                     Type = MediaType.HalJson
                 };
@@ -532,8 +525,8 @@ public class ReleaseIndexFiles
         Console.WriteLine($"Found {rootLinks.Count} root links in {inputDir}");
 
         // Create the major releases index; release-notes/index.json
-        var rootIndexPath = Path.Combine(outputDir, "index.json");
-        var rootIndexRelativePath = Path.GetRelativePath(inputDir, Path.Combine(inputDir, "index.json"));
+        var rootIndexPath = Path.Combine(outputDir, FileNames.Index);
+        var rootIndexRelativePath = Path.GetRelativePath(inputDir, Path.Combine(inputDir, FileNames.Index));
 
         // Calculate version range for description
         var majorVersions = majorEntries.Select(e => e.Version).ToList();
@@ -563,7 +556,7 @@ public class ReleaseIndexFiles
             LatestYear = latestYear != "0" ? latestYear : null,
             Links = remainingRootLinks,
             Usage = CreateUsageLinks(usageLinksForRoot),
-            Glossary = CreateGlossary(),
+            Glossary = glossary,
             Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
@@ -574,11 +567,11 @@ public class ReleaseIndexFiles
             ReleaseVersionIndexSerializerContext.Default.MajorReleaseVersionIndex);
 
         // Add schema reference
-        var rootSchemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-release-version-index.json";
+        var rootSchemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.ReleaseVersionIndex}";
         var updatedMajorIndexJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(majorIndexJson, rootSchemaUri);
 
         // Write the major index file
-        var rootMajorIndexPath = Path.Combine(outputDir, "index.json");
+        var rootMajorIndexPath = Path.Combine(outputDir, FileNames.Index);
         var finalMajorIndexJson = (updatedMajorIndexJson ?? majorIndexJson) + '\n';
         
         if (HalJsonComparer.ShouldWriteFile(rootMajorIndexPath, finalMajorIndexJson))
@@ -640,7 +633,7 @@ public class ReleaseIndexFiles
 
             var patchDir = Path.Combine(rootDir, summary.PatchVersion);
 
-            var releaseJson = Path.Combine(patchDir, "release.json");
+            var releaseJson = Path.Combine(patchDir, FileNames.Release);
             if (!File.Exists(releaseJson))
             {
                 continue;
@@ -650,7 +643,7 @@ public class ReleaseIndexFiles
             var releaseJsonPathValue = "/" + relativePath.Replace("\\", "/");
             
             // Create links - self now points to index.json, with separate link to release.json
-            var patchIndexPath = $"{majorVersion}/{summary.PatchVersion}/index.json";
+            var patchIndexPath = $"{majorVersion}/{summary.PatchVersion}/{FileNames.Index}";
             var links = new Dictionary<string, HalLink>
                 {
                     { HalTerms.Self, new HalLink(IndexHelpers.GetProdPath(patchIndexPath))
@@ -727,24 +720,24 @@ public class ReleaseIndexFiles
         // Create patch detail index
         var links = new Dictionary<string, HalLink>
         {
-            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/index.json")
+            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{FileNames.Index}")
             {
-                Path = $"/{majorVersion}/{patchVersion}/index.json",
+                Path = $"/{majorVersion}/{patchVersion}/{FileNames.Index}",
                 Title = $"{patchVersion} Patch Index",
                 Type = MediaType.HalJson
             },
-            ["release"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/release.json")
+            ["release"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{FileNames.Release}")
             {
-                Path = $"/{majorVersion}/{patchVersion}/release.json",
+                Path = $"/{majorVersion}/{patchVersion}/{FileNames.Release}",
                 Title = $"{patchVersion} Release Information",
                 Type = MediaType.Json
             }
         };
 
         // Add link to major version index
-        links[LinkRelations.MajorVersionIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/index.json")
+        links[LinkRelations.MajorVersionIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Index}")
         {
-            Path = $"/{majorVersion}/index.json",
+            Path = $"/{majorVersion}/{FileNames.Index}",
             Title = $".NET {majorVersion} Patch Release Index",
             Type = MediaType.HalJson
         };
@@ -752,9 +745,9 @@ public class ReleaseIndexFiles
         // Add SDK index link if version supports SDK (8.0+)
         if (IsVersionSdkSupported(majorVersion))
         {
-            links[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/sdk/index.json")
+            links[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}")
             {
-                Path = $"/{majorVersion}/sdk/index.json",
+                Path = $"/{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}",
                 Title = $".NET SDK {majorVersion} Release Information",
                 Type = MediaType.HalJson
             };
@@ -774,7 +767,7 @@ public class ReleaseIndexFiles
 
         // Load SDK versions from release.json
         PatchSdkInfo? sdkInfo = null;
-        var releaseJsonPath = Path.Combine(patchDir, "release.json");
+        var releaseJsonPath = Path.Combine(patchDir, FileNames.Release);
         if (File.Exists(releaseJsonPath) && IsVersionSdkSupported(majorVersion))
         {
             try
@@ -850,13 +843,13 @@ public class ReleaseIndexFiles
         string? timelineCveJsonPath = null;
         string? timelineMonthIndexPath = null;
         
-        if (lifecycle?.ReleaseDate != null)
+        if (lifecycle?.GaDate != null)
         {
-            var releaseDate = lifecycle.ReleaseDate;
+            var releaseDate = lifecycle.GaDate;
             var year = releaseDate.Year.ToString("D4");
             var month = releaseDate.Month.ToString("D2");
-            timelineCveJsonPath = $"timeline/{year}/{month}/cve.json";
-            timelineMonthIndexPath = $"timeline/{year}/{month}/index.json";
+            timelineCveJsonPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Cve}";
+            timelineMonthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
             
             // Add link to timeline month index
             links[LinkRelations.MonthIndex] = new HalLink($"{Location.GitHubBaseUri}{timelineMonthIndexPath}")
@@ -897,7 +890,7 @@ public class ReleaseIndexFiles
                     
                     // Validate CVE data matches releases.json
                     var cveIdsFromCveJson = sortedDisclosures.Select(d => d.Id).ToList();
-                    CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIds, cveIdsFromCveJson);
+                    CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIds, cveIdsFromCveJson, timelineCveJsonPath);
                     
                     // Add link to timeline CVE JSON
                     links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{timelineCveJsonPath}")
@@ -947,7 +940,7 @@ public class ReleaseIndexFiles
             ReleaseVersionIndexSerializerContext.Default.PatchDetailIndex);
 
         // Add schema reference
-        var schemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-patch-detail-index.json";
+        var schemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.PatchDetailIndex}";
         var updatedJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchDetailJson, schemaUri);
 
         // Write to file
@@ -957,7 +950,7 @@ public class ReleaseIndexFiles
             Directory.CreateDirectory(outputPatchDir);
         }
 
-        var indexPath = Path.Combine(outputPatchDir, "index.json");
+        var indexPath = Path.Combine(outputPatchDir, FileNames.Index);
         var finalJson = (updatedJson ?? patchDetailJson) + '\n';
         
         if (HalJsonComparer.ShouldWriteFile(indexPath, finalJson))

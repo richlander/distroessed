@@ -9,18 +9,18 @@ public class IndexHelpers
 
     private static readonly OrderedDictionary<string, ReleaseKindMapping> _halFileMappings = new()
     {
-        { "index.json", new ReleaseKindMapping("index", "index.json", ReleaseKind.Index, MediaType.Json) },
-        { "releases.json", new ReleaseKindMapping("releases", "releases.json", ReleaseKind.MajorRelease, MediaType.Json) },
-        { "release.json", new ReleaseKindMapping("release", "release.json", ReleaseKind.PatchRelease, MediaType.Json) },
-        { "manifest.json", new ReleaseKindMapping("manifest", "manifest.json", ReleaseKind.Manifest, MediaType.Json) },
+        { FileNames.Index, new ReleaseKindMapping("index", FileNames.Index, ReleaseKind.Index, MediaType.Json) },
+        { FileNames.Releases, new ReleaseKindMapping("releases", FileNames.Releases, ReleaseKind.MajorRelease, MediaType.Json) },
+        { FileNames.Release, new ReleaseKindMapping("release", FileNames.Release, ReleaseKind.PatchRelease, MediaType.Json) },
+        { FileNames.Manifest, new ReleaseKindMapping("manifest", FileNames.Manifest, ReleaseKind.Manifest, MediaType.Json) },
         { "usage.md", new ReleaseKindMapping("usage", "usage.md", ReleaseKind.Content, MediaType.Markdown) },
         { "terminology.md", new ReleaseKindMapping("terminology", "terminology.md", ReleaseKind.Content, MediaType.Markdown) },
-        { "release-history/index.json", new ReleaseKindMapping("release-history", "release-history/index.json", ReleaseKind.Index, MediaType.HalJson) }
+        { $"release-history/{FileNames.Index}", new ReleaseKindMapping("release-history", $"release-history/{FileNames.Index}", ReleaseKind.Index, MediaType.HalJson) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
     {
-        {"supported-os.json", new FileLink("supported-os.json", "Supported OSes", LinkStyle.Prod) },
+        {FileNames.SupportedOs, new FileLink(FileNames.SupportedOs, "Supported OSes", LinkStyle.Prod) },
         {"supported-os.md", new FileLink("supported-os.md", "Supported OSes", LinkStyle.Prod | LinkStyle.GitHub) },
         {"linux-packages.json", new FileLink("linux-packages.json", "Linux Packages", LinkStyle.Prod) },
         {"linux-packages.md", new FileLink("linux-packages.md", "Linux Packages", LinkStyle.Prod | LinkStyle.GitHub) },

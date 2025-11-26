@@ -113,4 +113,10 @@ public static class LinkRelations
     /// Cache-safe: year-index controls its own months (no multi-level chain).
     /// </summary>
     public const string LatestMonth = "latest-month";
+
+    /// <summary>
+    /// Link relation for latest release within a year (year-index only)
+    /// Points to the major version index for the highest .NET version released in the year.
+    /// </summary>
+    public const string LatestRelease = "latest-release";
 }

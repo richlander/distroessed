@@ -12,6 +12,6 @@ public record MajorReleaseSummary
     // Convenience accessors for backwards compatibility
     public ReleaseType ReleaseType => Lifecycle.ReleaseType ?? ReleaseType.STS;
     public SupportPhase SupportPhase => Lifecycle.Phase;
-    public DateTimeOffset GaDate => Lifecycle.ReleaseDate;
+    public DateTimeOffset GaDate => Lifecycle.GaDate;
     public DateTimeOffset EolDate => Lifecycle.EolDate;
 };

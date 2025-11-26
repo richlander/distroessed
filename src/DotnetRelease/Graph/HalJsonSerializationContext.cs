@@ -48,6 +48,8 @@ public partial class ReleaseHistoryIndexSerializerContext : JsonSerializerContex
 [JsonSerializable(typeof(HistoryYearIndex))]
 [JsonSerializable(typeof(HistoryMonthIndex))]
 [JsonSerializable(typeof(HistoryMonthSummary))]
+[JsonSerializable(typeof(MajorReleaseVersionIndexEntry))]
+[JsonSerializable(typeof(Lifecycle))]
 [JsonSerializable(typeof(CveRecords))]
 [JsonSerializable(typeof(CveRecordsSummary))]
 [JsonSerializable(typeof(CveRecordSummary))]

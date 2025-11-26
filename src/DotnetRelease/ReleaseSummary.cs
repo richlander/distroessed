@@ -32,9 +32,9 @@ public class ReleaseSummary
     public SupportPhase? Phase => _entry.Lifecycle?.Phase;
 
     /// <summary>
-    /// Date when this version was released
+    /// Date when this version became generally available (GA date)
     /// </summary>
-    public DateTimeOffset? ReleaseDate => _entry.Lifecycle?.ReleaseDate;
+    public DateTimeOffset? ReleaseDate => _entry.Lifecycle?.GaDate;
 
     /// <summary>
     /// End of Life date when support ends

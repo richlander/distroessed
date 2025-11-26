@@ -46,8 +46,8 @@ public record HistoryYearIndexEmbedded
 {
     [Description("Monthly release summaries for this year")]
     public List<HistoryMonthSummary>? Months { get; set; }
-    [Description("All release versions that occurred during this year")]
-    public List<ReleaseHistoryIndexEntry>? Releases { get; set; }
+    [Description("Major versions with releases during this year, with full lifecycle information")]
+    public List<MajorReleaseVersionIndexEntry>? Releases { get; set; }
 }
 
 [Description("Container for embedded monthly navigation entries")]
@@ -134,8 +134,11 @@ public record HistoryMonthIndex(
 [Description("Container for embedded month-level release entries")]
 public record HistoryMonthIndexEmbedded
 {
-    [Description("Releases grouped by major version with patch releases and links (keyed by version)")]
-    public Dictionary<string, MajorReleaseHistory>? Releases { get; set; }
+    [Description("Patch releases grouped by major version with component versions (keyed by version)")]
+    public Dictionary<string, MajorReleaseHistory>? Patches { get; set; }
+
+    [Description("Major versions with releases this month, with full lifecycle information (same format as root index)")]
+    public List<MajorReleaseVersionIndexEntry>? Releases { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this month")]
@@ -144,8 +147,8 @@ public record HistoryMonthIndexEmbedded
 
 [Description("Release history for a major version during a specific time period")]
 public record MajorReleaseHistory(
-    [Description("Patch releases grouped by component type (dotnet-runtime, dotnet-sdk, etc.)")]
-    Dictionary<string, IList<string>> Patches)
+    [Description("Patch versions grouped by product (dotnet-runtime, dotnet-sdk, etc.)")]
+    Dictionary<string, IList<string>> Products)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE identifiers affecting this release")]
@@ -153,8 +156,8 @@ public record MajorReleaseHistory(
 
     [JsonPropertyName("_links"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("HAL+JSON links to version index and release resources")]
-    public Dictionary<string, object>? Links { get; set; }
+     Description("HAL+JSON links for this release (self pointing to patch index, cve-json if applicable)")]
+    public Dictionary<string, HalLink>? Links { get; set; }
 }
 
 [Description("CVE summary information for a specific version")]

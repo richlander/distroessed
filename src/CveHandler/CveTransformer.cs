@@ -200,7 +200,8 @@ public static class CveTransformer
     /// <param name="releaseVersion">Version being validated (e.g., "9.0.3")</param>
     /// <param name="cveIdsFromRelease">CVE IDs from releases.json</param>
     /// <param name="cveIdsFromCveJson">CVE IDs from cve.json (filtered)</param>
-    public static void ValidateCveData(string releaseVersion, IReadOnlyList<string>? cveIdsFromRelease, IReadOnlyList<string>? cveIdsFromCveJson)
+    /// <param name="cveJsonPath">Path to the cve.json file (optional, for better error messages)</param>
+    public static void ValidateCveData(string releaseVersion, IReadOnlyList<string>? cveIdsFromRelease, IReadOnlyList<string>? cveIdsFromCveJson, string? cveJsonPath = null)
     {
         var releaseCves = cveIdsFromRelease?.ToHashSet() ?? new HashSet<string>();
         var cveJsonCves = cveIdsFromCveJson?.ToHashSet() ?? new HashSet<string>();
@@ -213,14 +214,16 @@ public static class CveTransformer
         var inReleaseOnly = releaseCves.Except(cveJsonCves).ToList();
         var inCveJsonOnly = cveJsonCves.Except(releaseCves).ToList();
 
+        var cveJsonInfo = string.IsNullOrEmpty(cveJsonPath) ? "cve.json" : cveJsonPath;
+
         if (inReleaseOnly.Count > 0)
         {
-            Console.WriteLine($"Warning: {releaseVersion} - CVE IDs in releases.json but not in cve.json: {string.Join(", ", inReleaseOnly)}");
+            Console.WriteLine($"Warning: {releaseVersion} - CVE IDs in releases.json but not in {cveJsonInfo}: {string.Join(", ", inReleaseOnly)}");
         }
 
         if (inCveJsonOnly.Count > 0)
         {
-            Console.WriteLine($"Warning: {releaseVersion} - CVE IDs in cve.json but not in releases.json: {string.Join(", ", inCveJsonOnly)}");
+            Console.WriteLine($"Warning: {releaseVersion} - CVE IDs in {cveJsonInfo} but not in releases.json: {string.Join(", ", inCveJsonOnly)}");
         }
     }
 }

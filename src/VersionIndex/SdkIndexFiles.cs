@@ -83,7 +83,7 @@ public class SdkIndexFiles
 
     private static async Task GenerateSdkIndexForMajorVersion(MajorReleaseSummary summary, string majorVersionDir, HalLinkGenerator halLinkGenerator)
     {
-        var sdkDir = Path.Combine(majorVersionDir, "sdk");
+        var sdkDir = Path.Combine(majorVersionDir, FileNames.Directories.Sdk);
         Directory.CreateDirectory(sdkDir);
 
         // Generate main SDK index for the major version
@@ -95,7 +95,7 @@ public class SdkIndexFiles
 
     private static async Task GenerateSdkMainIndex(MajorReleaseSummary summary, string sdkDir, HalLinkGenerator halLinkGenerator)
     {
-        var indexPath = Path.Combine(sdkDir, "index.json");
+        var indexPath = Path.Combine(sdkDir, FileNames.Index);
         var rootDir = Path.GetDirectoryName(Path.GetDirectoryName(sdkDir)) ?? throw new InvalidOperationException("Unable to determine root directory");
         var indexRelativePath = Path.GetRelativePath(rootDir, indexPath);
         var indexPathValue = "/" + indexRelativePath.Replace("\\", "/");
@@ -224,7 +224,7 @@ public class SdkIndexFiles
                 ReleaseKind.PatchRelease,
                 releaseLinks)
             {
-                Lifecycle = new PatchLifecycle(patchLifecycle.Phase, patchLifecycle.ReleaseDate)
+                Lifecycle = new PatchLifecycle(patchLifecycle.Phase, patchLifecycle.GaDate)
             };
 
             sdkReleaseEntries.Add(sdkReleaseEntry);
@@ -260,7 +260,7 @@ public class SdkIndexFiles
             SdkVersionIndexSerializerContext.Default.SdkVersionIndex);
 
         // Add schema reference
-        var schemaUri = $"{Location.GitHubBaseUri}schemas/dotnet-sdk-version-index.json";
+        var schemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.SdkVersionIndex}";
         var jsonWithSchema = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(json, schemaUri);
 
         await File.WriteAllTextAsync(indexPath, jsonWithSchema);
@@ -279,9 +279,9 @@ public class SdkIndexFiles
 
             var links = new Dictionary<string, HalLink>
             {
-                ["self"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/sdk/{fileName}")
+                ["self"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{fileName}")
                 {
-                    Path = $"/{summary.MajorVersion}/sdk/{fileName}",
+                    Path = $"/{summary.MajorVersion}/{FileNames.Directories.Sdk}/{fileName}",
                     Title = $".NET SDK {bandXX} Downloads",
                     Type = MediaType.Json
                 }

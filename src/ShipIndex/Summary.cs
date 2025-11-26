@@ -19,7 +19,7 @@ public class Summary
         foreach (var majorVersionDir in Directory.EnumerateDirectories(rootDir).OrderDescending(numericStringComparer))
         {
             // The presence of a releases.json file indicates this is a major version directory
-            var releasesJson = Path.Combine(majorVersionDir, "releases.json");
+            var releasesJson = Path.Combine(majorVersionDir, FileNames.Releases);
             if (!File.Exists(releasesJson))
             {
                 continue;
@@ -46,7 +46,7 @@ public class Summary
                     continue;
                 }
 
-                var patchJson = Path.Combine(majorVersionDir, release.ReleaseVersion, "release.json");
+                var patchJson = Path.Combine(majorVersionDir, release.ReleaseVersion, FileNames.Release);
                 bool patchExists = File.Exists(patchJson);
 
                 var isSecurity = release.Security;
@@ -95,12 +95,17 @@ public class Summary
 
             var gaRelease = major.Releases.Where(p => !p.ReleaseVersion.Contains("preview", StringComparison.OrdinalIgnoreCase)).LastOrDefault();
             DateOnly gaDate = gaRelease?.ReleaseDate ?? DateOnly.MinValue;
+            var releaseDate = new DateTimeOffset(gaDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+
+            // Compute effective support phase based on release date
+            // This ensures consistency with VersionIndex which applies the same logic
+            var effectivePhase = ReleaseStability.ComputeEffectivePhase(major.SupportPhase, releaseDate);
 
             // Create Lifecycle object with all lifecycle information
             var lifecycle = new Lifecycle(
                 major.ReleaseType,
-                major.SupportPhase,
-                new DateTimeOffset(gaDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
+                effectivePhase,
+                releaseDate,
                 new DateTimeOffset(major.EolDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero)
             );
             lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
@@ -162,7 +167,7 @@ public class Summary
 
     public static void PopulateCveInformation(ReleaseHistory releaseHistory, string rootDir)
     {
-        var historyDir = Path.Combine(rootDir, "timeline");
+        var historyDir = Path.Combine(rootDir, FileNames.Directories.Timeline);
         if (!Directory.Exists(historyDir))
         {
             return;
@@ -174,7 +179,7 @@ public class Summary
             {
                 foreach (var day in month.Days.Values)
                 {
-                    var relativePath = Path.Combine(year.Year, month.Month, "cve.json");
+                    var relativePath = Path.Combine(year.Year, month.Month, FileNames.Cve);
                     var cveJsonPath = Path.Combine(historyDir, relativePath);
                     if (File.Exists(cveJsonPath))
                     {
