@@ -98,13 +98,15 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
                 {
                     // Use pathValue without leading slash for URL generation
                     string urlPath = pathValue.TrimStart('/');
-                    result[selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown-raw" : "markdown")}" : name)] =
-                        new HalLink(urlGenerator(urlPath, style))
+                    // Raw content (Prod) is the default, GitHub blob is the rendered version
+                    var linkKey = selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown" : "markdown-rendered")}" : name);
+                    var baseTitle = titleGenerator(fileLink, linkKey);
+                    var title = isMarkdown && style == LinkStyle.GitHub ? $"{baseTitle} (Rendered)" : baseTitle;
+
+                    result[linkKey] = new HalLink(urlGenerator(urlPath, style))
                         {
                             Path = pathValue,
-                            Title = isMarkdown
-                                ? $"{titleGenerator(fileLink, selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown-raw" : "markdown")}" : name))} ({(style == LinkStyle.Prod ? "Raw Markdown" : "Markdown")})"
-                                : titleGenerator(fileLink, selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown-raw" : "markdown")}" : name)),
+                            Title = title,
                             Type = fileType
                         };
                 }

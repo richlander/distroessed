@@ -67,12 +67,12 @@ public class IndexHelpers
 
             if (mapping.Style.HasFlag(LinkStyle.Prod))
             {
-                var title = isMarkdown ? $"{mapping.Title} (Raw Markdown)" : mapping.Title;
-                var key = isMarkdown ? $"{name}-markdown-raw" : name;
+                // Raw content is the default (no suffix for markdown)
+                var key = isMarkdown ? $"{name}-markdown" : name;
                 yield return new HalTuple(key, ReleaseKind.Content, new HalLink(GetProdPath(urlRelativePath))
                 {
                     Path = pathValue,
-                    Title = title,
+                    Title = mapping.Title,
                     Type = extension switch
                     {
                         ".json" => MediaType.Json,
@@ -84,11 +84,12 @@ public class IndexHelpers
 
             if (mapping.Style.HasFlag(LinkStyle.GitHub))
             {
-                var key = isMarkdown ? $"{name}-markdown" : name;
+                // GitHub blob view is the rendered version
+                var key = isMarkdown ? $"{name}-markdown-rendered" : name;
                 yield return new HalTuple(key, ReleaseKind.Content, new HalLink(GetGitHubPath(urlRelativePath))
                 {
                     Path = pathValue,
-                    Title = mapping.Title,
+                    Title = $"{mapping.Title} (Rendered)",
                     Type = MediaType.Markdown
                 });
             }

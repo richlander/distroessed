@@ -429,16 +429,16 @@ public class ShipIndexFiles
                                 };
 
                                 var cveMdPath = $"{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/cve.md";
-                                links["cve-markdown-raw"] = new HalLink($"{Location.GitHubBaseUri}{cveMdPath}")
+                                links["cve-markdown"] = new HalLink($"{Location.GitHubBaseUri}{cveMdPath}")
                                 {
                                     Path = $"/{cveMdPath}",
-                                    Title = "CVE Information (Raw Markdown)",
+                                    Title = "CVE Information",
                                     Type = MediaType.Markdown
                                 };
-                                links["cve-markdown"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{cveMdPath}")
+                                links["cve-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{cveMdPath}")
                                 {
                                     Path = $"/{cveMdPath}",
-                                    Title = "CVE Information (Markdown)",
+                                    Title = "CVE Information (Rendered)",
                                     Type = MediaType.Markdown
                                 };
                             }
