@@ -64,12 +64,10 @@ public record YearIndexEmbedded(
 
 [Description("Year entry in the release history, containing annual release information")]
 public record HistoryYearEntry(
-    [Description("Type of history index for this year")]
-    HistoryKind Kind,
-    [Description("Description of the year's releases")]
-    string Description,
     [Description("Year identifier (e.g., '2025')")]
     string Year,
+    [Description("Description of the year's releases")]
+    string Description,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this year's content")]
     Dictionary<string, HalLink> Links)

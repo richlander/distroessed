@@ -25,12 +25,12 @@ public class PatchSummary
     /// <summary>
     /// Current lifecycle phase
     /// </summary>
-    public SupportPhase? Phase => _entry.Lifecycle?.Phase;
+    public SupportPhase? Phase => _entry.SupportPhase;
 
     /// <summary>
     /// Date when this patch was released (GA date)
     /// </summary>
-    public DateTimeOffset? ReleaseDate => _entry.Lifecycle?.GaDate;
+    public DateTimeOffset? ReleaseDate => _entry.Date;
 
     /// <summary>
     /// CVE IDs associated with this patch

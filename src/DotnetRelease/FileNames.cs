@@ -28,6 +28,7 @@ public static class FileNames
         public const string Cves = "dotnet-cves.json";
         public const string ReleaseVersionIndex = "dotnet-release-version-index.json";
         public const string SdkVersionIndex = "dotnet-sdk-version-index.json";
+        public const string SdkDownload = "dotnet-sdk-download.json";
         public const string PatchDetailIndex = "dotnet-patch-detail-index.json";
         public const string TimelineIndex = "dotnet-release-timeline-index.json";
     }

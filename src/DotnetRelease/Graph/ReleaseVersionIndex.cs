@@ -86,8 +86,6 @@ public record ReleaseVersionIndexEmbedded(
 public record ReleaseVersionIndexEntry(
     [Description("Version identifier (e.g., '8.0' for major version, '8.0.1' for patch version)")]
     string Version,
-    [Description("Type of release (index, major-release, patch-release, etc.)")]
-    ReleaseKind Kind,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this release's content")]
     Dictionary<string, HalLink> Links)
@@ -122,7 +120,10 @@ public enum ReleaseKind
     
     [Description("SDK feature band content")]
     Band,
-    
+
+    [Description("SDK download information for a feature band")]
+    SdkDownload,
+
     [Description("General content document")]
     Content,
     

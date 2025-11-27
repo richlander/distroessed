@@ -53,6 +53,7 @@ List<ModelInfo> models = [
     new (typeof(ReleaseHistoryIndex), DotnetRelease.FileNames.Schemas.TimelineIndex, JsonKnownNamingPolicy.SnakeCaseLower),
     new (typeof(PatchDetailIndex), DotnetRelease.FileNames.Schemas.PatchDetailIndex, JsonKnownNamingPolicy.SnakeCaseLower),
     new (typeof(SdkVersionIndex), DotnetRelease.FileNames.Schemas.SdkVersionIndex, JsonKnownNamingPolicy.SnakeCaseLower),
+    new (typeof(SdkDownloadInfo), DotnetRelease.FileNames.Schemas.SdkDownload, JsonKnownNamingPolicy.SnakeCaseLower),
 ];
 
 
@@ -117,7 +118,8 @@ System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver GetTypeInfoResolve
     if (type == typeof(MajorReleaseVersionIndex) ||
         type == typeof(ReleaseHistoryIndex) ||
         type == typeof(PatchDetailIndex) ||
-        type == typeof(SdkVersionIndex))
+        type == typeof(SdkVersionIndex) ||
+        type == typeof(SdkDownloadInfo))
         return IndexSchemaGenerationContext.Default;
 
     // Legacy types use kebab-case
@@ -166,6 +168,7 @@ partial class CveSchemaGenerationContext : JsonSerializerContext
 [JsonSerializable(typeof(ReleaseHistoryIndex))]
 [JsonSerializable(typeof(PatchDetailIndex))]
 [JsonSerializable(typeof(SdkVersionIndex))]
+[JsonSerializable(typeof(SdkDownloadInfo))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 partial class IndexSchemaGenerationContext : JsonSerializerContext
 {

@@ -4,6 +4,7 @@ using DotnetRelease.Security;
 
 namespace DotnetRelease.Graph;
 
+// Support phases are defined in https://github.com/dotnet/core/blob/main/release-policies.md
 /// <summary>
 /// Provides an index of patch .NET releases within a major version (e.g., 8.0.1, 8.0.2).
 /// Uses simplified lifecycle information with only phase and release-date.
@@ -25,6 +26,10 @@ public record PatchReleaseVersionIndex(
      Description("Latest patch version with security fixes")]
     public string? LatestSecurity { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Lifecycle information (GA date, EOL date, release type, phase) for the major version")]
+    public Lifecycle? Lifecycle { get; init; }
+
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
@@ -32,10 +37,6 @@ public record PatchReleaseVersionIndex(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Usage information and term definitions")]
     public UsageWithLinks? Usage { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Lifecycle information (GA date, EOL date, release type, phase) for the major version")]
-    public Lifecycle? Lifecycle { get; set; }
 
     [JsonPropertyName("_embedded"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
@@ -62,20 +63,24 @@ public record PatchReleaseVersionIndexEmbedded(
     public IReadOnlyList<string>? CveRecords { get; set; }
 }
 
-[Description("Patch release entry within a major version index, containing simplified lifecycle information")]
+// Support phases are defined in https://github.com/dotnet/core/blob/main/release-policies.md
+// Phases: preview, go-live, active, maintenance, eol
+[Description("Patch release entry within a major version index")]
 public record PatchReleaseVersionIndexEntry(
-    [Description("Patch version identifier (e.g., '8.0.1', '9.0.2')")]
+    [property: Description("Patch version identifier (e.g., '8.0.1', '9.0.2')")]
     string Version,
-    [Description("Type of release (patch-release)")]
-    ReleaseKind Kind,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date when this patch became generally available")]
+    DateTimeOffset? Date,
+    [property: Description("True if this release includes security fixes (CVEs); defaults to true for safety")]
+    bool Security,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
+    SupportPhase? SupportPhase,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this patch release's content")]
     Dictionary<string, HalLink> Links)
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Simplified lifecycle information (phase and release-date only)")]
-    public PatchLifecycle? Lifecycle { get; set; }
-
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE IDs associated with this release")]
     public IReadOnlyList<string>? CveRecords { get; set; }

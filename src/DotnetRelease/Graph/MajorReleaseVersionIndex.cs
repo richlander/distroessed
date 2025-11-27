@@ -60,8 +60,6 @@ public record MajorReleaseVersionIndexEmbedded(
 public record MajorReleaseVersionIndexEntry(
     [Description("Major version identifier (e.g., '8.0', '9.0')")]
     string Version,
-    [Description("Type of release (index for major version)")]
-    ReleaseKind Kind,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this major version's content")]
     Dictionary<string, HalLink> Links)

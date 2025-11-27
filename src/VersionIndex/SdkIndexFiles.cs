@@ -99,7 +99,11 @@ public class SdkIndexFiles
         var rootDir = Path.GetDirectoryName(Path.GetDirectoryName(sdkDir)) ?? throw new InvalidOperationException("Unable to determine root directory");
         var indexRelativePath = Path.GetRelativePath(rootDir, indexPath);
         var indexPathValue = "/" + indexRelativePath.Replace("\\", "/");
-        
+
+        // Downloads file path
+        var downloadsFileName = $"sdk-{summary.MajorVersion}.json";
+        var downloadsRelativePath = $"{summary.MajorVersion}/{FileNames.Directories.Sdk}/{downloadsFileName}";
+
         // Create main links
         var links = new Dictionary<string, HalLink>
         {
@@ -108,21 +112,33 @@ public class SdkIndexFiles
                 Path = indexPathValue,
                 Title = $".NET SDK {summary.MajorVersion}",
                 Type = MediaType.HalJson
+            },
+            ["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+            {
+                Path = $"/{summary.MajorVersion}/{FileNames.Index}",
+                Title = $".NET {summary.MajorVersion}",
+                Type = MediaType.HalJson
+            },
+            ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{downloadsRelativePath}")
+            {
+                Path = $"/{downloadsRelativePath}",
+                Title = $".NET SDK {summary.MajorVersion} Downloads",
+                Type = MediaType.Json
             }
         };
 
         // Create feature band entries (first embedded section)
         var featureBandEntries = new List<SdkFeatureBandEntry>();
-        
+
         foreach (var sdkBand in summary.SdkBands)
         {
             var bandVersion = sdkBand.Version[..5] + "xx"; // e.g., "8.0.1xx"
-            
+
             var bandFileName = $"sdk-{bandVersion}.json";
             var bandFilePath = Path.Combine(sdkDir, bandFileName);
             var bandRelativePath = Path.GetRelativePath(rootDir, bandFilePath);
             var bandPathValue = "/" + bandRelativePath.Replace("\\", "/");
-            
+
             var bandLinks = new Dictionary<string, HalLink>
             {
                 [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{bandRelativePath}")
@@ -133,28 +149,23 @@ public class SdkIndexFiles
                 }
             };
 
-            // Create patch lifecycle for feature band (no release-type)
-            var bandLifecycle = CreatePatchLifecycle(sdkBand.SupportPhase, sdkBand.LatestReleaseDate);
-
             var featureBandEntry = new SdkFeatureBandEntry(
-                ReleaseKind.Band,
                 bandVersion,
+                new DateTimeOffset(sdkBand.LatestReleaseDate.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(-8)),
                 $".NET SDK {bandVersion}",
-                bandLinks)
-            {
-                Lifecycle = bandLifecycle
-            };
+                sdkBand.SupportPhase,
+                bandLinks);
 
             featureBandEntries.Add(featureBandEntry);
         }
 
         // Create SDK patch release entries (second embedded section)
-        var sdkReleaseEntries = new List<ReleaseVersionIndexEntry>();
+        var sdkReleaseEntries = new List<SdkReleaseEntry>();
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
-        
+
         // Collect all SDK components first, then sort by SDK version
         var sdkComponents = new List<(PatchReleaseSummary PatchRelease, ReleaseComponent SdkComponent)>();
-        
+
         foreach (var patchRelease in summary.PatchReleases)
         {
             foreach (var component in patchRelease.Components)
@@ -165,98 +176,67 @@ public class SdkIndexFiles
                 }
             }
         }
-        
+
         // Sort SDK components by SDK version descending (newest first)
         var sortedSdkComponents = sdkComponents
             .OrderByDescending(sdk => sdk.SdkComponent.Version, numericStringComparer)
             .ToList();
-        
+
         foreach (var (patchRelease, component) in sortedSdkComponents)
         {
-            var releaseLinks = new Dictionary<string, HalLink>();
-            
-            // Link to runtime release.json file
-            if (!string.IsNullOrEmpty(patchRelease.ReleaseJsonPath))
+            // Link to patch detail index.json file
+            var indexRelPath = $"{summary.MajorVersion}/{patchRelease.PatchVersion}/{FileNames.Index}";
+            var releaseLinks = new Dictionary<string, HalLink>
             {
-                // Use the ReleaseJsonPath directly since it's already the correct relative path for URLs
-                var releaseJsonRelativePath = patchRelease.ReleaseJsonPath;
-                var releaseJsonPathValue = "/" + releaseJsonRelativePath;
-                releaseLinks[HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{releaseJsonRelativePath}")
+                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelPath}")
                 {
-                    Path = releaseJsonPathValue,
-                    Title = $"{patchRelease.PatchVersion} Release Information",
-                    Type = MediaType.Json
-                };
-            }
-
-            // Link to SDK-specific markdown if available, otherwise runtime markdown
-            var sdkMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{component.Version}.md");
-            var runtimeMarkdownPath = Path.Combine(rootDir, summary.MajorVersion, patchRelease.PatchVersion, $"{patchRelease.PatchVersion}.md");
-            
-            string markdownPath;
-            if (File.Exists(sdkMarkdownPath))
-            {
-                markdownPath = sdkMarkdownPath;
-            }
-            else if (File.Exists(runtimeMarkdownPath))
-            {
-                markdownPath = runtimeMarkdownPath;
-            }
-            else
-            {
-                markdownPath = runtimeMarkdownPath; // Use expected path even if file doesn't exist
-            }
-            
-            var markdownRelativePath = Path.GetRelativePath(rootDir, markdownPath);
-            var markdownPathValue = "/" + markdownRelativePath.Replace("\\", "/");
-            releaseLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{markdownRelativePath}")
-            {
-                Path = markdownPathValue,
-                Title = $"Release Notes",
-                Type = MediaType.Markdown
+                    Path = $"/{indexRelPath}",
+                    Title = $"{patchRelease.PatchVersion}",
+                    Type = MediaType.HalJson
+                }
             };
 
-            // Create patch lifecycle (no release-type)
-            var patchLifecycle = CreatePatchLifecycle(SupportPhase.Active, patchRelease.ReleaseDate);
+            // Get CVE IDs if this is a security release
+            IReadOnlyList<string>? cveIds = null;
+            if (patchRelease.Security && patchRelease.CveList?.Count > 0)
+            {
+                cveIds = patchRelease.CveList.Select(cve => cve.CveId).ToList();
+            }
 
-            var sdkReleaseEntry = new ReleaseVersionIndexEntry(
+            var sdkReleaseEntry = new SdkReleaseEntry(
                 component.Version,
-                ReleaseKind.PatchRelease,
+                new DateTimeOffset(patchRelease.ReleaseDate.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(-8)),
+                patchRelease.Security,
+                SupportPhase.Active,
                 releaseLinks)
             {
-                Lifecycle = new PatchLifecycle(patchLifecycle.Phase, patchLifecycle.GaDate)
+                CveRecords = cveIds
             };
 
             sdkReleaseEntries.Add(sdkReleaseEntry);
         }
 
-        // Generate latest SDK downloads dictionary
-        var latestBand = summary.SdkBands
-            .Where(b => b.SupportPhase == SupportPhase.Active)
-            .OrderByDescending(b => b.LatestReleaseDate)
-            .FirstOrDefault() ?? summary.SdkBands.LastOrDefault();
+        // Determine latest and latest-security SDK versions
+        var latestSdk = sdkReleaseEntries.FirstOrDefault()?.Version;
+        var latestSecuritySdk = sdkReleaseEntries.FirstOrDefault(e => e.Security)?.Version;
 
-        Dictionary<string, SdkDownloadFile>? latestDownloads = null;
-        if (latestBand != null)
-        {
-            latestDownloads = GenerateSdkFilesDictionary(summary.MajorVersion);
-        }
-
-        // Create the main SDK index with both embedded sections
+        // Create the main SDK index (no downloads - those go in separate file)
         var sdkIndex = new SdkVersionIndex(
-            ReleaseKind.Index,
-            "sdk",
+            ReleaseKind.SdkIndex,
             summary.MajorVersion,
-            $".NET SDK {summary.MajorVersion}",
-            links)
+            $".NET SDK {summary.MajorVersion} Index",
+            $"SDK release index for .NET {summary.MajorVersion}")
         {
-            Embedded = new SdkVersionIndexEmbedded(latestDownloads, featureBandEntries, sdkReleaseEntries),
+            Latest = latestSdk,
+            LatestSecurity = latestSecuritySdk,
+            Links = links,
+            Embedded = new SdkVersionIndexEmbedded(sdkReleaseEntries, featureBandEntries),
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
 
         // Serialize to JSON
         var json = JsonSerializer.Serialize(
-            sdkIndex, 
+            sdkIndex,
             SdkVersionIndexSerializerContext.Default.SdkVersionIndex);
 
         // Add schema reference
@@ -264,6 +244,66 @@ public class SdkIndexFiles
         var jsonWithSchema = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(json, schemaUri);
 
         await File.WriteAllTextAsync(indexPath, jsonWithSchema);
+
+        // Generate the major version downloads file (sdk-9.0.json)
+        await GenerateMajorVersionDownloadsFile(summary, sdkDir);
+    }
+
+    private static async Task GenerateMajorVersionDownloadsFile(MajorReleaseSummary summary, string sdkDir)
+    {
+        var fileName = $"sdk-{summary.MajorVersion}.json";
+        var filePath = Path.Combine(sdkDir, fileName);
+
+        var sdkFilesDict = GenerateSdkFilesDictionary(summary.MajorVersion);
+
+        // Get the latest active band for support phase
+        var latestBand = summary.SdkBands
+            .Where(b => b.SupportPhase == SupportPhase.Active)
+            .OrderByDescending(b => b.LatestReleaseDate)
+            .FirstOrDefault() ?? summary.SdkBands.LastOrDefault();
+
+        var links = new Dictionary<string, HalLink>
+        {
+            ["self"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{fileName}")
+            {
+                Path = $"/{summary.MajorVersion}/{FileNames.Directories.Sdk}/{fileName}",
+                Title = $".NET SDK {summary.MajorVersion} Downloads",
+                Type = MediaType.Json
+            },
+            ["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}")
+            {
+                Path = $"/{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}",
+                Title = $".NET SDK {summary.MajorVersion}",
+                Type = MediaType.HalJson
+            },
+            ["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+            {
+                Path = $"/{summary.MajorVersion}/{FileNames.Index}",
+                Title = $".NET {summary.MajorVersion}",
+                Type = MediaType.HalJson
+            }
+        };
+
+        var sdkDownloadInfo = new SdkDownloadInfo(
+            ReleaseKind.SdkDownload,
+            summary.MajorVersion,
+            latestBand?.SupportPhase,
+            $".NET SDK {summary.MajorVersion} Downloads",
+            $"SDK downloads for .NET {summary.MajorVersion} (latest feature band)",
+            links)
+        {
+            Embedded = new SdkDownloadEmbedded(sdkFilesDict)
+        };
+
+        var json = JsonSerializer.Serialize(
+            sdkDownloadInfo,
+            SdkVersionIndexSerializerContext.Default.SdkDownloadInfo);
+
+        // Add schema reference
+        var schemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.SdkDownload}";
+        var jsonWithSchema = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(json, schemaUri);
+
+        await File.WriteAllTextAsync(filePath, jsonWithSchema ?? json);
     }
 
     private static async Task GenerateFeatureBandIndexes(MajorReleaseSummary summary, string sdkDir, HalLinkGenerator halLinkGenerator)
@@ -284,14 +324,27 @@ public class SdkIndexFiles
                     Path = $"/{summary.MajorVersion}/{FileNames.Directories.Sdk}/{fileName}",
                     Title = $".NET SDK {bandXX} Downloads",
                     Type = MediaType.Json
+                },
+                ["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}")
+                {
+                    Path = $"/{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}",
+                    Title = $".NET SDK {summary.MajorVersion}",
+                    Type = MediaType.HalJson
+                },
+                ["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+                {
+                    Path = $"/{summary.MajorVersion}/{FileNames.Index}",
+                    Title = $".NET {summary.MajorVersion}",
+                    Type = MediaType.HalJson
                 }
             };
 
             var sdkDownloadInfo = new SdkDownloadInfo(
-                "sdk",
+                ReleaseKind.SdkDownload,
                 bandXX,
-                $".NET SDK {bandXX}",
-                "sha512",
+                sdkBand.SupportPhase,
+                $".NET SDK {bandXX} Downloads",
+                $"SDK downloads for .NET SDK {bandXX} feature band",
                 links)
             {
                 Embedded = new SdkDownloadEmbedded(sdkFilesDict)
@@ -301,7 +354,11 @@ public class SdkIndexFiles
                 sdkDownloadInfo,
                 SdkVersionIndexSerializerContext.Default.SdkDownloadInfo);
 
-            await File.WriteAllTextAsync(filePath, json);
+            // Add schema reference
+            var schemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.SdkDownload}";
+            var jsonWithSchema = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(json, schemaUri);
+
+            await File.WriteAllTextAsync(filePath, jsonWithSchema ?? json);
         }
     }
 
@@ -312,7 +369,7 @@ public class SdkIndexFiles
         foreach (var fileName in SupportedSdkFiles)
         {
             var platformInfo = ParseFileNameForPlatform(fileName);
-            
+
             var links = new Dictionary<string, HalLink>
             {
                 ["download"] = new HalLink($"https://aka.ms/dotnet/{version}/{fileName}")
@@ -330,6 +387,7 @@ public class SdkIndexFiles
                 platformInfo.Rid,
                 platformInfo.Os,
                 platformInfo.Arch,
+                "sha512",
                 links);
 
             downloads[platformInfo.Rid] = downloadFile;

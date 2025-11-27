@@ -244,12 +244,6 @@ public class ReleaseIndexFiles
             var majorIndexPath = Path.Combine(outputMajorVersionDir, FileNames.Index);
             var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, FileNames.Index));
 
-            // Calculate version range for patch releases
-            var patchVersions = summary.PatchReleases.Select(p => p.PatchVersion).ToList();
-            var minPatchVersion = patchVersions.Min(numericStringComparer);
-            var maxPatchVersion = patchVersions.Max(numericStringComparer);
-            var patchVersionRange = $"{minPatchVersion}–{maxPatchVersion}";
-
             // Collect all CVE IDs for this major version
             var allCveIds = patchEntries
                 .Where(e => e.CveRecords?.Count > 0)
@@ -258,11 +252,13 @@ public class ReleaseIndexFiles
                 .OrderBy(id => id)
                 .ToList();
 
-            var patchDescription = $"Index of .NET versions {patchVersionRange} (latest first); {Location.CacheFriendlyNote}";
-            
             // Determine latest and latest-security
             // Patches are ordered latest first, so first entry is latest
             var latestPatch = patchEntries.FirstOrDefault();
+
+            // Get the latest patch version for the description (use latestPatch which handles semver correctly)
+            var latestPatchVersion = latestPatch?.Version ?? summary.PatchReleases.Select(p => p.PatchVersion).Max(numericStringComparer);
+            var patchDescription = $".NET {majorVersionDirName} (latest: {latestPatchVersion}); {Location.CacheFriendlyNote}";
             var latestSecurityPatch = patchEntries.FirstOrDefault(e => e.CveRecords?.Count > 0);
             
             // Add latest and latest-security links if available
@@ -316,12 +312,16 @@ public class ReleaseIndexFiles
             {
                 Latest = latestPatch?.Version,
                 LatestSecurity = latestSecurityPatch?.Version,
-                Links = remainingMajorVersionLinks,
                 Lifecycle = lifecycle,
+                Links = remainingMajorVersionLinks,
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
-                    patchEntries.Select(e => new PatchReleaseVersionIndexEntry(e.Version, e.Kind, e.Links)
+                    patchEntries.Select(e => new PatchReleaseVersionIndexEntry(
+                        e.Version,
+                        e.Lifecycle?.GaDate,
+                        e.CveRecords?.Count > 0,
+                        e.Lifecycle?.Phase,
+                        e.Links)
                     {
-                        Lifecycle = e.Lifecycle,
                         CveRecords = e.CveRecords
                     }).ToList())
                 {
@@ -419,9 +419,7 @@ public class ReleaseIndexFiles
             // Major version entries use full lifecycle (not simplified)
             var majorEntry = new MajorReleaseVersionIndexEntry(
                 majorVersionDirName,
-                ReleaseKind.MajorVersionIndex,
-                majorVersionWithinAllReleasesIndexLinks
-                )
+                majorVersionWithinAllReleasesIndexLinks)
             {
                 Lifecycle = lifecycle
             };
@@ -528,13 +526,9 @@ public class ReleaseIndexFiles
         var rootIndexPath = Path.Combine(outputDir, FileNames.Index);
         var rootIndexRelativePath = Path.GetRelativePath(inputDir, Path.Combine(inputDir, FileNames.Index));
 
-        // Calculate version range for description
-        var majorVersions = majorEntries.Select(e => e.Version).ToList();
-        var minMajorVersion = majorVersions.Min(numericStringComparer);
-        var maxMajorVersion = majorVersions.Max(numericStringComparer);
-        var versionRange = $"{minMajorVersion}–{maxMajorVersion}";
-
-        var description = $"Index of .NET versions {versionRange} (latest first); {Location.CacheFriendlyNote}";
+        // Get the latest major version for the description (use latestRelease which handles stability correctly)
+        var latestMajorVersion = latestRelease?.Version ?? majorEntries.Select(e => e.Version).Max(numericStringComparer);
+        var description = $".NET Release Index (latest: {latestMajorVersion}); {Location.CacheFriendlyNote}";
         
         // Calculate latest year from all patch releases across all major versions
         var latestYear = summaries
@@ -696,7 +690,7 @@ public class ReleaseIndexFiles
                 patchLifecycle, 
                 cveIds);
 
-            var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, ReleaseKind.PatchRelease, links)
+            var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, links)
             {
                 CveRecords = cveIds,
                 Lifecycle = patchLifecycle
@@ -726,7 +720,7 @@ public class ReleaseIndexFiles
                 Title = $"{patchVersion} Patch Index",
                 Type = MediaType.HalJson
             },
-            ["release"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{FileNames.Release}")
+            ["release-json"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{FileNames.Release}")
             {
                 Path = $"/{majorVersion}/{patchVersion}/{FileNames.Release}",
                 Title = $"{patchVersion} Release Information",
@@ -753,20 +747,59 @@ public class ReleaseIndexFiles
             };
         }
 
-        // Add README link if it exists
+        // Build runtime info with markdown links
+        PatchRuntimeInfo? runtimeInfo = null;
+        var versionMdPath = Path.Combine(patchDir, $"{patchVersion}.md");
         var readmePath = Path.Combine(patchDir, "README.md");
-        if (File.Exists(readmePath))
+
+        if (File.Exists(versionMdPath))
         {
-            links["release-notes-markdown"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{majorVersion}/{patchVersion}/README.md")
+            var mdFileName = $"{patchVersion}.md";
+            var runtimeLinks = new Dictionary<string, HalLink>
             {
-                Path = $"/{majorVersion}/{patchVersion}/README.md",
-                Title = $"{patchVersion} Release Notes (Markdown)",
-                Type = MediaType.Markdown
+                ["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{mdFileName}")
+                {
+                    Path = $"/{majorVersion}/{patchVersion}/{mdFileName}",
+                    Title = $"{patchVersion} Release Notes",
+                    Type = MediaType.Markdown
+                },
+                ["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{majorVersion}/{patchVersion}/{mdFileName}")
+                {
+                    Path = $"/{majorVersion}/{patchVersion}/{mdFileName}",
+                    Title = $"{patchVersion} Release Notes (Rendered)",
+                    Type = MediaType.Markdown
+                }
             };
+            runtimeInfo = new PatchRuntimeInfo(patchVersion) { Links = runtimeLinks };
+        }
+        else if (File.Exists(readmePath))
+        {
+            var runtimeLinks = new Dictionary<string, HalLink>
+            {
+                ["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/README.md")
+                {
+                    Path = $"/{majorVersion}/{patchVersion}/README.md",
+                    Title = $"{patchVersion} Release Notes",
+                    Type = MediaType.Markdown
+                },
+                ["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{majorVersion}/{patchVersion}/README.md")
+                {
+                    Path = $"/{majorVersion}/{patchVersion}/README.md",
+                    Title = $"{patchVersion} Release Notes (Rendered)",
+                    Type = MediaType.Markdown
+                }
+            };
+            runtimeInfo = new PatchRuntimeInfo(patchVersion) { Links = runtimeLinks };
+        }
+        else
+        {
+            // No markdown but still create runtime info with version
+            runtimeInfo = new PatchRuntimeInfo(patchVersion);
         }
 
-        // Load SDK versions from release.json
-        PatchSdkInfo? sdkInfo = null;
+        // Load SDK versions from release.json and build SDK entries
+        List<string>? sdkVersionsList = null;
+        List<PatchSdkEntry>? sdkEntries = null;
         var releaseJsonPath = Path.Combine(patchDir, FileNames.Release);
         if (File.Exists(releaseJsonPath) && IsVersionSdkSupported(majorVersion))
         {
@@ -774,12 +807,24 @@ public class ReleaseIndexFiles
             {
                 var releaseJson = await File.ReadAllTextAsync(releaseJsonPath);
                 var releaseDoc = JsonDocument.Parse(releaseJson);
-                
-                // Extract SDK versions
+
+                // Extract SDK versions - try release.sdks first, then fall back to sdks at root
                 var sdkVersions = new List<string>();
-                if (releaseDoc.RootElement.TryGetProperty("sdks", out var sdksElement))
+                JsonElement? sdksElement = null;
+
+                if (releaseDoc.RootElement.TryGetProperty("release", out var releaseElement) &&
+                    releaseElement.TryGetProperty("sdks", out var nestedSdksElement))
                 {
-                    foreach (var sdkElement in sdksElement.EnumerateArray())
+                    sdksElement = nestedSdksElement;
+                }
+                else if (releaseDoc.RootElement.TryGetProperty("sdks", out var rootSdksElement))
+                {
+                    sdksElement = rootSdksElement;
+                }
+
+                if (sdksElement.HasValue)
+                {
+                    foreach (var sdkElement in sdksElement.Value.EnumerateArray())
                     {
                         if (sdkElement.TryGetProperty("version", out var versionElement))
                         {
@@ -794,42 +839,64 @@ public class ReleaseIndexFiles
 
                 if (sdkVersions.Count > 0)
                 {
-                    // Create SDK links for feature bands
-                    var sdkLinks = new Dictionary<string, HalLink>();
-                    var featureBands = sdkVersions
-                        .Select(v => {
-                            var parts = v.Split('.');
-                            if (parts.Length >= 3)
-                            {
-                                // Extract feature band (e.g., "9.0.2xx" from "9.0.202")
-                                return $"{parts[0]}.{parts[1]}.{parts[2][0]}xx";
-                            }
-                            return null;
-                        })
-                        .Where(fb => fb != null)
-                        .Distinct()
-                        .OrderByDescending(fb => fb)
-                        .ToList();
+                    sdkVersionsList = sdkVersions;
+                    sdkEntries = [];
 
-                    foreach (var featureBand in featureBands)
+                    // Build SDK entries with feature-band and markdown links
+                    foreach (var sdkVersion in sdkVersions)
                     {
-                        if (featureBand != null)
+                        var sdkLinks = new Dictionary<string, HalLink>();
+
+                        // Add feature-band link
+                        var parts = sdkVersion.Split('.');
+                        if (parts.Length >= 3)
                         {
+                            var featureBand = $"{parts[0]}.{parts[1]}.{parts[2][0]}xx";
                             var sdkFeatureBandPath = $"{majorVersion}/sdk/sdk-{featureBand}.json";
-                            sdkLinks[$"sdk-{featureBand}"] = new HalLink($"{Location.GitHubBaseUri}{sdkFeatureBandPath}")
+                            sdkLinks["feature-band"] = new HalLink($"{Location.GitHubBaseUri}{sdkFeatureBandPath}")
                             {
                                 Path = $"/{sdkFeatureBandPath}",
                                 Title = $".NET SDK {featureBand}",
                                 Type = MediaType.Json
                             };
                         }
-                    }
 
-                    sdkInfo = new PatchSdkInfo
-                    {
-                        DotnetSdk = sdkVersions,
-                        Links = sdkLinks.Count > 0 ? sdkLinks : null
-                    };
+                        // Add markdown links - SDK-specific if exists, otherwise fall back to runtime markdown
+                        var sdkMdPath = Path.Combine(patchDir, $"{sdkVersion}.md");
+                        if (File.Exists(sdkMdPath))
+                        {
+                            var sdkMdFileName = $"{sdkVersion}.md";
+                            sdkLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{sdkMdFileName}")
+                            {
+                                Path = $"/{majorVersion}/{patchVersion}/{sdkMdFileName}",
+                                Title = $"SDK {sdkVersion} Release Notes",
+                                Type = MediaType.Markdown
+                            };
+                            sdkLinks["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{majorVersion}/{patchVersion}/{sdkMdFileName}")
+                            {
+                                Path = $"/{majorVersion}/{patchVersion}/{sdkMdFileName}",
+                                Title = $"SDK {sdkVersion} Release Notes (Rendered)",
+                                Type = MediaType.Markdown
+                            };
+                        }
+                        else if (runtimeInfo?.Links != null)
+                        {
+                            // Fall back to runtime markdown links
+                            if (runtimeInfo.Links.TryGetValue("release-notes-markdown", out var runtimeMdLink))
+                            {
+                                sdkLinks["release-notes-markdown"] = runtimeMdLink;
+                            }
+                            if (runtimeInfo.Links.TryGetValue("release-notes-markdown-rendered", out var runtimeMdRenderedLink))
+                            {
+                                sdkLinks["release-notes-markdown-rendered"] = runtimeMdRenderedLink;
+                            }
+                        }
+
+                        sdkEntries.Add(new PatchSdkEntry(sdkVersion)
+                        {
+                            Links = sdkLinks.Count > 0 ? sdkLinks : null
+                        });
+                    }
                 }
             }
             catch (Exception ex)
@@ -903,20 +970,21 @@ public class ReleaseIndexFiles
             }
         }
 
-        // Build embedded content if we have SDK or CVE data
+        // Build embedded content
         // Extract sorted CVE IDs from disclosures (source of truth from cve.json)
         IReadOnlyList<string>? sortedCveIds = null;
         if (cveDisclosures != null && cveDisclosures.Count > 0)
         {
             sortedCveIds = cveDisclosures.Select(d => d.Id).ToList();
         }
-        
+
         PatchDetailIndexEmbedded? embedded = null;
-        if (sdkInfo != null || cveDisclosures != null || sortedCveIds != null)
+        if (runtimeInfo != null || sdkEntries != null || cveDisclosures != null || sortedCveIds != null)
         {
             embedded = new PatchDetailIndexEmbedded
             {
-                Sdks = sdkInfo,
+                Runtime = runtimeInfo,
+                Sdks = sdkEntries,
                 CveRecords = sortedCveIds,
                 Disclosures = cveDisclosures
             };
@@ -925,11 +993,15 @@ public class ReleaseIndexFiles
         var patchDetailIndex = new PatchDetailIndex(
             ReleaseKind.PatchVersionIndex,
             patchVersion,
+            lifecycle?.GaDate,
+            cveIds?.Count > 0,
+            lifecycle?.Phase,
             $".NET {patchVersion} Patch Index",
-            $"Patch information for .NET {patchVersion}",
-            links)
+            $"Patch information for .NET {patchVersion}")
         {
-            Lifecycle = lifecycle,
+            RuntimeVersion = patchVersion,
+            SdkVersions = sdkVersionsList,
+            Links = links,
             Embedded = embedded,
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };

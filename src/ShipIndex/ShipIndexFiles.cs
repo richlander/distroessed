@@ -289,10 +289,8 @@ public class ShipIndexFiles
                     }
                 }
 
-                // Calculate version range for month index
-                var monthMinVersion = monthReleases.Min(numericStringComparer);
-                var monthMaxVersion = monthReleases.Max(numericStringComparer);
-                var monthVersionRange = $"{monthMinVersion}–{monthMaxVersion}";
+                // Get the latest major version for the month
+                var monthLatestVersion = monthReleases.Max(numericStringComparer) ?? "unknown";
 
                 // Collect all runtime and SDK patches for the month (across all major versions)
                 var allRuntimePatches = releasesByMajor.Values
@@ -359,7 +357,6 @@ public class ShipIndexFiles
 
                         return new MajorReleaseVersionIndexEntry(
                             version,
-                            ReleaseKind.MajorVersionIndex,
                             new Dictionary<string, HalLink>
                             {
                                 [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
@@ -468,7 +465,7 @@ public class ShipIndexFiles
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.MonthIndex,
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
-                    IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthVersionRange, Location.CacheFriendlyNote),
+                    IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthLatestVersion, Location.CacheFriendlyNote),
                     year.Year,
                     month.Month)
                 {
@@ -557,10 +554,8 @@ public class ShipIndexFiles
                 };
             }
 
-            // Calculate version range for year index
-            var yearMinVersion = releasesForYear.Min(numericStringComparer);
-            var yearMaxVersion = releasesForYear.Max(numericStringComparer);
-            var yearVersionRange = $"{yearMinVersion}–{yearMaxVersion}";
+            // Get the latest major version for the year
+            var yearLatestVersion = releasesForYear.Max(numericStringComparer) ?? "unknown";
 
             // Calculate latest month for this year (months are ordered latest first)
             var latestMonth = monthSummaries.FirstOrDefault()?.Month;
@@ -602,7 +597,7 @@ public class ShipIndexFiles
             var yearHistory = new HistoryYearIndex(
                 HistoryKind.YearIndex,
                 IndexTitles.TimelineYearTitle(year.Year),
-                IndexTitles.TimelineYearIndexDescription(year.Year, yearVersionRange, Location.CacheFriendlyNote),
+                IndexTitles.TimelineYearIndexDescription(year.Year, yearLatestVersion, Location.CacheFriendlyNote),
                 year.Year)
             {
                 LatestMonth = latestMonth,
@@ -653,7 +648,6 @@ public class ShipIndexFiles
 
                     return new MajorReleaseVersionIndexEntry(
                         version,
-                        ReleaseKind.MajorVersionIndex,
                         new Dictionary<string, HalLink>
                         {
                             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
@@ -706,9 +700,8 @@ public class ShipIndexFiles
                 (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineYearLink(year.Year) : fileLink.Title);
 
             yearEntries.Add(new HistoryYearEntry(
-                HistoryKind.YearIndex,
-                IndexTitles.TimelineYearDescription(year.Year),
                 year.Year,
+                IndexTitles.TimelineYearDescription(year.Year),
                 overallYearHalLinks)
             {
                 DotnetReleases = [.. releasesForYear]
@@ -772,16 +765,14 @@ public class ShipIndexFiles
             };
         }
 
-        // Calculate version range for root history index
-        var minVersion = allReleases.Min(numericStringComparer);
-        var maxVersion = allReleases.Max(numericStringComparer);
-        var rootVersionRange = $"{minVersion}–{maxVersion}";
+        // Get the latest major version for the root history index
+        var rootLatestVersion = allReleases.Max(numericStringComparer) ?? "unknown";
 
         // Create the history index
         var historyIndex = new ReleaseHistoryIndex(
             HistoryKind.TimelineIndex,
             IndexTitles.TimelineIndexTitle,
-            IndexTitles.TimelineIndexDescription(rootVersionRange, Location.CacheFriendlyNote))
+            IndexTitles.TimelineIndexDescription(rootLatestVersion, Location.CacheFriendlyNote))
         {
             LatestYear = latestYear,
             Latest = latestRelease?.MajorVersion,
