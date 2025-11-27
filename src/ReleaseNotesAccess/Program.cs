@@ -140,7 +140,7 @@ if (firstMonthWithCves is not null)
         var firstCve = cveRecords.Disclosures.FirstOrDefault();
         if (firstCve is not null)
         {
-            Console.WriteLine($"   First CVE: {firstCve.Id} - {firstCve.Problem} (Severity: {firstCve.Severity})");
+            Console.WriteLine($"   First CVE: {firstCve.Id} - {firstCve.Problem} (Severity: {firstCve.Cvss.Severity})");
         }
     }
 }
@@ -175,7 +175,7 @@ Console.WriteLine($"   CVEs affecting .NET 8.0 on Windows: {filtered8Windows.Cou
 foreach (var cve in filtered8Windows)
 {
     var platforms = string.Join(", ", cve.Platforms);
-    Console.WriteLine($"   - {cve.Id}: {cve.Problem} (Severity: {cve.Severity}, Platforms: {platforms})");
+    Console.WriteLine($"   - {cve.Id}: {cve.Problem} (Severity: {cve.Cvss.Severity}, Platforms: {platforms})");
 }
 Console.WriteLine();
 
@@ -189,7 +189,7 @@ if (manifest is not null)
 {
     Console.WriteLine($"   Title: {manifest.Title}");
     Console.WriteLine($"   Version: {manifest.Version}");
-    Console.WriteLine($"   Release Type: {manifest.Lifecycle?.ReleaseType}");
+    Console.WriteLine($"   Release Type: {manifest.ReleaseType}");
 }
 Console.WriteLine();
 

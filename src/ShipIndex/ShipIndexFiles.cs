@@ -194,6 +194,7 @@ public class ShipIndexFiles
                 var monthSummary = new HistoryMonthSummary(
                     month.Month,
                     cveSummariesForMonth?.Count > 0,
+                    cveSummariesForMonth?.Count ?? 0,
                     monthSummaryLinks,
                     cveSummariesForMonth?.Select(s => s.Id).ToList(),
                     [.. monthReleases]
@@ -292,20 +293,6 @@ public class ShipIndexFiles
 
                 // Get the latest major version for the month
                 var monthLatestVersion = monthReleases.Max(numericStringComparer) ?? "unknown";
-
-                // Collect all runtime and SDK patches for the month (across all major versions)
-                var allRuntimePatches = releasesByMajor.Values
-                    .SelectMany(patches => patches.Keys)
-                    .Distinct()
-                    .OrderByDescending(v => v, numericStringComparer)
-                    .ToList();
-
-                var allSdkPatches = releasesByMajor.Values
-                    .SelectMany(patches => patches.Values)
-                    .SelectMany(p => p.SdkVersions)
-                    .Distinct()
-                    .OrderByDescending(v => v, numericStringComparer)
-                    .ToList();
 
                 // Get sorted major releases for the month
                 var sortedMonthReleases = monthReleases
@@ -424,47 +411,40 @@ public class ShipIndexFiles
                             }
                         }
 
+                        // Get runtime and SDK patches for this major version
+                        IList<string>? runtimesPatches = null;
+                        IList<string>? sdkPatches = null;
+                        if (releasesByMajor.TryGetValue(version, out var patchesForVersion))
+                        {
+                            runtimesPatches = patchesForVersion.Keys
+                                .OrderByDescending(v => v, numericStringComparer)
+                                .ToList();
+                            
+                            var sdks = patchesForVersion.Values
+                                .SelectMany(p => p.SdkVersions)
+                                .Distinct()
+                                .OrderByDescending(v => v, numericStringComparer)
+                                .ToList();
+                            
+                            sdkPatches = sdks.Count > 0 ? sdks : null;
+                        }
+
                         return new MajorReleaseVersionIndexEntry(version)
                         {
                             ReleaseType = lifecycle?.ReleaseType,
                             Phase = lifecycle?.Phase,
                             Supported = lifecycle?.Supported,
                             Security = majorVersionCveIds?.Count > 0,
+                            CveCount = majorVersionCveIds?.Count ?? 0,
                             GaDate = lifecycle?.GaDate,
                             EolDate = lifecycle?.EolDate,
                             CveRecords = majorVersionCveIds,
+                            RuntimesPatches = runtimesPatches,
+                            SdkPatches = sdkPatches,
                             Links = releaseLinks
                         };
                     })
                     .ToList();
-
-                // Create patches dictionary mapping version to products
-                var embeddedPatches = releasesByMajor
-                    .OrderByDescending(kv => kv.Key, numericStringComparer)
-                    .ToDictionary(
-                        kv => kv.Key,
-                        kv =>
-                        {
-                            // Collect runtime and SDK patches separately
-                            var runtimePatches = kv.Value.Keys.OrderByDescending(v => v, numericStringComparer).ToList();
-                            var sdkPatches = kv.Value.Values
-                                .SelectMany(p => p.SdkVersions)
-                                .Distinct()
-                                .OrderByDescending(v => v, numericStringComparer)
-                                .ToList();
-
-                            var productsDict = new Dictionary<string, IList<string>>
-                            {
-                                ["dotnet-runtime"] = runtimePatches
-                            };
-
-                            if (sdkPatches.Count > 0)
-                            {
-                                productsDict["dotnet-sdk"] = sdkPatches;
-                            }
-
-                            return productsDict;
-                        });
 
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.MonthIndex,
@@ -476,13 +456,10 @@ public class ShipIndexFiles
                 {
                     LatestRelease = latestReleaseForMonth,
                     Releases = sortedMonthReleases,
-                    RuntimePatchReleases = allRuntimePatches.Count > 0 ? allRuntimePatches : null,
-                    SdkPatchReleases = allSdkPatches.Count > 0 ? allSdkPatches : null,
                     Links = monthIndexLinks,
                     Embedded = new HistoryMonthIndexEmbedded
                     {
                         Releases = embeddedReleases,
-                        Patches = embeddedPatches,
                         Disclosures = cveSummariesForMonth
                     },
                     Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")

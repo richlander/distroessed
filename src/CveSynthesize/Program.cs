@@ -390,6 +390,7 @@ static async Task<CveRecords> BuildCveRecords(string yearMonth, List<ReleaseWith
         ProductCves: generated.ProductCves,
         PackageCves: generated.PackageCves,
         ReleaseCves: generated.ReleaseCves,
+        SeverityCves: generated.SeverityCves,
         CveReleases: generated.CveReleases,
         CveCommits: null
     );

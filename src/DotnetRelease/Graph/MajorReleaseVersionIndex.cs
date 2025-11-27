@@ -77,6 +77,9 @@ public record MajorReleaseVersionIndexEntry(
      Description("True if this release includes security fixes")]
     public bool? Security { get; init; }
 
+    [Description("Number of CVEs affecting this release")]
+    public int CveCount { get; init; }
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("General Availability date when this version was released")]
     public DateTimeOffset? GaDate { get; init; }
@@ -88,6 +91,14 @@ public record MajorReleaseVersionIndexEntry(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE identifiers affecting this release")]
     public IList<string>? CveRecords { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Runtime patch versions for this major version released in the period")]
+    public IList<string>? RuntimesPatches { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("SDK patch versions for this major version released in the period")]
+    public IList<string>? SdkPatches { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this major version's content")]

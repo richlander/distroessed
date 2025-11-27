@@ -17,6 +17,7 @@ public static class CveDictionaryGenerator
         var packageCves = new Dictionary<string, List<string>>();
         var cveReleases = new Dictionary<string, List<string>>();
         var releaseCves = new Dictionary<string, List<string>>();
+        var severityCves = InitializeSeverityDictionary();
 
         var validCveIds = new HashSet<string>(cveRecords.Disclosures.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
 
@@ -101,6 +102,11 @@ public static class CveDictionaryGenerator
             }
         }
 
+        foreach (var disclosure in cveRecords.Disclosures)
+        {
+            AddSeverityMappings(severityCves, disclosure.Id, disclosure.Cvss.Severity);
+        }
+
         foreach (var list in productCves.Values)
             list.Sort();
         foreach (var list in packageCves.Values)
@@ -115,7 +121,8 @@ public static class CveDictionaryGenerator
             ProductCves: productCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
             PackageCves: packageCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
             ProductName: productName.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => v.Value),
-            ReleaseCves: releaseCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value)
+            ReleaseCves: releaseCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
+            SeverityCves: FinalizeSeverityDictionary(severityCves)
         );
     }
 
@@ -174,6 +181,49 @@ public static class CveDictionaryGenerator
                 v => (IList<string>)v.Value.OrderBy(c => c).ToList()
             );
     }
+
+    public static IDictionary<string, IList<string>> GenerateSeverityCves(IList<Cve> disclosures)
+    {
+        var severityCves = InitializeSeverityDictionary();
+
+        foreach (var disclosure in disclosures)
+        {
+            AddSeverityMappings(severityCves, disclosure.Id, disclosure.Cvss.Severity);
+        }
+
+        return FinalizeSeverityDictionary(severityCves);
+    }
+
+    private static readonly List<string> SeverityLevels = new() { "CRITICAL", "HIGH", "MEDIUM", "LOW" };
+
+    private static Dictionary<string, HashSet<string>> InitializeSeverityDictionary() =>
+        SeverityLevels.ToDictionary(level => level, _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+
+    private static void AddSeverityMappings(Dictionary<string, HashSet<string>> severityCves, string cveId, string severity)
+    {
+        if (string.IsNullOrWhiteSpace(severity))
+        {
+            return;
+        }
+
+        var normalized = severity.Trim();
+        var severityIndex = SeverityLevels.FindIndex(level => string.Equals(level, normalized, StringComparison.OrdinalIgnoreCase));
+        if (severityIndex == -1)
+        {
+            return;
+        }
+
+        for (int i = severityIndex; i < SeverityLevels.Count; i++)
+        {
+            severityCves[SeverityLevels[i]].Add(cveId);
+        }
+    }
+
+    private static IDictionary<string, IList<string>> FinalizeSeverityDictionary(Dictionary<string, HashSet<string>> severityCves) =>
+        SeverityLevels.ToDictionary(
+            level => level,
+            level => (IList<string>)severityCves[level].OrderBy(id => id).ToList(),
+            StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>
@@ -184,5 +234,6 @@ public record GeneratedDictionaries(
     IDictionary<string, IList<string>> ProductCves,
     IDictionary<string, IList<string>> PackageCves,
     IDictionary<string, string> ProductName,
-    IDictionary<string, IList<string>> ReleaseCves
+    IDictionary<string, IList<string>> ReleaseCves,
+    IDictionary<string, IList<string>> SeverityCves
 );

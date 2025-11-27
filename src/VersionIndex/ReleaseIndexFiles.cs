@@ -334,6 +334,7 @@ public class ReleaseIndexFiles
                         e.Version,
                         e.Lifecycle?.GaDate,
                         e.CveRecords?.Count > 0,
+                        e.CveRecords?.Count ?? 0,
                         e.Lifecycle?.Phase,
                         e.Links)
                     {
@@ -1013,6 +1014,7 @@ public class ReleaseIndexFiles
             patchVersion,
             lifecycle?.GaDate,
             cveIds?.Count > 0,
+            cveIds?.Count ?? 0,
             lifecycle?.Phase,
             $".NET {patchVersion} Patch Index",
             $"Patch information for .NET {patchVersion}")

@@ -19,6 +19,8 @@ public record PatchDetailIndex(
     DateTimeOffset? Date,
     [property: Description("True if this release includes security fixes (CVEs); defaults to true for safety")]
     bool Security,
+    [Description("Number of CVEs fixed in this release")]
+    int CveCount,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
     SupportPhase? SupportPhase,

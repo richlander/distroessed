@@ -176,20 +176,23 @@ public static class CveTransformer
             .Where(kv => cveIds.Contains(kv.Key))
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
+        var filteredSeverityCves = CveDictionaryGenerator.GenerateSeverityCves(filteredDisclosures);
+
         return new CveRecords(
-            cveRecords.LastUpdated,
-            $"CVEs affecting {releaseVersion}",
-            filteredDisclosures,
-            filteredProducts,
-            filteredPackages,
-            filteredCommits,
-            cveRecords.ProductName,
-            filteredProductCves,
-            filteredPackageCves,
-            new Dictionary<string, IList<string>> { [releaseVersion] = [.. cveIds] },
-            cveRecords.CveReleases?.Where(kv => cveIds.Contains(kv.Key))
+            LastUpdated: cveRecords.LastUpdated,
+            Title: $"CVEs affecting {releaseVersion}",
+            Disclosures: filteredDisclosures,
+            Products: filteredProducts,
+            Packages: filteredPackages,
+            Commits: filteredCommits,
+            ProductName: cveRecords.ProductName,
+            ProductCves: filteredProductCves,
+            PackageCves: filteredPackageCves,
+            ReleaseCves: new Dictionary<string, IList<string>> { [releaseVersion] = [.. cveIds] },
+            SeverityCves: filteredSeverityCves,
+            CveReleases: cveRecords.CveReleases?.Where(kv => cveIds.Contains(kv.Key))
                 .ToDictionary(kv => kv.Key, kv => kv.Value),
-            filteredCveCommits
+            CveCommits: filteredCveCommits
         );
     }
 

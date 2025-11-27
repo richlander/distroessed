@@ -39,6 +39,9 @@ public record CveRecords(
     [property: Description("Dictionary of CVE IDs affecting each release, keyed by release version.")]
     IDictionary<string, IList<string>>? ReleaseCves = null,
 
+    [property: Description("Dictionary of CVE IDs grouped by severity threshold. Each key includes CVEs with that severity or higher (CRITICAL, HIGH, MEDIUM, LOW).")]
+    IDictionary<string, IList<string>>? SeverityCves = null,
+
     [property: Description("Dictionary of release versions affected by each CVE, keyed by CVE ID.")]
     IDictionary<string, IList<string>>? CveReleases = null,
 

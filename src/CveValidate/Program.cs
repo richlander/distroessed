@@ -397,6 +397,7 @@ static async Task<bool> UpdateCveFile(string filePath, bool skipUrls)
             PackageCves = generated.PackageCves,
             ProductName = generated.ProductName,
             ReleaseCves = generated.ReleaseCves,
+            SeverityCves = generated.SeverityCves,
             CveCommits = cveCommits
         };
 
@@ -1110,6 +1111,9 @@ static void ValidateDictionaries(CveRecords cveRecords, List<string> errors)
 
     // Validate release_cves
     ValidateDictionary(cveRecords.ReleaseCves, expected.ReleaseCves, "release_cves", errors);
+
+    // Validate severity_cves
+    ValidateDictionary(cveRecords.SeverityCves, expected.SeverityCves, "severity_cves", errors);
 
     // Validate cve_commits
     var expectedCveCommits = CveDictionaryGenerator.GenerateCommits(cveRecords);

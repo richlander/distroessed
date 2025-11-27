@@ -81,6 +81,8 @@ public record HistoryMonthSummary(
     string Month,
     [Description("True if any release this month includes security fixes")]
     bool Security,
+    [Description("Number of CVEs disclosed this month")]
+    int CveCount,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this month's content")]
     Dictionary<string, HalLink> Links,
@@ -113,14 +115,6 @@ public record HistoryMonthIndex(
      Description("Major versions with releases in this month (e.g., ['10.0', '9.0', '8.0'])")]
     public IList<string>? Releases { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Runtime patch versions released this month (e.g., ['10.0.0', '9.0.1', '8.0.11'])")]
-    public IList<string>? RuntimePatchReleases { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK patch versions released this month (e.g., ['10.0.100', '9.0.101', '8.0.404'])")]
-    public IList<string>? SdkPatchReleases { get; init; }
-
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
@@ -140,9 +134,6 @@ public record HistoryMonthIndexEmbedded
 {
     [Description("Major versions with releases this month, with full lifecycle information (same format as root index)")]
     public List<MajorReleaseVersionIndexEntry>? Releases { get; set; }
-
-    [Description("Patch releases grouped by major version, then by product (dotnet-runtime, dotnet-sdk)")]
-    public Dictionary<string, Dictionary<string, IList<string>>>? Patches { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this month")]
