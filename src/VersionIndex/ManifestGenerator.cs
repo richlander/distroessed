@@ -72,11 +72,15 @@ public static class ManifestGenerator
         var manifest = new ReleaseManifest(
             ReleaseKind.Manifest,
             $"{versionLabel} Manifest",
-            links,
             versionNumber,
             versionLabel)
         {
-            Lifecycle = lifecycle,
+            ReleaseType = lifecycle?.ReleaseType,
+            Phase = lifecycle?.Phase,
+            Supported = lifecycle?.Supported,
+            GaDate = lifecycle?.GaDate,
+            EolDate = lifecycle?.EolDate,
+            Links = links,
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
 

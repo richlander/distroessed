@@ -24,15 +24,15 @@ public static class IndexTitles
     public static string TimelineMonthLink(string year, string month) => string.Intern($"Release timeline index for {year}-{month}");
     
     // Description patterns
-    public static string VersionIndexDescription(string latestVersion, string cacheNote) =>
-        string.Intern($".NET Release Index (latest: {latestVersion}); {cacheNote}");
+    public static string VersionIndexDescription(string latestVersion) =>
+        string.Intern($".NET Release Index (latest: {latestVersion})");
 
-    public static string TimelineIndexDescription(string latestVersion, string cacheNote) =>
-        string.Intern($".NET Release Timeline (latest: {latestVersion}); {cacheNote}");
+    public static string TimelineIndexDescription(string latestVersion) =>
+        string.Intern($".NET Release Timeline (latest: {latestVersion})");
 
-    public static string TimelineYearIndexDescription(string year, string latestVersion, string cacheNote) =>
-        string.Intern($"Release timeline for {year} (latest: {latestVersion}); {cacheNote}");
+    public static string TimelineYearIndexDescription(string year, string latestVersion) =>
+        string.Intern($"Release timeline for {year} (latest: {latestVersion})");
 
-    public static string TimelineMonthIndexDescription(string year, string month, string latestVersion, string cacheNote) =>
-        string.Intern($"Release timeline for {year}-{month} (latest: {latestVersion}); {cacheNote}");
+    public static string TimelineMonthIndexDescription(string year, string month, string latestVersion) =>
+        string.Intern($"Release timeline for {year}-{month} (latest: {latestVersion})");
 }

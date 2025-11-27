@@ -27,8 +27,24 @@ public record PatchReleaseVersionIndex(
     public string? LatestSecurity { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Lifecycle information (GA date, EOL date, release type, phase) for the major version")]
-    public Lifecycle? Lifecycle { get; init; }
+     Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
+    public ReleaseType? ReleaseType { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Current support phase (preview, go-live, active, maintenance, eol)")]
+    public SupportPhase? Phase { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Whether this version is currently supported")]
+    public bool? Supported { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("General Availability date when this version was released")]
+    public DateTimeOffset? GaDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("End of Life date when support ends")]
+    public DateTimeOffset? EolDate { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]

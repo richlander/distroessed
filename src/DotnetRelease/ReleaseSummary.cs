@@ -24,27 +24,27 @@ public class ReleaseSummary
     /// <summary>
     /// Release support model (LTS or STS)
     /// </summary>
-    public ReleaseType? ReleaseType => _entry.Lifecycle?.ReleaseType;
+    public ReleaseType? ReleaseType => _entry.ReleaseType;
 
     /// <summary>
     /// Current lifecycle phase (Preview, Active, Maintenance, Eol)
     /// </summary>
-    public SupportPhase? Phase => _entry.Lifecycle?.Phase;
+    public SupportPhase? Phase => _entry.Phase;
 
     /// <summary>
     /// Date when this version became generally available (GA date)
     /// </summary>
-    public DateTimeOffset? ReleaseDate => _entry.Lifecycle?.GaDate;
+    public DateTimeOffset? ReleaseDate => _entry.GaDate;
 
     /// <summary>
     /// End of Life date when support ends
     /// </summary>
-    public DateTimeOffset? EolDate => _entry.Lifecycle?.EolDate;
+    public DateTimeOffset? EolDate => _entry.EolDate;
 
     /// <summary>
     /// Whether this release is currently supported
     /// </summary>
-    public bool IsSupported => _entry.Lifecycle?.Supported ?? false;
+    public bool IsSupported => _entry.Supported ?? false;
 
     /// <summary>
     /// True if this is a Long-Term Support release

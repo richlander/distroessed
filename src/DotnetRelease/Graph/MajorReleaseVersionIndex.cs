@@ -59,12 +59,37 @@ public record MajorReleaseVersionIndexEmbedded(
 [Description("Major version entry within the root index, containing full lifecycle information")]
 public record MajorReleaseVersionIndexEntry(
     [Description("Major version identifier (e.g., '8.0', '9.0')")]
-    string Version,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for navigation to this major version's content")]
-    Dictionary<string, HalLink> Links)
+    string Version)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Full lifecycle information (release-type, phase, eol-date, supported)")]
-    public Lifecycle? Lifecycle { get; set; }
+     Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
+    public ReleaseType? ReleaseType { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Current support phase (preview, go-live, active, maintenance, eol)")]
+    public SupportPhase? Phase { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Whether this version is currently supported")]
+    public bool? Supported { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("True if this release includes security fixes")]
+    public bool? Security { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("General Availability date when this version was released")]
+    public DateTimeOffset? GaDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("End of Life date when support ends")]
+    public DateTimeOffset? EolDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("CVE identifiers affecting this release")]
+    public IList<string>? CveRecords { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for navigation to this major version's content")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
 }

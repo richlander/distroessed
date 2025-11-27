@@ -79,6 +79,8 @@ public record HistoryMonthEntry(
 public record HistoryMonthSummary(
     [Description("Month identifier (e.g., '02' for February)")]
     string Month,
+    [Description("True if any release this month includes security fixes")]
+    bool Security,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this month's content")]
     Dictionary<string, HalLink> Links,
@@ -99,7 +101,9 @@ public record HistoryMonthIndex(
     [Description("Year identifier (e.g., '2025')")]
     string Year,
     [Description("Month identifier (e.g., '02' for February)")]
-    string Month)
+    string Month,
+    [Description("True if any release this month includes security fixes")]
+    bool Security)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest patch release version in this month (e.g., '10.0.0')")]
@@ -134,30 +138,15 @@ public record HistoryMonthIndex(
 [Description("Container for embedded month-level release entries")]
 public record HistoryMonthIndexEmbedded
 {
-    [Description("Patch releases grouped by major version with component versions (keyed by version)")]
-    public Dictionary<string, MajorReleaseHistory>? Patches { get; set; }
-
     [Description("Major versions with releases this month, with full lifecycle information (same format as root index)")]
     public List<MajorReleaseVersionIndexEntry>? Releases { get; set; }
+
+    [Description("Patch releases grouped by major version, then by product (dotnet-runtime, dotnet-sdk)")]
+    public Dictionary<string, Dictionary<string, IList<string>>>? Patches { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this month")]
     public IReadOnlyList<CveRecordSummary>? Disclosures { get; set; }
-}
-
-[Description("Release history for a major version during a specific time period")]
-public record MajorReleaseHistory(
-    [Description("Patch versions grouped by product (dotnet-runtime, dotnet-sdk, etc.)")]
-    Dictionary<string, IList<string>> Products)
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE identifiers affecting this release")]
-    public IList<string>? CveRecords { get; set; }
-
-    [JsonPropertyName("_links"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("HAL+JSON links for this release (self pointing to patch index, cve-json if applicable)")]
-    public Dictionary<string, HalLink>? Links { get; set; }
 }
 
 [Description("CVE summary information for a specific version")]

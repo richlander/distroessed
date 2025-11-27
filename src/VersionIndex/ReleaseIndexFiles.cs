@@ -163,9 +163,20 @@ public class ReleaseIndexFiles
                 _skippedFilesCount++;
             }
 
-            // Extract lifecycle from generated manifest
-            var lifecycle = generatedManifest.Lifecycle;
-            if (lifecycle == null)
+            // Reconstruct lifecycle from flattened manifest properties
+            Lifecycle? lifecycle = null;
+            if (generatedManifest.Phase != null && generatedManifest.GaDate != null && generatedManifest.EolDate != null)
+            {
+                lifecycle = new Lifecycle(
+                    generatedManifest.ReleaseType,
+                    generatedManifest.Phase.Value,
+                    generatedManifest.GaDate.Value,
+                    generatedManifest.EolDate.Value)
+                {
+                    Supported = generatedManifest.Supported ?? false
+                };
+            }
+            else
             {
                 Console.WriteLine($"Warning: {majorVersionDirName} - Lifecycle is null");
             }
@@ -258,7 +269,7 @@ public class ReleaseIndexFiles
 
             // Get the latest patch version for the description (use latestPatch which handles semver correctly)
             var latestPatchVersion = latestPatch?.Version ?? summary.PatchReleases.Select(p => p.PatchVersion).Max(numericStringComparer);
-            var patchDescription = $".NET {majorVersionDirName} (latest: {latestPatchVersion}); {Location.CacheFriendlyNote}";
+            var patchDescription = $".NET {majorVersionDirName} (latest: {latestPatchVersion})";
             var latestSecurityPatch = patchEntries.FirstOrDefault(e => e.CveRecords?.Count > 0);
             
             // Add latest and latest-security links if available
@@ -312,7 +323,11 @@ public class ReleaseIndexFiles
             {
                 Latest = latestPatch?.Version,
                 LatestSecurity = latestSecurityPatch?.Version,
-                Lifecycle = lifecycle,
+                ReleaseType = lifecycle?.ReleaseType,
+                Phase = lifecycle?.Phase,
+                Supported = lifecycle?.Supported,
+                GaDate = lifecycle?.GaDate,
+                EolDate = lifecycle?.EolDate,
                 Links = remainingMajorVersionLinks,
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
                     patchEntries.Select(e => new PatchReleaseVersionIndexEntry(
@@ -416,12 +431,15 @@ public class ReleaseIndexFiles
             // Set supported flag
             lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
 
-            // Major version entries use full lifecycle (not simplified)
-            var majorEntry = new MajorReleaseVersionIndexEntry(
-                majorVersionDirName,
-                majorVersionWithinAllReleasesIndexLinks)
+            // Major version entries use flattened lifecycle properties
+            var majorEntry = new MajorReleaseVersionIndexEntry(majorVersionDirName)
             {
-                Lifecycle = lifecycle
+                ReleaseType = lifecycle.ReleaseType,
+                Phase = lifecycle.Phase,
+                Supported = lifecycle.Supported,
+                GaDate = lifecycle.GaDate,
+                EolDate = lifecycle.EolDate,
+                Links = majorVersionWithinAllReleasesIndexLinks
             };
 
             majorEntries.Add(majorEntry);
@@ -528,7 +546,7 @@ public class ReleaseIndexFiles
 
         // Get the latest major version for the description (use latestRelease which handles stability correctly)
         var latestMajorVersion = latestRelease?.Version ?? majorEntries.Select(e => e.Version).Max(numericStringComparer);
-        var description = $".NET Release Index (latest: {latestMajorVersion}); {Location.CacheFriendlyNote}";
+        var description = $".NET Release Index (latest: {latestMajorVersion})";
         
         // Calculate latest year from all patch releases across all major versions
         var latestYear = summaries

@@ -193,6 +193,7 @@ public class ShipIndexFiles
 
                 var monthSummary = new HistoryMonthSummary(
                     month.Month,
+                    cveSummariesForMonth?.Count > 0,
                     monthSummaryLinks,
                     cveSummariesForMonth?.Select(s => s.Id).ToList(),
                     [.. monthReleases]
@@ -355,32 +356,95 @@ public class ShipIndexFiles
                             };
                         }
 
-                        return new MajorReleaseVersionIndexEntry(
-                            version,
-                            new Dictionary<string, HalLink>
-                            {
-                                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
-                                {
-                                    Path = $"/{version}/{FileNames.Index}",
-                                    Title = $".NET {version}",
-                                    Type = MediaType.HalJson
-                                }
-                            })
+                        // Build links for this release entry
+                        var releaseLinks = new Dictionary<string, HalLink>
                         {
-                            Lifecycle = lifecycle
+                            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
+                            {
+                                Path = $"/{version}/{FileNames.Index}",
+                                Title = $".NET {version}",
+                                Type = MediaType.HalJson
+                            }
+                        };
+
+                        // Get latest patch for this version to link to patch index
+                        if (releasesByMajor.TryGetValue(version, out var versionPatches))
+                        {
+                            var latestPatch = versionPatches.Keys.OrderByDescending(v => v, numericStringComparer).FirstOrDefault();
+                            if (latestPatch != null)
+                            {
+                                var patchIndexPath = $"{version}/{latestPatch}/{FileNames.Index}";
+                                releaseLinks["patch"] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
+                                {
+                                    Path = $"/{patchIndexPath}",
+                                    Title = $".NET {latestPatch}",
+                                    Type = MediaType.HalJson
+                                };
+                            }
+                        }
+
+                        // Add CVE links if there are CVEs for this version
+                        if (cveSummariesForMonth?.Any(cve => cve.AffectedReleases?.Contains(version) == true) == true)
+                        {
+                            var cveJsonPath = $"{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/{FileNames.Cve}";
+                            releaseLinks[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}")
+                            {
+                                Path = $"/{cveJsonPath}",
+                                Title = "CVE Information",
+                                Type = MediaType.Json
+                            };
+
+                            var cveMdPath = $"{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/cve.md";
+                            releaseLinks["cve-markdown"] = new HalLink($"{Location.GitHubBaseUri}{cveMdPath}")
+                            {
+                                Path = $"/{cveMdPath}",
+                                Title = "CVE Information",
+                                Type = MediaType.Markdown
+                            };
+                            releaseLinks["cve-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{cveMdPath}")
+                            {
+                                Path = $"/{cveMdPath}",
+                                Title = "CVE Information (Rendered)",
+                                Type = MediaType.Markdown
+                            };
+                        }
+
+                        // Filter CVE IDs for this major version
+                        IList<string>? majorVersionCveIds = null;
+                        if (cveSummariesForMonth != null)
+                        {
+                            majorVersionCveIds = cveSummariesForMonth
+                                .Where(cve => cve.AffectedReleases?.Contains(version) == true)
+                                .Select(cve => cve.Id)
+                                .ToList();
+
+                            if (majorVersionCveIds.Count == 0)
+                            {
+                                majorVersionCveIds = null;
+                            }
+                        }
+
+                        return new MajorReleaseVersionIndexEntry(version)
+                        {
+                            ReleaseType = lifecycle?.ReleaseType,
+                            Phase = lifecycle?.Phase,
+                            Supported = lifecycle?.Supported,
+                            Security = majorVersionCveIds?.Count > 0,
+                            GaDate = lifecycle?.GaDate,
+                            EolDate = lifecycle?.EolDate,
+                            CveRecords = majorVersionCveIds,
+                            Links = releaseLinks
                         };
                     })
                     .ToList();
 
-                // Create patches dictionary with simplified links (self + cve-json only)
+                // Create patches dictionary mapping version to products
                 var embeddedPatches = releasesByMajor
                     .OrderByDescending(kv => kv.Key, numericStringComparer)
                     .ToDictionary(
                         kv => kv.Key,
                         kv =>
                         {
-                            var majorVersion = kv.Key;
-
                             // Collect runtime and SDK patches separately
                             var runtimePatches = kv.Value.Keys.OrderByDescending(v => v, numericStringComparer).ToList();
                             var sdkPatches = kv.Value.Values
@@ -399,75 +463,16 @@ public class ShipIndexFiles
                                 productsDict["dotnet-sdk"] = sdkPatches;
                             }
 
-                            // Simplified links: self (pointing to latest patch index) + cve-json if applicable
-                            var latestPatch = runtimePatches.FirstOrDefault();
-                            var links = new Dictionary<string, HalLink>();
-
-                            if (latestPatch != null)
-                            {
-                                var patchIndexPath = $"{majorVersion}/{latestPatch}/{FileNames.Index}";
-                                links[HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
-                                {
-                                    Path = $"/{patchIndexPath}",
-                                    Title = $".NET {latestPatch}",
-                                    Type = MediaType.HalJson
-                                };
-                            }
-
-                            // Add CVE links if there are CVEs for this version
-                            if (cveSummariesForMonth?.Any(cve => cve.AffectedReleases?.Contains(majorVersion) == true) == true)
-                            {
-                                var cveJsonPath = $"{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/{FileNames.Cve}";
-                                links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}")
-                                {
-                                    Path = $"/{cveJsonPath}",
-                                    Title = "CVE Information",
-                                    Type = MediaType.Json
-                                };
-
-                                var cveMdPath = $"{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/cve.md";
-                                links["cve-markdown"] = new HalLink($"{Location.GitHubBaseUri}{cveMdPath}")
-                                {
-                                    Path = $"/{cveMdPath}",
-                                    Title = "CVE Information",
-                                    Type = MediaType.Markdown
-                                };
-                                links["cve-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{cveMdPath}")
-                                {
-                                    Path = $"/{cveMdPath}",
-                                    Title = "CVE Information (Rendered)",
-                                    Type = MediaType.Markdown
-                                };
-                            }
-
-                            // Filter CVE IDs for this major version
-                            IList<string>? majorVersionCveIds = null;
-                            if (cveSummariesForMonth != null)
-                            {
-                                majorVersionCveIds = cveSummariesForMonth
-                                    .Where(cve => cve.AffectedReleases?.Contains(majorVersion) == true)
-                                    .Select(cve => cve.Id)
-                                    .ToList();
-
-                                if (majorVersionCveIds.Count == 0)
-                                {
-                                    majorVersionCveIds = null;
-                                }
-                            }
-
-                            return new MajorReleaseHistory(productsDict)
-                            {
-                                CveRecords = majorVersionCveIds,
-                                Links = links.Count > 0 ? links : null
-                            };
+                            return productsDict;
                         });
 
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.MonthIndex,
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
-                    IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthLatestVersion, Location.CacheFriendlyNote),
+                    IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthLatestVersion),
                     year.Year,
-                    month.Month)
+                    month.Month,
+                    cveSummariesForMonth?.Count > 0)
                 {
                     LatestRelease = latestReleaseForMonth,
                     Releases = sortedMonthReleases,
@@ -597,7 +602,7 @@ public class ShipIndexFiles
             var yearHistory = new HistoryYearIndex(
                 HistoryKind.YearIndex,
                 IndexTitles.TimelineYearTitle(year.Year),
-                IndexTitles.TimelineYearIndexDescription(year.Year, yearLatestVersion, Location.CacheFriendlyNote),
+                IndexTitles.TimelineYearIndexDescription(year.Year, yearLatestVersion),
                 year.Year)
             {
                 LatestMonth = latestMonth,
@@ -646,9 +651,14 @@ public class ShipIndexFiles
                         };
                     }
 
-                    return new MajorReleaseVersionIndexEntry(
-                        version,
-                        new Dictionary<string, HalLink>
+                    return new MajorReleaseVersionIndexEntry(version)
+                    {
+                        ReleaseType = lifecycle?.ReleaseType,
+                        Phase = lifecycle?.Phase,
+                        Supported = lifecycle?.Supported,
+                        GaDate = lifecycle?.GaDate,
+                        EolDate = lifecycle?.EolDate,
+                        Links = new Dictionary<string, HalLink>
                         {
                             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
                             {
@@ -656,9 +666,7 @@ public class ShipIndexFiles
                                 Title = $".NET {version}",
                                 Type = MediaType.HalJson
                             }
-                        })
-                    {
-                        Lifecycle = lifecycle
+                        }
                     };
                 })
                 .ToList();
@@ -772,7 +780,7 @@ public class ShipIndexFiles
         var historyIndex = new ReleaseHistoryIndex(
             HistoryKind.TimelineIndex,
             IndexTitles.TimelineIndexTitle,
-            IndexTitles.TimelineIndexDescription(rootLatestVersion, Location.CacheFriendlyNote))
+            IndexTitles.TimelineIndexDescription(rootLatestVersion))
         {
             LatestYear = latestYear,
             Latest = latestRelease?.MajorVersion,

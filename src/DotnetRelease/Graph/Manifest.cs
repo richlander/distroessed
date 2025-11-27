@@ -9,22 +9,39 @@ public record ReleaseManifest(
     ReleaseKind Kind,
     [Description("Concise title for the document")]
     string Title,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for hypermedia navigation")]
-    Dictionary<string, HalLink> Links,
     [Description("Major version identifier (e.g., '8.0')")]
     string Version,
     [Description("Human-friendly version label (e.g., '.NET 8.0')")]
     string Label)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Support lifecycle information including release type, phase, and dates")]
-    public Lifecycle? Lifecycle { get; set; }
+     Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
+    public ReleaseType? ReleaseType { get; init; }
 
-    [property: JsonPropertyName("_metadata"),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Current support phase (preview, go-live, active, maintenance, eol)")]
+    public SupportPhase? Phase { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Whether this version is currently supported")]
+    public bool? Supported { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("General Availability date when this version was released")]
+    public DateTimeOffset? GaDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("End of Life date when support ends")]
+    public DateTimeOffset? EolDate { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for hypermedia navigation")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
+
+    [JsonPropertyName("_metadata"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
+    public GenerationMetadata? Metadata { get; init; }
 }
 
 [Description("Partial manifest data for hand-maintained release information")]
