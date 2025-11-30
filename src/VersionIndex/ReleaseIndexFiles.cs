@@ -969,6 +969,7 @@ public class ReleaseIndexFiles
                             filteredCveRecords.ProductCves,
                             filteredCveRecords.PackageCves,
                             filteredCveRecords.ReleaseCves,
+                            filteredCveRecords.SeverityCves,
                             filteredCveRecords.CveReleases,
                             filteredCveRecords.CveCommits
                         )
