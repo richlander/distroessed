@@ -487,7 +487,7 @@ public class ShipIndexFiles
                             CveRecords = majorVersionCveIds,
                             RuntimePatches = runtimePatches,
                             SdkPatches = sdkPatches,
-                            Links = releaseLinks
+                            Links = HalHelpers.OrderLinks(releaseLinks)
                         };
                     })
                     .ToList();
@@ -507,7 +507,7 @@ public class ShipIndexFiles
                     CveRecords = monthCveIds?.Count > 0 ? monthCveIds : null,
                     LatestRelease = latestReleaseForMonth,
                     Releases = sortedMonthReleases,
-                    Links = monthIndexLinks,
+                    Links = HalHelpers.OrderLinks(monthIndexLinks),
                     Embedded = new HistoryMonthIndexEmbedded
                     {
                         Releases = embeddedReleases,
@@ -665,7 +665,7 @@ public class ShipIndexFiles
                 LatestSecurityMonth = latestSecurityMonth,
                 LatestRelease = latestReleaseForYear,
                 Releases = sortedReleasesForYear.Count > 0 ? sortedReleasesForYear : null,
-                Links = yearHalLinks,
+                Links = HalHelpers.OrderLinks(yearHalLinks),
                 Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
             };
 
@@ -755,7 +755,7 @@ public class ShipIndexFiles
                         Supported = lifecycle?.Supported,
                         GaDate = lifecycle?.GaDate,
                         EolDate = lifecycle?.EolDate,
-                        Links = links
+                        Links = HalHelpers.OrderLinks(links)
                     };
                 })
                 .ToList();
@@ -815,7 +815,7 @@ public class ShipIndexFiles
                 IndexTitles.TimelineYearDescription(year.Year))
             {
                 Releases = [.. releasesForYear],
-                Links = overallYearHalLinks
+                Links = HalHelpers.OrderLinks(overallYearHalLinks)
             }
             );
         }
@@ -903,7 +903,7 @@ public class ShipIndexFiles
             LatestYear = latestYear,
             Latest = latestRelease?.MajorVersion,
             LatestLts = latestLtsRelease?.MajorVersion,
-            Links = fullIndexLinks,
+            Links = HalHelpers.OrderLinks(fullIndexLinks),
             Glossary = glossary,
             Embedded = new ReleaseHistoryIndexEmbedded
             {

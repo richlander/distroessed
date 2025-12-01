@@ -22,6 +22,9 @@ public record PatchDetailIndex(
     [Description("Number of CVEs fixed in this release")]
     int CveCount,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("CVE identifiers fixed in this release (for quick enumeration)")]
+    IReadOnlyList<string>? CveRecords,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
     SupportPhase? SupportPhase,
     [Description("Concise title for the document")]
@@ -32,10 +35,6 @@ public record PatchDetailIndex(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK patch versions shipped with this runtime patch")]
     public IReadOnlyList<string>? SdkPatches { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE identifiers fixed in this release (for quick enumeration)")]
-    public IReadOnlyList<string>? CveRecords { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]

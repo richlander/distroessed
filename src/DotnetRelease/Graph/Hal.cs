@@ -88,6 +88,33 @@ public class HalHelpers
         ReleaseKind.PatchRelease => MediaType.Json,
         _ => MediaType.Text
     };
+
+    /// <summary>
+    /// Orders HAL links with standard relations first (self, next, prev), then domain-specific ones alphabetically.
+    /// </summary>
+    public static Dictionary<string, HalLink> OrderLinks(Dictionary<string, HalLink> links)
+    {
+        var ordered = new Dictionary<string, HalLink>();
+
+        // Add standard relations in preferred order
+        if (links.TryGetValue(HalTerms.Self, out var selfLink))
+            ordered[HalTerms.Self] = selfLink;
+        if (links.TryGetValue(HalTerms.Next, out var nextLink))
+            ordered[HalTerms.Next] = nextLink;
+        if (links.TryGetValue(HalTerms.Prev, out var prevLink))
+            ordered[HalTerms.Prev] = prevLink;
+
+        // Add remaining links in alphabetical order
+        foreach (var kvp in links.OrderBy(k => k.Key))
+        {
+            if (kvp.Key != HalTerms.Self && kvp.Key != HalTerms.Next && kvp.Key != HalTerms.Prev)
+            {
+                ordered[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return ordered;
+    }
 }
 
 public class Hal

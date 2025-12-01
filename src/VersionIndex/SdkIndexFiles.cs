@@ -251,7 +251,7 @@ public class SdkIndexFiles
         {
             Latest = latestSdk,
             LatestSecurity = latestSecuritySdk,
-            Links = links,
+            Links = HalHelpers.OrderLinks(links),
             Embedded = new SdkVersionIndexEmbedded(sdkReleaseEntries, featureBandEntries),
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };

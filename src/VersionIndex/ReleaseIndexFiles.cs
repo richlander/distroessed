@@ -313,7 +313,7 @@ public class ReleaseIndexFiles
                 Supported = lifecycle?.Supported,
                 GaDate = lifecycle?.GaDate,
                 EolDate = lifecycle?.EolDate,
-                Links = remainingMajorVersionLinks,
+                Links = HalHelpers.OrderLinks(remainingMajorVersionLinks),
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
                     patchEntries.Select(e => {
                         var year = e.Lifecycle?.GaDate.Year.ToString("D4");
@@ -353,11 +353,9 @@ public class ReleaseIndexFiles
                             month,
                             e.CveRecords?.Count > 0,
                             e.CveRecords?.Count ?? 0,
+                            e.CveRecords,
                             e.Lifecycle?.Phase,
-                            links)
-                        {
-                            CveRecords = e.CveRecords
-                        };
+                            HalHelpers.OrderLinks(links));
                     }).ToList())
                 {
                     Years = yearsEmbedded,
@@ -429,7 +427,7 @@ public class ReleaseIndexFiles
                 GaDate = lifecycle.GaDate,
                 EolDate = lifecycle.EolDate,
                 Years = releaseYears.Count > 0 ? releaseYears.Select(y => y.ToString()).ToList() : null,
-                Links = majorVersionWithinAllReleasesIndexLinks
+                Links = HalHelpers.OrderLinks(majorVersionWithinAllReleasesIndexLinks)
             };
 
             majorEntries.Add(majorEntry);
@@ -556,7 +554,7 @@ public class ReleaseIndexFiles
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
             LatestYear = latestYear != "0" ? latestYear : null,
-            Links = remainingRootLinks,
+            Links = HalHelpers.OrderLinks(remainingRootLinks),
             Usage = CreateUsageLinks(usageLinksForRoot),
             Glossary = glossary,
             Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
@@ -1099,13 +1097,13 @@ public class ReleaseIndexFiles
             lifecycle?.GaDate,
             cveIds?.Count > 0,
             cveIds?.Count ?? 0,
+            sortedCveIds,
             lifecycle?.Phase,
             $".NET {patchVersion} Patch Index",
             $"Patch information for .NET {patchVersion}")
         {
             SdkPatches = sdkVersionsList,
-            CveRecords = sortedCveIds,
-            Links = links,
+            Links = HalHelpers.OrderLinks(links),
             Embedded = embedded,
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };

@@ -103,6 +103,6 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             }
         }
 
-        return result;
+        return HalHelpers.OrderLinks(result);
     }
-} 
+}

@@ -78,8 +78,9 @@ public record MajorReleaseVersionIndexEntry(
      Description("True if this release includes security fixes")]
     public bool? Security { get; init; }
 
-    [Description("Number of CVEs affecting this release")]
-    public int CveCount { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Number of CVEs affecting this release")]
+    public int? CveCount { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("General Availability date when this version was released")]

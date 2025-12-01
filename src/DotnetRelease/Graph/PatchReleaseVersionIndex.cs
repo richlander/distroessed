@@ -99,16 +99,14 @@ public record PatchReleaseVersionIndexEntry(
     [Description("Number of CVEs fixed in this release")]
     int CveCount,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("CVE IDs associated with this release")]
+    IReadOnlyList<string>? CveRecords,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
     SupportPhase? SupportPhase,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this patch release's content")]
-    Dictionary<string, HalLink> Links)
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE IDs associated with this release")]
-    public IReadOnlyList<string>? CveRecords { get; set; }
-}
+    Dictionary<string, HalLink> Links);
 
 [Description("Timeline year with links to year-specific timeline")]
 public record TimelineYear(

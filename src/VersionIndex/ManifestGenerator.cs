@@ -81,7 +81,7 @@ public static class ManifestGenerator
             Supported = supported,
             GaDate = gaDate,
             EolDate = eolDate,
-            Links = links,
+            Links = HalHelpers.OrderLinks(links),
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
     }
