@@ -67,13 +67,14 @@ public record HistoryYearEntry(
     [Description("Year identifier (e.g., '2025')")]
     string Year,
     [Description("Description of the year's releases")]
-    string Description,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for navigation to this year's content")]
-    Dictionary<string, HalLink> Links)
+    string Description)
 {
     [Description("List of .NET version identifiers released during this year")]
-    public IList<string>? DotnetReleases { get; set; }
+    public IList<string>? Releases { get; set; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for navigation to this year's content")]
+    public Dictionary<string, HalLink> Links { get; set; } = [];
 };
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<HistoryKind>))]

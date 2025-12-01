@@ -1,19 +1,15 @@
 using System.Globalization;
-using System.Net;
-using DotnetRelease;
+using System.Text.Json;
+using DotnetRelease.Graph;
 using DotnetRelease.ReleaseInfo;
-using DotnetRelease.Summary;
-using CveFromRelease = DotnetRelease.ReleaseInfo.Cve;
-using CveFromCves = DotnetRelease.Security.Cve;
 
-namespace VersionIndex;
+namespace DotnetRelease.Summary;
 
-public class Summary
+public static class ReleaseSummaryLoader
 {
     public static async Task<List<MajorReleaseSummary>> GetReleaseSummariesAsync(string rootDir)
     {
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
-        // Files to probe for to include as links
 
         // List of major version entries
         List<MajorReleaseSummary> majorEntries = [];
@@ -22,7 +18,7 @@ public class Summary
         foreach (var majorVersionDir in Directory.EnumerateDirectories(rootDir).OrderDescending(numericStringComparer))
         {
             // The presence of a releases.json file indicates this is a major version directory
-            var releasesJson = Path.Combine(majorVersionDir, "releases.json");
+            var releasesJson = Path.Combine(majorVersionDir, FileNames.Releases);
             if (!File.Exists(releasesJson))
             {
                 continue;
@@ -49,7 +45,39 @@ public class Summary
                     continue;
                 }
 
-                var patchJson = Path.Combine(majorVersionDir, release.ReleaseVersion, "release.json");
+                // Determine the correct path for the patch - previews/RCs are in a different structure
+                string patchDir;
+                if (release.ReleaseVersion.Contains("-preview.") || release.ReleaseVersion.Contains("-rc."))
+                {
+                    // Extract preview/rc number: "10.0.0-preview.1" -> "preview1" or "10.0.0-rc.1" -> "rc1"
+                    var dashIndex = release.ReleaseVersion.IndexOf('-');
+                    if (dashIndex > 0)
+                    {
+                        var suffix = release.ReleaseVersion.Substring(dashIndex + 1); // "preview.1" or "rc.1"
+                        var parts = suffix.Split('.');
+                        if (parts.Length >= 2)
+                        {
+                            var previewOrRc = parts[0]; // "preview" or "rc"
+                            var number = parts[1];       // "1", "2", etc.
+                            var subdir = $"{previewOrRc}{number}"; // "preview1" or "rc1"
+                            patchDir = Path.Combine(majorVersionDir, "preview", subdir);
+                        }
+                        else
+                        {
+                            patchDir = Path.Combine(majorVersionDir, release.ReleaseVersion);
+                        }
+                    }
+                    else
+                    {
+                        patchDir = Path.Combine(majorVersionDir, release.ReleaseVersion);
+                    }
+                }
+                else
+                {
+                    patchDir = Path.Combine(majorVersionDir, release.ReleaseVersion);
+                }
+
+                var patchJson = Path.Combine(patchDir, FileNames.Release);
                 bool patchExists = File.Exists(patchJson);
 
                 var isSecurity = release.Security;
@@ -76,7 +104,7 @@ public class Summary
                 foreach (var sdk in release?.Sdks ?? [])
                 {
                     var version = sdk.Version ?? throw new InvalidOperationException($"SDK version is null in {patchJson}");
-                    var label = sdk.Version ?? $".NET SDK {version}";
+                    var label = $".NET SDK {version}";
                     components.Add(new ReleaseComponent("SDK", version, label));
                 }
 
@@ -87,7 +115,8 @@ public class Summary
 
                 PatchReleaseSummary summary = new(major.ChannelVersion, release.ReleaseVersion, release.ReleaseDate, isSecurity, release.CveList, components)
                 {
-                    ReleaseJsonPath = patchExists ? Path.GetRelativePath(rootDir, patchJson) : null
+                    ReleaseJsonPath = patchExists ? Path.GetRelativePath(rootDir, patchJson) : null,
+                    PatchDirPath = Directory.Exists(patchDir) ? Path.GetRelativePath(rootDir, patchDir) : null
                 };
                 patchEntries.Add(summary);
             }
@@ -96,16 +125,52 @@ public class Summary
 
             IList<PatchReleaseSummary> patchVersions = patchEntries.Count is 0 ? Array.Empty<PatchReleaseSummary>() : patchEntries;
 
-            var gaRelease = major.Releases.Where(p => !p.ReleaseVersion.Contains("preview", StringComparison.OrdinalIgnoreCase)).LastOrDefault();
-            DateOnly gaDate = gaRelease?.ReleaseDate ?? DateOnly.MinValue;
+            // Read lifecycle data from _manifest.json (authoritative source)
+            var manifestPath = Path.Combine(majorVersionDir, FileNames.PartialManifest);
+            PartialManifest? partialManifest = null;
+            if (File.Exists(manifestPath))
+            {
+                try
+                {
+                    var manifestJson = await File.ReadAllTextAsync(manifestPath);
+                    partialManifest = JsonSerializer.Deserialize<PartialManifest>(manifestJson, ReleaseManifestSerializerContext.Default.PartialManifest);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Failed to read {manifestPath}: {ex.Message}");
+                }
+            }
+
+            // Use _manifest.json dates if available, otherwise fall back to releases.json
+            DateTimeOffset gaDate;
+            DateTimeOffset eolDate;
+            ReleaseType releaseType;
+            SupportPhase phase;
+
+            if (partialManifest?.GaDate.HasValue == true && partialManifest?.EolDate.HasValue == true)
+            {
+                gaDate = partialManifest.GaDate.Value;
+                eolDate = partialManifest.EolDate.Value;
+                releaseType = partialManifest.ReleaseType ?? major.ReleaseType;
+                phase = ReleaseStability.ComputeEffectivePhase(
+                    partialManifest.Phase ?? major.SupportPhase,
+                    gaDate);
+            }
+            else
+            {
+                // Fallback: use releases.json data
+                eolDate = new DateTimeOffset(major.EolDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+                releaseType = major.ReleaseType;
+                phase = major.SupportPhase;
+
+                // For GA date, we don't have a good source without _manifest.json
+                // Use MinValue to indicate unknown
+                gaDate = DateTimeOffset.MinValue;
+                Console.WriteLine($"Warning: {majorVersionDirName} - No _manifest.json found, GA date unknown");
+            }
 
             // Create Lifecycle object with all lifecycle information
-            var lifecycle = new Lifecycle(
-                major.ReleaseType,
-                major.SupportPhase,
-                new DateTimeOffset(gaDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero),
-                new DateTimeOffset(major.EolDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero)
-            );
+            var lifecycle = new Lifecycle(releaseType, phase, gaDate, eolDate);
             lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
 
             MajorReleaseSummary majorSummary = new MajorReleaseSummary(
@@ -165,7 +230,7 @@ public class Summary
 
     public static void PopulateCveInformation(ReleaseHistory releaseHistory, string rootDir)
     {
-        var historyDir = Path.Combine(rootDir, "release-history");
+        var historyDir = Path.Combine(rootDir, FileNames.Directories.Timeline);
         if (!Directory.Exists(historyDir))
         {
             return;
@@ -177,7 +242,7 @@ public class Summary
             {
                 foreach (var day in month.Days.Values)
                 {
-                    var relativePath = Path.Combine(year.Year, month.Month, "cve.json");
+                    var relativePath = Path.Combine(year.Year, month.Month, FileNames.Cve);
                     var cveJsonPath = Path.Combine(historyDir, relativePath);
                     if (File.Exists(cveJsonPath))
                     {

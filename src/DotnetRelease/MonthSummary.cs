@@ -38,7 +38,7 @@ public class MonthSummary
     /// <summary>
     /// .NET versions that had releases this month
     /// </summary>
-    public IList<string>? DotnetReleases => _monthSummary.DotnetReleases;
+    public IList<string>? Releases => _monthSummary.Releases;
 
     /// <summary>
     /// CVE identifiers for this month

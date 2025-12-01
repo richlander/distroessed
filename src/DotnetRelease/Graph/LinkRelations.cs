@@ -20,19 +20,13 @@ public static class LinkRelations
     /// Link relation for major version index (e.g., 8.0/index.json)
     /// Points to documents with kind="major-version-index"
     /// </summary>
-    public const string MajorVersionIndex = "major-version-index";
+    public const string ReleaseMajor = "release-major";
     
     /// <summary>
     /// Link relation for patch version index (e.g., 8.0.1/index.json)
     /// Points to documents with kind="patch-version-index"
     /// </summary>
     public const string PatchVersionIndex = "patch-version-index";
-    
-    /// <summary>
-    /// Link relation for SDK index (e.g., 8.0/sdk/index.json)
-    /// Points to documents with kind="sdk-index"
-    /// </summary>
-    public const string SdkIndex = "sdk-index";
     
     // Timeline-based hierarchy (organized chronologically)
     // Timeline → Year → Month
@@ -88,8 +82,8 @@ public static class LinkRelations
     public const string LatestLts = "latest-lts";
     
     /// <summary>
-    /// Link relation for latest SDK index (releases-index only)
-    /// Points to the SDK index for the latest major version
+    /// Link relation for latest SDK index.
+    /// Points to the SDK index (e.g., 8.0/sdk/index.json) for a major version.
     /// </summary>
     public const string LatestSdk = "latest-sdk";
     
@@ -115,8 +109,32 @@ public static class LinkRelations
     public const string LatestMonth = "latest-month";
 
     /// <summary>
+    /// Link relation for latest month with security releases (year-index only)
+    /// Points to the most recent month index within the year that had security patches.
+    /// </summary>
+    public const string LatestSecurityMonth = "latest-security-month";
+
+    /// <summary>
     /// Link relation for latest release within a year (year-index only)
     /// Points to the major version index for the highest .NET version released in the year.
     /// </summary>
     public const string LatestRelease = "latest-release";
+
+    /// <summary>
+    /// Link relation for latest patch of a major version.
+    /// Used in embedded release entries to point directly to the latest patch index.
+    /// </summary>
+    public const string LatestPatch = "latest-patch";
+
+    /// <summary>
+    /// Link relation for the month a patch was released in.
+    /// Used in patch-version-index to link to the timeline month index.
+    /// </summary>
+    public const string ReleaseMonth = "release-month";
+
+    /// <summary>
+    /// Link relation for the year a patch was released in.
+    /// Used in patch-version-index to link to the timeline year index.
+    /// </summary>
+    public const string ReleaseYear = "release-year";
 }

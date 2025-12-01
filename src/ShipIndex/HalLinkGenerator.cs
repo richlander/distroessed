@@ -54,6 +54,21 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             {
                 name = LinkRelations.ReleaseManifest;
             }
+            // Special case for releases.json to match cve-json pattern
+            else if (filename == "releases.json")
+            {
+                name = "releases-json";
+            }
+            // Special case for release.json to match cve-json pattern
+            else if (filename == "release.json")
+            {
+                name = "release-json";
+            }
+            // Special case for cve.json to use consistent naming
+            else if (filename == "cve.json")
+            {
+                name = LinkRelations.CveJson;
+            }
             // Special case for README.md to use correct key name
             else if (filename == "README.md")
             {

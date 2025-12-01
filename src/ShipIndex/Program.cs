@@ -77,11 +77,11 @@ if (inputDir != outputDir)
 ShipIndexFiles.ResetSkippedFilesCount();
 
 // Generate release summaries and calendar from source data
-var summaries = await Summary.GetReleaseSummariesAsync(inputDir) 
+var summaries = await ReleaseSummaryLoader.GetReleaseSummariesAsync(inputDir)
     ?? throw new InvalidOperationException("Failed to generate release summaries.");
 
-ReleaseHistory history = Summary.GetReleaseCalendar(summaries);
-Summary.PopulateCveInformation(history, inputDir);
+ReleaseHistory history = ReleaseSummaryLoader.GetReleaseCalendar(summaries);
+ReleaseSummaryLoader.PopulateCveInformation(history, inputDir);
 
 // Generate ship timeline index files (timeline/index.json, year/month indexes)
 await ShipIndexFiles.GenerateAsync(inputDir, outputDir, history, summaries);

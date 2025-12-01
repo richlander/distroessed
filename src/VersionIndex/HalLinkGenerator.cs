@@ -77,6 +77,16 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             {
                 name = "release-manifest";
             }
+            // Special case for releases.json to match cve-json pattern
+            else if (filename == "releases.json")
+            {
+                name = "releases-json";
+            }
+            // Special case for release.json to match cve-json pattern
+            else if (filename == "release.json")
+            {
+                name = "release-json";
+            }
             // Special case for README.md to use correct key name
             else if (filename == "README.md")
             {
@@ -114,5 +124,25 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Expands a partial link (with relative path) to a full HalLink with absolute URL.
+    /// </summary>
+    public HalLink ExpandLink(HalLink partialLink, string title)
+    {
+        // If href is a relative path (starts with /), expand it to full URL
+        var href = partialLink.Href;
+        if (href.StartsWith("/"))
+        {
+            href = _urlGenerator(href.TrimStart('/'), LinkStyle.Prod);
+        }
+
+        return new HalLink(href)
+        {
+            Path = partialLink.Path ?? partialLink.Href,
+            Title = partialLink.Title ?? title,
+            Type = partialLink.Type ?? MediaType.HalJson
+        };
     }
 } 

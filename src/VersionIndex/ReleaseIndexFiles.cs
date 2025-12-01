@@ -163,23 +163,8 @@ public class ReleaseIndexFiles
                 _skippedFilesCount++;
             }
 
-            // Reconstruct lifecycle from flattened manifest properties
-            Lifecycle? lifecycle = null;
-            if (generatedManifest.Phase != null && generatedManifest.GaDate != null && generatedManifest.EolDate != null)
-            {
-                lifecycle = new Lifecycle(
-                    generatedManifest.ReleaseType,
-                    generatedManifest.Phase.Value,
-                    generatedManifest.GaDate.Value,
-                    generatedManifest.EolDate.Value)
-                {
-                    Supported = generatedManifest.Supported ?? false
-                };
-            }
-            else
-            {
-                Console.WriteLine($"Warning: {majorVersionDirName} - Lifecycle is null");
-            }
+            // Use lifecycle from summary (canonical source from ReleaseSummaryLoader)
+            var lifecycle = summary.Lifecycle;
 
             // Generate base links from PatchFileMappings first  
             var majorVersionLinks = halLinkGenerator.Generate(
@@ -197,9 +182,34 @@ public class ReleaseIndexFiles
                 (fileLink, key) => fileLink.Title,
                 includeSelf: false); // Don't create self link for aux files
 
+            // Collect release timeline years (used for _embedded.years later)
+            // Get unique years from patch releases for this major version
+            var releaseYears = summary.PatchReleases
+                .Select(p => p.ReleaseDate.Year)
+                .Distinct()
+                .OrderByDescending(y => y)
+                .ToList();
+
+            // Collect all CVE IDs for this major version
+            var allCveIds = patchEntries
+                .Where(e => e.CveRecords?.Count > 0)
+                .SelectMany(e => e.CveRecords!)
+                .Distinct()
+                .OrderBy(id => id)
+                .ToList();
+
+            // Determine latest and latest-security
+            // Patches are ordered latest first, so first entry is latest
+            var latestPatch = patchEntries.FirstOrDefault();
+
+            // Get the latest patch version for the description (use latestPatch which handles semver correctly)
+            var latestPatchVersion = latestPatch?.Version ?? summary.PatchReleases.Select(p => p.PatchVersion).Max(numericStringComparer);
+            var patchDescription = $".NET {majorVersionDirName} (latest: {latestPatchVersion})";
+            var latestSecurityPatch = patchEntries.FirstOrDefault(e => e.CveRecords?.Count > 0);
+
             // Reorder links to follow spec: HAL+JSON first, then JSON, then markdown
             var orderedMajorVersionLinks = new Dictionary<string, HalLink>();
-            
+
             // 1. Add HAL+JSON links from base mappings first
             foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == MediaType.HalJson))
             {
@@ -212,7 +222,7 @@ public class ReleaseIndexFiles
                 var sdkIndexPath = Path.Combine(majorVersionDir, FileNames.Directories.Sdk, FileNames.Index);
                 var relativeSdkIndexPath = Path.GetRelativePath(outputDir, sdkIndexPath);
                 var pathValue = "/" + relativeSdkIndexPath.Replace("\\", "/");
-                orderedMajorVersionLinks[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
+                orderedMajorVersionLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{relativeSdkIndexPath}")
                 {
                     Path = pathValue,
                     Title = $".NET SDK {majorVersionDirName} Release Information",
@@ -220,13 +230,28 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // 3. Collect release timeline years (used for _embedded.years later)
-            // Get unique years from patch releases for this major version
-            var releaseYears = summary.PatchReleases
-                .Select(p => p.ReleaseDate.Year)
-                .Distinct()
-                .OrderByDescending(y => y)
-                .ToList();
+            // 3. Add latest and latest-security HAL+JSON links
+            if (latestPatch != null)
+            {
+                var latestPatchIndexPath = $"{majorVersionDirName}/{latestPatch.Version}/{FileNames.Index}";
+                orderedMajorVersionLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestPatchIndexPath}")
+                {
+                    Path = $"/{latestPatchIndexPath}",
+                    Title = $"Latest patch release ({latestPatch.Version})",
+                    Type = MediaType.HalJson
+                };
+            }
+
+            if (latestSecurityPatch != null)
+            {
+                var latestSecurityPatchIndexPath = $"{majorVersionDirName}/{latestSecurityPatch.Version}/{FileNames.Index}";
+                orderedMajorVersionLinks["latest-security"] = new HalLink($"{Location.GitHubBaseUri}{latestSecurityPatchIndexPath}")
+                {
+                    Path = $"/{latestSecurityPatchIndexPath}",
+                    Title = $"Latest security patch ({latestSecurityPatch.Version})",
+                    Type = MediaType.HalJson
+                };
+            }
 
             // 4. Add JSON-only links from base mappings
             foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
@@ -255,46 +280,6 @@ public class ReleaseIndexFiles
             var majorIndexPath = Path.Combine(outputMajorVersionDir, FileNames.Index);
             var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, FileNames.Index));
 
-            // Collect all CVE IDs for this major version
-            var allCveIds = patchEntries
-                .Where(e => e.CveRecords?.Count > 0)
-                .SelectMany(e => e.CveRecords!)
-                .Distinct()
-                .OrderBy(id => id)
-                .ToList();
-
-            // Determine latest and latest-security
-            // Patches are ordered latest first, so first entry is latest
-            var latestPatch = patchEntries.FirstOrDefault();
-
-            // Get the latest patch version for the description (use latestPatch which handles semver correctly)
-            var latestPatchVersion = latestPatch?.Version ?? summary.PatchReleases.Select(p => p.PatchVersion).Max(numericStringComparer);
-            var patchDescription = $".NET {majorVersionDirName} (latest: {latestPatchVersion})";
-            var latestSecurityPatch = patchEntries.FirstOrDefault(e => e.CveRecords?.Count > 0);
-            
-            // Add latest and latest-security links if available
-            if (latestPatch != null)
-            {
-                var latestPatchIndexPath = $"{majorVersionDirName}/{latestPatch.Version}/{FileNames.Index}";
-                remainingMajorVersionLinks["latest"] = new HalLink($"{Location.GitHubBaseUri}{latestPatchIndexPath}")
-                {
-                    Path = $"/{latestPatchIndexPath}",
-                    Title = $"Latest patch release ({latestPatch.Version})",
-                    Type = MediaType.HalJson
-                };
-            }
-            
-            if (latestSecurityPatch != null)
-            {
-                var latestSecurityPatchIndexPath = $"{majorVersionDirName}/{latestSecurityPatch.Version}/{FileNames.Index}";
-                remainingMajorVersionLinks["latest-security"] = new HalLink($"{Location.GitHubBaseUri}{latestSecurityPatchIndexPath}")
-                {
-                    Path = $"/{latestSecurityPatchIndexPath}",
-                    Title = $"Latest security patch ({latestSecurityPatch.Version})",
-                    Type = MediaType.HalJson
-                };
-            }
-            
             // Build years array for embedded data
             List<TimelineYear>? yearsEmbedded = null;
             if (releaseYears.Count > 0)
@@ -330,15 +315,49 @@ public class ReleaseIndexFiles
                 EolDate = lifecycle?.EolDate,
                 Links = remainingMajorVersionLinks,
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
-                    patchEntries.Select(e => new PatchReleaseVersionIndexEntry(
-                        e.Version,
-                        e.Lifecycle?.GaDate,
-                        e.CveRecords?.Count > 0,
-                        e.CveRecords?.Count ?? 0,
-                        e.Lifecycle?.Phase,
-                        e.Links)
-                    {
-                        CveRecords = e.CveRecords
+                    patchEntries.Select(e => {
+                        var year = e.Lifecycle?.GaDate.Year.ToString("D4");
+                        var month = e.Lifecycle?.GaDate.Month.ToString("D2");
+
+                        // Build links - start with existing links
+                        var links = new Dictionary<string, HalLink>(e.Links);
+
+                        // Add release-month link if we have date info
+                        if (year != null && month != null)
+                        {
+                            var monthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
+                            links[LinkRelations.ReleaseMonth] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
+                            {
+                                Path = $"/{monthIndexPath}",
+                                Title = $"Release timeline index for {year}-{month}",
+                                Type = MediaType.HalJson
+                            };
+
+                            // Add cve-json link for security patches
+                            if (e.CveRecords?.Count > 0)
+                            {
+                                var cveJsonPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Cve}";
+                                links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}")
+                                {
+                                    Path = $"/{cveJsonPath}",
+                                    Title = LinkTitles.CveInformation,
+                                    Type = MediaType.Json
+                                };
+                            }
+                        }
+
+                        return new PatchReleaseVersionIndexEntry(
+                            e.Version,
+                            e.Lifecycle?.GaDate,
+                            year,
+                            month,
+                            e.CveRecords?.Count > 0,
+                            e.CveRecords?.Count ?? 0,
+                            e.Lifecycle?.Phase,
+                            links)
+                        {
+                            CveRecords = e.CveRecords
+                        };
                     }).ToList())
                 {
                     Years = yearsEmbedded,
@@ -377,60 +396,29 @@ public class ReleaseIndexFiles
                 MainFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
-            // Add the major version entry to the list
-            // Ensure we have lifecycle information, even if we need to create it with defaults
-            if (lifecycle == null)
+            // Add latest-patch and latest-month links using summary data (not patchEntries which filters by file existence)
+            var latestPatchSummary = summary.PatchReleases.FirstOrDefault();
+            if (latestPatchSummary != null)
             {
-                // Create a default lifecycle with reasonable values based on version
-                var isEven = int.TryParse(majorVersionDirName.Split('.')[0], out int versionNumber) && versionNumber % 2 == 0;
-                var releaseType = isEven ? ReleaseType.LTS : ReleaseType.STS;
-                
-                // Set dates based on version number - actual dates would come from _manifest.json
-                var currentYear = DateTimeOffset.UtcNow.Year;
-                DateTimeOffset releaseDate;
-                
-                // Set realistic release dates based on version number
-                int majorVersion;
-                if (int.TryParse(majorVersionDirName.Split('.')[0], out majorVersion))
+                var latestPatchIndexPath = $"{majorVersionDirName}/{latestPatchSummary.PatchVersion}/{FileNames.Index}";
+                majorVersionWithinAllReleasesIndexLinks[LinkRelations.LatestPatch] = new HalLink($"{Location.GitHubBaseUri}{latestPatchIndexPath}")
                 {
-                    switch (majorVersion)
-                    {
-                        case 10: // Future .NET 10 (Nov 2026)
-                            releaseDate = new DateTimeOffset(currentYear + 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 9: // .NET 9 (Nov 2024)
-                            releaseDate = new DateTimeOffset(currentYear - 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 8: // .NET 8 (Nov 2023)
-                            releaseDate = new DateTimeOffset(currentYear - 2, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 7: // .NET 7 (Nov 2022)
-                            releaseDate = new DateTimeOffset(currentYear - 3, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        case 6: // .NET 6 (Nov 2021)
-                            releaseDate = new DateTimeOffset(currentYear - 4, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                        default: // Older versions
-                            releaseDate = new DateTimeOffset(currentYear - 5, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                            break;
-                    }
-                }
-                else
+                    Path = $"/{latestPatchIndexPath}",
+                    Title = $"Latest patch ({latestPatchSummary.PatchVersion})",
+                    Type = MediaType.HalJson
+                };
+
+                // Add latest-month link based on the latest patch's release date
+                var year = latestPatchSummary.ReleaseDate.Year.ToString("D4");
+                var month = latestPatchSummary.ReleaseDate.Month.ToString("D2");
+                var latestMonthPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
+                majorVersionWithinAllReleasesIndexLinks[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{latestMonthPath}")
                 {
-                    // Default to last year if parsing fails
-                    releaseDate = new DateTimeOffset(currentYear - 1, 11, 14, 0, 0, 0, TimeSpan.Zero);
-                }
-                
-                var eolDate = releaseDate.AddYears(isEven ? 3 : 1).AddMonths(isEven ? 0 : 6); // 3 years for LTS, 18 months for STS
-
-                // Set phase based on whether the release date is in the future
-                var phase = releaseDate > DateTimeOffset.UtcNow ? SupportPhase.Preview : SupportPhase.Active;
-
-                lifecycle = new Lifecycle(releaseType, phase, releaseDate, eolDate);
+                    Path = $"/{latestMonthPath}",
+                    Title = $"Latest month ({year}-{month})",
+                    Type = MediaType.HalJson
+                };
             }
-
-            // Set supported flag
-            lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
 
             // Major version entries use flattened lifecycle properties
             var majorEntry = new MajorReleaseVersionIndexEntry(majorVersionDirName)
@@ -440,6 +428,7 @@ public class ReleaseIndexFiles
                 Supported = lifecycle.Supported,
                 GaDate = lifecycle.GaDate,
                 EolDate = lifecycle.EolDate,
+                Years = releaseYears.Count > 0 ? releaseYears.Select(y => y.ToString()).ToList() : null,
                 Links = majorVersionWithinAllReleasesIndexLinks
             };
 
@@ -617,8 +606,8 @@ public class ReleaseIndexFiles
 
     // Generates index containing each patch release in the major version directory
     private static async Task<List<ReleaseVersionIndexEntry>> GetPatchIndexEntriesAsync(
-        IList<PatchReleaseSummary> summaries, 
-        PathContext pathContext, 
+        IList<PatchReleaseSummary> summaries,
+        PathContext pathContext,
         Lifecycle? majorVersionLifecycle,
         string outputDir,
         string majorVersion)
@@ -636,27 +625,41 @@ public class ReleaseIndexFiles
             StringComparer.OrdinalIgnoreCase);
 
         List<ReleaseVersionIndexEntry> indexEntries = [];
+        var inputRoot = Path.GetDirectoryName(rootDir) ?? rootDir;
 
-        foreach (var summary in summaries)
+        // Convert to list for index-based access (for prev/next navigation)
+        var summaryList = summaries.ToList();
+
+        for (int i = 0; i < summaryList.Count; i++)
         {
+            var summary = summaryList[i];
             if (!summaryTable.ContainsKey(summary.PatchVersion))
             {
                 continue;
             }
 
-            var patchDir = Path.Combine(rootDir, summary.PatchVersion);
+            // Use PatchDirPath if available (handles preview/rc paths), otherwise fall back to PatchVersion
+            if (summary.PatchDirPath == null)
+            {
+                continue;
+            }
+
+            // PatchDirPath is relative to the input root (e.g., "10.0/10.0.0" or "10.0/preview/preview1")
+            // We need to construct the full path using the major version directory's parent
+            var patchDir = Path.Combine(inputRoot, summary.PatchDirPath);
 
             var releaseJson = Path.Combine(patchDir, FileNames.Release);
             if (!File.Exists(releaseJson))
             {
                 continue;
             }
-            var relativePath = Path.GetRelativePath(rootDir, releaseJson);
-            var urlRelativePath = Path.GetRelativePath(urlRootDir ?? rootDir, releaseJson);
+            var relativePath = Path.GetRelativePath(inputRoot, releaseJson);
+            var urlRelativePath = Path.GetRelativePath(urlRootDir ?? inputRoot, releaseJson);
             var releaseJsonPathValue = "/" + relativePath.Replace("\\", "/");
-            
+
             // Create links - self now points to index.json, with separate link to release.json
-            var patchIndexPath = $"{majorVersion}/{summary.PatchVersion}/{FileNames.Index}";
+            // Use PatchDirPath for the URL path (handles preview/rc structure)
+            var patchIndexPath = $"{summary.PatchDirPath}/{FileNames.Index}";
             var links = new Dictionary<string, HalLink>
                 {
                     { HalTerms.Self, new HalLink(IndexHelpers.GetProdPath(patchIndexPath))
@@ -668,10 +671,33 @@ public class ReleaseIndexFiles
                     }
                 };
 
-            // Extract CVE IDs for the patch index entry
+            // Determine CVE IDs - prefer cve.json (authoritative), fall back to releases.json
             IReadOnlyList<string>? cveIds = null;
-            if (summary.CveList?.Count > 0)
+
+            // First, try to get CVE IDs from cve.json (authoritative source)
+            var releaseDate = summary.ReleaseDate;
+            var releaseDateOffset = new DateTimeOffset(releaseDate.Year, releaseDate.Month, releaseDate.Day, 0, 0, 0, TimeSpan.Zero);
+            var cveRecords = await CveHandler.CveLoader.LoadCveRecordsForReleaseDateAsync(inputRoot, releaseDateOffset);
+
+            if (cveRecords?.ReleaseCves != null && cveRecords.ReleaseCves.TryGetValue(majorVersion, out var cveIdsFromCveJson))
             {
+                // Use cve.json as authoritative source - it correctly excludes package-only CVEs
+                cveIds = cveIdsFromCveJson.ToList();
+
+                // Log if there's a mismatch with releases.json (for awareness)
+                var cveIdsFromRelease = summary.CveList?.Select(cve => cve.CveId).ToList();
+                if (cveIdsFromRelease?.Count > 0)
+                {
+                    CveHandler.CveTransformer.ValidateCveData(
+                        summary.PatchVersion,
+                        cveIdsFromRelease,
+                        cveIds as IReadOnlyList<string>,
+                        $"timeline/{releaseDate.Year:D4}/{releaseDate.Month:D2}/cve.json");
+                }
+            }
+            else if (summary.CveList?.Count > 0)
+            {
+                // Fall back to releases.json if cve.json not available
                 cveIds = summary.CveList.Select(cve => cve.CveId).ToList();
             }
 
@@ -679,35 +705,51 @@ public class ReleaseIndexFiles
             SupportPhase patchPhase;
             DateTimeOffset patchReleaseDate;
 
-            if (majorVersionLifecycle != null)
+            // Use actual patch release date from summary
+            var releaseDateOnly = summary.ReleaseDate;
+            patchReleaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
+
+            // Determine phase based on version string first (previews and RCs have specific phases)
+            if (summary.PatchVersion.Contains("-preview."))
             {
-                // Inherit phase from major version lifecycle
+                patchPhase = SupportPhase.Preview;
+            }
+            else if (summary.PatchVersion.Contains("-rc."))
+            {
+                patchPhase = SupportPhase.GoLive;
+            }
+            else if (majorVersionLifecycle != null)
+            {
+                // GA releases inherit phase from major version lifecycle
                 patchPhase = majorVersionLifecycle.Phase;
-                // Use actual patch release date from summary
-                var releaseDateOnly = summary.ReleaseDate;
-                patchReleaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
             }
             else
             {
-                // Fallback: determine phase and use summary release date
-                var releaseDateOnly = summary.ReleaseDate;
-                patchReleaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
-                
-                // Set phase based on whether the release date is in the future
+                // Fallback: determine phase based on whether the release date is in the future
                 patchPhase = patchReleaseDate > DateTimeOffset.UtcNow ? SupportPhase.Preview : SupportPhase.Active;
             }
 
             var patchLifecycle = new PatchLifecycle(patchPhase, patchReleaseDate);
 
+            // Determine prev/next patches (within same major version)
+            // summaryList is ordered newest to oldest, so prev is i+1 (older) and next is i-1 (newer)
+            var prevSummary = i + 1 < summaryList.Count ? summaryList[i + 1] : null;
+            var nextSummary = i > 0 ? summaryList[i - 1] : null;
+
             // Always generate patch detail index (for all patches, not just those with CVEs)
             await GeneratePatchDetailIndexAsync(
-                patchDir, 
+                patchDir,
                 outputDir,
-                urlRootDir ?? rootDir,
+                urlRootDir ?? inputRoot,
                 majorVersion,
-                summary.PatchVersion, 
-                patchLifecycle, 
-                cveIds);
+                summary.PatchVersion,
+                summary.PatchDirPath,
+                patchLifecycle,
+                cveIds,
+                prevSummary?.PatchVersion,
+                prevSummary?.PatchDirPath,
+                nextSummary?.PatchVersion,
+                nextSummary?.PatchDirPath);
 
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, links)
             {
@@ -727,38 +769,36 @@ public class ReleaseIndexFiles
         string inputDir,
         string majorVersion,
         string patchVersion,
+        string patchDirPath,  // The relative path like "10.0/10.0.0" or "10.0/preview/preview1"
         PatchLifecycle lifecycle,
-        IReadOnlyList<string>? cveIds)
+        IReadOnlyList<string>? cveIds,
+        string? prevPatchVersion,
+        string? prevPatchDirPath,
+        string? nextPatchVersion,
+        string? nextPatchDirPath)
     {
-        // Create patch detail index
+        // Create patch detail index links - HAL+JSON links first, then JSON
         var links = new Dictionary<string, HalLink>
         {
-            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{FileNames.Index}")
+            // HAL+JSON links first
+            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Index}")
             {
-                Path = $"/{majorVersion}/{patchVersion}/{FileNames.Index}",
+                Path = $"/{patchDirPath}/{FileNames.Index}",
                 Title = $"{patchVersion} Patch Index",
                 Type = MediaType.HalJson
             },
-            ["release-json"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{FileNames.Release}")
+            [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Index}")
             {
-                Path = $"/{majorVersion}/{patchVersion}/{FileNames.Release}",
-                Title = $"{patchVersion} Release Information",
-                Type = MediaType.Json
+                Path = $"/{majorVersion}/{FileNames.Index}",
+                Title = $".NET {majorVersion} Patch Release Index",
+                Type = MediaType.HalJson
             }
         };
 
-        // Add link to major version index
-        links[LinkRelations.MajorVersionIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Index}")
-        {
-            Path = $"/{majorVersion}/{FileNames.Index}",
-            Title = $".NET {majorVersion} Patch Release Index",
-            Type = MediaType.HalJson
-        };
-
-        // Add SDK index link if version supports SDK (8.0+)
+        // Add latest-sdk link if version supports SDK (8.0+)
         if (IsVersionSdkSupported(majorVersion))
         {
-            links[LinkRelations.SdkIndex] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}")
+            links[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}")
             {
                 Path = $"/{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}",
                 Title = $".NET SDK {majorVersion} Release Information",
@@ -766,54 +806,64 @@ public class ReleaseIndexFiles
             };
         }
 
-        // Build runtime info with markdown links
-        PatchRuntimeInfo? runtimeInfo = null;
+        // Add prev/next links for patch navigation within the same major version
+        if (prevPatchVersion != null && prevPatchDirPath != null)
+        {
+            links[HalTerms.Prev] = new HalLink($"{Location.GitHubBaseUri}{prevPatchDirPath}/{FileNames.Index}")
+            {
+                Path = $"/{prevPatchDirPath}/{FileNames.Index}",
+                Title = $"{prevPatchVersion} Patch Index",
+                Type = MediaType.HalJson
+            };
+        }
+
+        if (nextPatchVersion != null && nextPatchDirPath != null)
+        {
+            links[HalTerms.Next] = new HalLink($"{Location.GitHubBaseUri}{nextPatchDirPath}/{FileNames.Index}")
+            {
+                Path = $"/{nextPatchDirPath}/{FileNames.Index}",
+                Title = $"{nextPatchVersion} Patch Index",
+                Type = MediaType.HalJson
+            };
+        }
+
+        // release-month will be added below after we determine the release date (HAL+JSON)
+        // Then JSON links (release-json, cve-json) will be added at the end
+
+        // Add release notes markdown links to root _links
         var versionMdPath = Path.Combine(patchDir, $"{patchVersion}.md");
         var readmePath = Path.Combine(patchDir, "README.md");
 
         if (File.Exists(versionMdPath))
         {
             var mdFileName = $"{patchVersion}.md";
-            var runtimeLinks = new Dictionary<string, HalLink>
+            links["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{mdFileName}")
             {
-                ["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{mdFileName}")
-                {
-                    Path = $"/{majorVersion}/{patchVersion}/{mdFileName}",
-                    Title = $"{patchVersion} Release Notes",
-                    Type = MediaType.Markdown
-                },
-                ["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{majorVersion}/{patchVersion}/{mdFileName}")
-                {
-                    Path = $"/{majorVersion}/{patchVersion}/{mdFileName}",
-                    Title = $"{patchVersion} Release Notes (Rendered)",
-                    Type = MediaType.Markdown
-                }
+                Path = $"/{patchDirPath}/{mdFileName}",
+                Title = $"{patchVersion} Release Notes",
+                Type = MediaType.Markdown
             };
-            runtimeInfo = new PatchRuntimeInfo(patchVersion) { Links = runtimeLinks };
+            links["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{patchDirPath}/{mdFileName}")
+            {
+                Path = $"/{patchDirPath}/{mdFileName}",
+                Title = $"{patchVersion} Release Notes (Rendered)",
+                Type = MediaType.Markdown
+            };
         }
         else if (File.Exists(readmePath))
         {
-            var runtimeLinks = new Dictionary<string, HalLink>
+            links["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/README.md")
             {
-                ["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/README.md")
-                {
-                    Path = $"/{majorVersion}/{patchVersion}/README.md",
-                    Title = $"{patchVersion} Release Notes",
-                    Type = MediaType.Markdown
-                },
-                ["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{majorVersion}/{patchVersion}/README.md")
-                {
-                    Path = $"/{majorVersion}/{patchVersion}/README.md",
-                    Title = $"{patchVersion} Release Notes (Rendered)",
-                    Type = MediaType.Markdown
-                }
+                Path = $"/{patchDirPath}/README.md",
+                Title = $"{patchVersion} Release Notes",
+                Type = MediaType.Markdown
             };
-            runtimeInfo = new PatchRuntimeInfo(patchVersion) { Links = runtimeLinks };
-        }
-        else
-        {
-            // No markdown but still create runtime info with version
-            runtimeInfo = new PatchRuntimeInfo(patchVersion);
+            links["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{patchDirPath}/README.md")
+            {
+                Path = $"/{patchDirPath}/README.md",
+                Title = $"{patchVersion} Release Notes (Rendered)",
+                Type = MediaType.Markdown
+            };
         }
 
         // Load SDK versions from release.json and build SDK entries
@@ -885,27 +935,27 @@ public class ReleaseIndexFiles
                         if (File.Exists(sdkMdPath))
                         {
                             var sdkMdFileName = $"{sdkVersion}.md";
-                            sdkLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{patchVersion}/{sdkMdFileName}")
+                            sdkLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{sdkMdFileName}")
                             {
-                                Path = $"/{majorVersion}/{patchVersion}/{sdkMdFileName}",
+                                Path = $"/{patchDirPath}/{sdkMdFileName}",
                                 Title = $"SDK {sdkVersion} Release Notes",
                                 Type = MediaType.Markdown
                             };
-                            sdkLinks["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{majorVersion}/{patchVersion}/{sdkMdFileName}")
+                            sdkLinks["release-notes-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{patchDirPath}/{sdkMdFileName}")
                             {
-                                Path = $"/{majorVersion}/{patchVersion}/{sdkMdFileName}",
+                                Path = $"/{patchDirPath}/{sdkMdFileName}",
                                 Title = $"SDK {sdkVersion} Release Notes (Rendered)",
                                 Type = MediaType.Markdown
                             };
                         }
-                        else if (runtimeInfo?.Links != null)
+                        else
                         {
-                            // Fall back to runtime markdown links
-                            if (runtimeInfo.Links.TryGetValue("release-notes-markdown", out var runtimeMdLink))
+                            // Fall back to root release notes markdown links
+                            if (links.TryGetValue("release-notes-markdown", out var runtimeMdLink))
                             {
                                 sdkLinks["release-notes-markdown"] = runtimeMdLink;
                             }
-                            if (runtimeInfo.Links.TryGetValue("release-notes-markdown-rendered", out var runtimeMdRenderedLink))
+                            if (links.TryGetValue("release-notes-markdown-rendered", out var runtimeMdRenderedLink))
                             {
                                 sdkLinks["release-notes-markdown-rendered"] = runtimeMdRenderedLink;
                             }
@@ -928,7 +978,8 @@ public class ReleaseIndexFiles
         List<CveRecordSummary>? cveDisclosures = null;
         string? timelineCveJsonPath = null;
         string? timelineMonthIndexPath = null;
-        
+        bool hasCveDisclosures = false;
+
         if (lifecycle?.GaDate != null)
         {
             var releaseDate = lifecycle.GaDate;
@@ -936,25 +987,36 @@ public class ReleaseIndexFiles
             var month = releaseDate.Month.ToString("D2");
             timelineCveJsonPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Cve}";
             timelineMonthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
-            
-            // Add link to timeline month index
-            links[LinkRelations.MonthIndex] = new HalLink($"{Location.GitHubBaseUri}{timelineMonthIndexPath}")
+
+            // Add link to release month (HAL+JSON - added before JSON links)
+            links[LinkRelations.ReleaseMonth] = new HalLink($"{Location.GitHubBaseUri}{timelineMonthIndexPath}")
             {
                 Path = $"/{timelineMonthIndexPath}",
                 Title = $"Release timeline index for {year}-{month}",
                 Type = MediaType.HalJson
             };
-            
+
+            // Add link to release year
+            var timelineYearIndexPath = $"{FileNames.Directories.Timeline}/{year}/{FileNames.Index}";
+            links[LinkRelations.ReleaseYear] = new HalLink($"{Location.GitHubBaseUri}{timelineYearIndexPath}")
+            {
+                Path = $"/{timelineYearIndexPath}",
+                Title = $"Release timeline index for {year}",
+                Type = MediaType.HalJson
+            };
+
             // Load CVE records from timeline directory
             var cveRecords = await CveHandler.CveLoader.LoadCveRecordsForReleaseDateAsync(inputDir, releaseDate);
-            
+
             if (cveRecords != null)
             {
                 // Filter by major version (e.g., "9.0")
                 var filteredCveRecords = CveHandler.CveTransformer.FilterByRelease(cveRecords, majorVersion);
-                
+
                 if (filteredCveRecords?.Disclosures.Count > 0)
                 {
+                    hasCveDisclosures = true;
+
                     // Sort disclosures by CVE ID for consistent ordering
                     var sortedDisclosures = filteredCveRecords.Disclosures.OrderBy(d => d.Id).ToList();
                     cveDisclosures = CveHandler.CveTransformer.ToSummaries(
@@ -974,20 +1036,43 @@ public class ReleaseIndexFiles
                             filteredCveRecords.CveCommits
                         )
                     );
-                    
-                    // Validate CVE data matches releases.json
-                    var cveIdsFromCveJson = sortedDisclosures.Select(d => d.Id).ToList();
-                    CveHandler.CveTransformer.ValidateCveData(patchVersion, cveIds, cveIdsFromCveJson, timelineCveJsonPath);
-                    
-                    // Add link to timeline CVE JSON
-                    links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{timelineCveJsonPath}")
-                    {
-                        Path = $"/{timelineCveJsonPath}",
-                        Title = LinkTitles.CveInformation,
-                        Type = MediaType.Json
-                    };
                 }
             }
+        }
+
+        // Now add JSON links (after all HAL+JSON links)
+        links["release-json"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Release}")
+        {
+            Path = $"/{patchDirPath}/{FileNames.Release}",
+            Title = $"{patchVersion} Release Information",
+            Type = MediaType.Json
+        };
+
+        // Add CVE JSON link if there are disclosures
+        if (hasCveDisclosures && timelineCveJsonPath != null)
+        {
+            links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{timelineCveJsonPath}")
+            {
+                Path = $"/{timelineCveJsonPath}",
+                Title = LinkTitles.CveInformation,
+                Type = MediaType.Json
+            };
+
+            // Add CVE markdown links (raw and rendered)
+            // timelineCveJsonPath is like "timeline/2025/01/cve.json", change to "timeline/2025/01/cve.md"
+            var timelineCveMdPath = timelineCveJsonPath.Replace("cve.json", "cve.md");
+            links["cve-markdown"] = new HalLink($"{Location.GitHubBaseUri}{timelineCveMdPath}")
+            {
+                Path = $"/{timelineCveMdPath}",
+                Title = LinkTitles.CveInformation,
+                Type = MediaType.Markdown
+            };
+            links["cve-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{timelineCveMdPath}")
+            {
+                Path = $"/{timelineCveMdPath}",
+                Title = $"{LinkTitles.CveInformation} (Rendered)",
+                Type = MediaType.Markdown
+            };
         }
 
         // Build embedded content
@@ -999,12 +1084,11 @@ public class ReleaseIndexFiles
         }
 
         PatchDetailIndexEmbedded? embedded = null;
-        if (runtimeInfo != null || sdkEntries != null || cveDisclosures != null || sortedCveIds != null)
+        if (sdkEntries != null || cveDisclosures != null || sortedCveIds != null)
         {
             embedded = new PatchDetailIndexEmbedded
             {
-                Runtime = runtimeInfo,
-                Sdks = sdkEntries,
+                Sdk = sdkEntries,
                 CveRecords = sortedCveIds,
                 Disclosures = cveDisclosures
             };
@@ -1020,8 +1104,7 @@ public class ReleaseIndexFiles
             $".NET {patchVersion} Patch Index",
             $"Patch information for .NET {patchVersion}")
         {
-            RuntimeVersion = patchVersion,
-            SdkVersions = sdkVersionsList,
+            SdkPatches = sdkVersionsList,
             Links = links,
             Embedded = embedded,
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
@@ -1036,8 +1119,8 @@ public class ReleaseIndexFiles
         var schemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.PatchDetailIndex}";
         var updatedJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(patchDetailJson, schemaUri);
 
-        // Write to file
-        var outputPatchDir = Path.Combine(outputDir, majorVersion, patchVersion);
+        // Write to file - use patchDirPath for correct output location (handles preview/rc paths)
+        var outputPatchDir = Path.Combine(outputDir, patchDirPath);
         if (!Directory.Exists(outputPatchDir))
         {
             Directory.CreateDirectory(outputPatchDir);

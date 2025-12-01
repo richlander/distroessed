@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
+using DotnetRelease.Security;
 
 namespace DotnetRelease.Graph;
 
@@ -94,11 +95,15 @@ public record MajorReleaseVersionIndexEntry(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Runtime patch versions for this major version released in the period")]
-    public IList<string>? RuntimesPatches { get; init; }
+    public IList<string>? RuntimePatches { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK patch versions for this major version released in the period")]
     public IList<string>? SdkPatches { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Years with releases for this major version (cross-reference to timeline)")]
+    public IList<string>? Years { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this major version's content")]

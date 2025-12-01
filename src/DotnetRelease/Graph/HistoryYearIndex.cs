@@ -20,6 +20,10 @@ public record HistoryYearIndex(
     public string? LatestMonth { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest month with security releases in this year")]
+    public string? LatestSecurityMonth { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest patch release version in this year (e.g., '10.0.0')")]
     public string? LatestRelease { get; init; }
 
@@ -65,9 +69,9 @@ public record HistoryMonthEntry(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("CVE security vulnerability records for this month")]
     IReadOnlyList<CveRecordSummary>? CveRecords,
     [Description("List of .NET major version identifiers that had releases this month")]
-    IList<string> DotnetReleases,
+    IList<string> Releases,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("List of specific patch version identifiers released this month")]
-    IList<string>? DotnetPatchReleases
+    IList<string>? PatchReleases
 )
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
@@ -83,13 +87,16 @@ public record HistoryMonthSummary(
     bool Security,
     [Description("Number of CVEs disclosed this month")]
     int CveCount,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for navigation to this month's content")]
-    Dictionary<string, HalLink> Links,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("CVE identifiers for this month")]
     IList<string>? CveRecords,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest major version with releases this month (e.g., '10.0')")]
+    string? LatestRelease,
     [Description("List of .NET major version identifiers that had releases this month")]
-    IList<string> DotnetReleases
+    IList<string> Releases,
+    [property: JsonPropertyName("_links"),
+     Description("HAL+JSON links for navigation to this month's content")]
+    Dictionary<string, HalLink> Links
 );
 
 [Description("Index of .NET releases for a specific month")]

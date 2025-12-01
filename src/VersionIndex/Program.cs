@@ -1,4 +1,5 @@
 ﻿using DotnetRelease;
+using DotnetRelease.Summary;
 using VersionIndex;
 
 // Generates .NET version index files (major version -> patch version hierarchy)
@@ -76,7 +77,7 @@ if (inputDir != outputDir)
 ReleaseIndexFiles.ResetSkippedFilesCount();
 
 // Generate release summaries from source data
-var summaries = await Summary.GetReleaseSummariesAsync(inputDir) 
+var summaries = await ReleaseSummaryLoader.GetReleaseSummariesAsync(inputDir) 
     ?? throw new InvalidOperationException("Failed to generate release summaries.");
 
 // Generate version index files (main index, per-major-version indexes, manifests)

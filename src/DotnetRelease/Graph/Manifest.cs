@@ -44,24 +44,48 @@ public record ReleaseManifest(
     public GenerationMetadata? Metadata { get; init; }
 }
 
-[Description("Partial manifest data for hand-maintained release information")]
-public record PartialManifest(
-    [property: JsonPropertyName("release-date"),
-     Description("Date when the version became generally available (GA date) in ISO 8601 format")]
-    DateTimeOffset? GaDate,
-    [property: JsonPropertyName("eol-date"),
-     Description("End of Life date in ISO 8601 format")]
-    DateTimeOffset? EolDate,
-    [property: JsonPropertyName("release-type"),
-     Description("Release support model (LTS or STS) - overrides computed value")]
-    ReleaseType? ReleaseType,
-    [property: JsonPropertyName("phase"),
-     Description("Current lifecycle phase - overrides computed value")]
-    SupportPhase? SupportPhase)
+[Description("Partial manifest data for hand-maintained release information - schema compatible with ReleaseManifest")]
+public record PartialManifest
 {
-    [JsonPropertyName("_links")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [Description("Additional HAL+JSON links (e.g., blog posts, announcements)")]
-    public Dictionary<string, HalLink>? Links { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Type of release document, always 'manifest'")]
+    public ReleaseKind? Kind { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Concise title for the document")]
+    public string? Title { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Major version identifier (e.g., '8.0')")]
+    public string? Version { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Human-friendly version label (e.g., '.NET 8.0')")]
+    public string? Label { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
+    public ReleaseType? ReleaseType { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Current support phase (preview, go-live, active, maintenance, eol)")]
+    public SupportPhase? Phase { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Whether this version is currently supported (false = compute at generation time)")]
+    public bool? Supported { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("General Availability date when this version was released")]
+    public DateTimeOffset? GaDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("End of Life date when support ends")]
+    public DateTimeOffset? EolDate { get; init; }
+
+    [JsonPropertyName("_links"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("HAL+JSON links - self link path will be expanded with url-root at generation time")]
+    public Dictionary<string, HalLink>? Links { get; init; }
 }
 

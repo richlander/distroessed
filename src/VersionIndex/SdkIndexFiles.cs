@@ -4,6 +4,7 @@ using DotnetRelease;
 using DotnetRelease.Graph;
 using DotnetRelease.Summary;
 using JsonSchemaInjector;
+using CveHandler;
 
 namespace VersionIndex;
 
@@ -97,6 +98,9 @@ public class SdkIndexFiles
     {
         var indexPath = Path.Combine(sdkDir, FileNames.Index);
         var rootDir = Path.GetDirectoryName(Path.GetDirectoryName(sdkDir)) ?? throw new InvalidOperationException("Unable to determine root directory");
+
+        // Pre-load CVE records by month to avoid repeated file reads
+        var cveRecordsByMonth = new Dictionary<string, DotnetRelease.Security.CveRecords?>();
         var indexRelativePath = Path.GetRelativePath(rootDir, indexPath);
         var indexPathValue = "/" + indexRelativePath.Replace("\\", "/");
 
@@ -113,7 +117,7 @@ public class SdkIndexFiles
                 Title = $".NET SDK {summary.MajorVersion}",
                 Type = MediaType.HalJson
             },
-            ["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+            [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
             {
                 Path = $"/{summary.MajorVersion}/{FileNames.Index}",
                 Title = $".NET {summary.MajorVersion}",
@@ -196,10 +200,28 @@ public class SdkIndexFiles
                 }
             };
 
-            // Get CVE IDs if this is a security release
+            // Get CVE IDs - prefer cve.json (authoritative), fall back to releases.json
             IReadOnlyList<string>? cveIds = null;
-            if (patchRelease.Security && patchRelease.CveList?.Count > 0)
+
+            var releaseDate = patchRelease.ReleaseDate;
+            var monthKey = $"{releaseDate.Year:D4}-{releaseDate.Month:D2}";
+
+            // Load CVE records for this month if not already cached
+            if (!cveRecordsByMonth.TryGetValue(monthKey, out var cveRecords))
             {
+                var releaseDateOffset = new DateTimeOffset(releaseDate.Year, releaseDate.Month, releaseDate.Day, 0, 0, 0, TimeSpan.Zero);
+                cveRecords = await CveLoader.LoadCveRecordsForReleaseDateAsync(rootDir, releaseDateOffset);
+                cveRecordsByMonth[monthKey] = cveRecords;
+            }
+
+            // Try to get CVE IDs from cve.json (authoritative source)
+            if (cveRecords?.ReleaseCves != null && cveRecords.ReleaseCves.TryGetValue(summary.MajorVersion, out var cveIdsFromCveJson))
+            {
+                cveIds = cveIdsFromCveJson.ToList();
+            }
+            else if (patchRelease.Security && patchRelease.CveList?.Count > 0)
+            {
+                // Fall back to releases.json if cve.json not available
                 cveIds = patchRelease.CveList.Select(cve => cve.CveId).ToList();
             }
 
@@ -276,7 +298,7 @@ public class SdkIndexFiles
                 Title = $".NET SDK {summary.MajorVersion}",
                 Type = MediaType.HalJson
             },
-            ["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+            [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
             {
                 Path = $"/{summary.MajorVersion}/{FileNames.Index}",
                 Title = $".NET {summary.MajorVersion}",
@@ -331,7 +353,7 @@ public class SdkIndexFiles
                     Title = $".NET SDK {summary.MajorVersion}",
                     Type = MediaType.HalJson
                 },
-                ["major-version-index"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+                [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
                 {
                     Path = $"/{summary.MajorVersion}/{FileNames.Index}",
                     Title = $".NET {summary.MajorVersion}",

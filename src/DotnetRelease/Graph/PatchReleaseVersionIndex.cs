@@ -88,6 +88,12 @@ public record PatchReleaseVersionIndexEntry(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release date when this patch became generally available")]
     DateTimeOffset? Date,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release year (e.g., '2025') for easy filtering")]
+    string? Year,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release month (e.g., '10') for easy filtering")]
+    string? Month,
     [property: Description("True if this release includes security fixes (CVEs); defaults to true for safety")]
     bool Security,
     [Description("Number of CVEs fixed in this release")]

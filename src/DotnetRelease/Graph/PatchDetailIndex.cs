@@ -30,12 +30,8 @@ public record PatchDetailIndex(
     string Description)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Runtime version for this patch (same as version)")]
-    public string? RuntimeVersion { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK versions shipped with this runtime patch")]
-    public IReadOnlyList<string>? SdkVersions { get; init; }
+     Description("SDK patch versions shipped with this runtime patch")]
+    public IReadOnlyList<string>? SdkPatches { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
@@ -55,16 +51,12 @@ public record PatchDetailIndex(
 /// <summary>
 /// Embedded content for patch detail index
 /// </summary>
-[Description("Container for embedded runtime, SDK versions and CVE disclosures")]
+[Description("Container for embedded SDK versions and CVE disclosures")]
 public record PatchDetailIndexEmbedded
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Runtime information with release notes links")]
-    public PatchRuntimeInfo? Runtime { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK versions shipped with this runtime patch")]
-    public IReadOnlyList<PatchSdkEntry>? Sdks { get; set; }
+    public IReadOnlyList<PatchSdkEntry>? Sdk { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE IDs associated with this patch release")]
@@ -73,20 +65,6 @@ public record PatchDetailIndexEmbedded
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this patch release")]
     public IReadOnlyList<CveRecordSummary>? Disclosures { get; set; }
-}
-
-/// <summary>
-/// Runtime information for a patch release
-/// </summary>
-[Description("Runtime version and links for a patch release")]
-public record PatchRuntimeInfo(
-    [Description("Runtime version")]
-    string Version)
-{
-    [JsonPropertyName("_links"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Links to runtime release notes")]
-    public Dictionary<string, HalLink>? Links { get; init; }
 }
 
 /// <summary>

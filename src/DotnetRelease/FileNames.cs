@@ -14,6 +14,7 @@ public static class FileNames
     public const string SupportedOs = "supported-os.json";
     public const string OsPackages = "os-packages.json";
     public const string Manifest = "manifest.json";
+    public const string PartialManifest = "_manifest.json";
     public const string ReleasesIndex = "releases-index.json";
     public const string PatchReleasesIndex = "patch-releases-index.json";
 

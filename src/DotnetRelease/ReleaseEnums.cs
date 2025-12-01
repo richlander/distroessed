@@ -75,6 +75,26 @@ public static class ReleaseStability
             SupportPhase.Active => true,
             SupportPhase.Maintenance => true,
             SupportPhase.Preview => false,
+            SupportPhase.GoLive => false,  // Go-live is supported but not stable for latest links
+            SupportPhase.Eol => false,
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Determines if a phase is supported by Microsoft.
+    /// Supported phases are Active, Maintenance, and Go-Live.
+    /// </summary>
+    /// <param name="phase">The support phase to check</param>
+    /// <returns>True if the phase is supported, false otherwise</returns>
+    public static bool IsSupportedPhase(SupportPhase phase)
+    {
+        return phase switch
+        {
+            SupportPhase.Active => true,
+            SupportPhase.Maintenance => true,
+            SupportPhase.GoLive => true,  // Go-live releases are supported in production
+            SupportPhase.Preview => false,
             SupportPhase.Eol => false,
             _ => false
         };
