@@ -298,6 +298,22 @@ public class ShipIndexFiles
                     }
                 }
 
+                // Add timeline-index link (grandparent)
+                monthIndexLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
+                {
+                    Path = $"/{FileNames.Directories.Timeline}/{FileNames.Index}",
+                    Title = ".NET Release Timeline Index",
+                    Type = MediaType.HalJson
+                };
+
+                // Add year-index link (parent)
+                monthIndexLinks[LinkRelations.YearIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{year.Year}/{FileNames.Index}")
+                {
+                    Path = $"/{FileNames.Directories.Timeline}/{year.Year}/{FileNames.Index}",
+                    Title = $".NET Release Timeline Index - {year.Year}",
+                    Type = MediaType.HalJson
+                };
+
                 // Get the latest major version for the month
                 var monthLatestVersion = monthReleases.Max(numericStringComparer) ?? "unknown";
 
@@ -587,6 +603,14 @@ public class ShipIndexFiles
                 };
             }
 
+            // Add timeline-index link (parent)
+            yearHalLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
+            {
+                Path = $"/{FileNames.Directories.Timeline}/{FileNames.Index}",
+                Title = ".NET Release Timeline Index",
+                Type = MediaType.HalJson
+            };
+
             // Get the latest major version for the year
             var yearLatestVersion = releasesForYear.Max(numericStringComparer) ?? "unknown";
 
@@ -814,7 +838,7 @@ public class ShipIndexFiles
                 year.Year,
                 IndexTitles.TimelineYearDescription(year.Year))
             {
-                Releases = [.. releasesForYear],
+                Releases = [.. sortedReleasesForYear],
                 Links = HalHelpers.OrderLinks(overallYearHalLinks)
             }
             );

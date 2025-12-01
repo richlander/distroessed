@@ -230,6 +230,14 @@ public class ReleaseIndexFiles
                 };
             }
 
+            // 2b. Add releases-index link (one level up to root index)
+            orderedMajorVersionLinks[LinkRelations.ReleasesIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Index}")
+            {
+                Path = $"/{FileNames.Index}",
+                Title = ".NET Release Index",
+                Type = MediaType.HalJson
+            };
+
             // 3. Add latest and latest-security HAL+JSON links
             if (latestPatch != null)
             {
@@ -791,6 +799,14 @@ public class ReleaseIndexFiles
                 Title = $".NET {majorVersion} Patch Release Index",
                 Type = MediaType.HalJson
             }
+        };
+
+        // Add releases-index link (grandparent - root index)
+        links[LinkRelations.ReleasesIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Index}")
+        {
+            Path = $"/{FileNames.Index}",
+            Title = ".NET Release Index",
+            Type = MediaType.HalJson
         };
 
         // Add latest-sdk link if version supports SDK (8.0+)
