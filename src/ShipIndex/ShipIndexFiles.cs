@@ -60,6 +60,9 @@ public class ShipIndexFiles
 
         HashSet<string> allReleases = [];
 
+        // Track the latest security month across all years (format: "YYYY-MM")
+        string? globalLatestSecurityMonth = null;
+
         // Get sorted list of years for next/prev links
         var sortedYears = releaseHistory.Years.Keys.OrderBy(y => y, numericStringComparer).ToList();
 
@@ -489,6 +492,9 @@ public class ShipIndexFiles
                     })
                     .ToList();
 
+                // Extract CVE IDs from disclosures for root-level quick enumeration
+                var monthCveIds = cveSummariesForMonth?.Select(d => d.Id).ToList();
+
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.MonthIndex,
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
@@ -497,6 +503,8 @@ public class ShipIndexFiles
                     month.Month,
                     cveSummariesForMonth?.Count > 0)
                 {
+                    CveCount = monthCveIds?.Count > 0 ? monthCveIds.Count : null,
+                    CveRecords = monthCveIds?.Count > 0 ? monthCveIds : null,
                     LatestRelease = latestReleaseForMonth,
                     Releases = sortedMonthReleases,
                     Links = monthIndexLinks,
@@ -601,6 +609,17 @@ public class ShipIndexFiles
 
             // Calculate latest security month for this year
             var latestSecurityMonth = monthSummaries.FirstOrDefault(m => m.Security)?.Month;
+
+            // Update global latest security month tracker (comparing YYYY-MM strings)
+            if (latestSecurityMonth != null)
+            {
+                var yearMonthString = $"{year.Year}-{latestSecurityMonth}";
+                if (globalLatestSecurityMonth == null ||
+                    string.Compare(yearMonthString, globalLatestSecurityMonth, StringComparison.Ordinal) > 0)
+                {
+                    globalLatestSecurityMonth = yearMonthString;
+                }
+            }
 
             // Add latest-security-month link if available
             if (latestSecurityMonth != null)
@@ -853,6 +872,21 @@ public class ShipIndexFiles
             {
                 Path = $"/{FileNames.Directories.Timeline}/{latestYear}/{FileNames.Index}",
                 Title = $"Latest year ({latestYear})",
+                Type = MediaType.HalJson
+            };
+        }
+
+        // Add latest-security-month link (global across all years)
+        if (globalLatestSecurityMonth != null)
+        {
+            // Parse "YYYY-MM" format
+            var parts = globalLatestSecurityMonth.Split('-');
+            var secYear = parts[0];
+            var secMonth = parts[1];
+            fullIndexLinks[LinkRelations.LatestSecurityMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{secYear}/{secMonth}/{FileNames.Index}")
+            {
+                Path = $"/{FileNames.Directories.Timeline}/{secYear}/{secMonth}/{FileNames.Index}",
+                Title = $"Latest security month ({globalLatestSecurityMonth})",
                 Type = MediaType.HalJson
             };
         }

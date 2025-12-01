@@ -24,6 +24,10 @@ public record ReleaseHistoryIndex(
      Description("Latest year with .NET releases (primary)")]
     public string? LatestYear { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest month with security releases (format: YYYY-MM, e.g., '2025-10')")]
+    public string? LatestSecurityMonth { get; init; }
+
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];

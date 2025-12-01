@@ -115,6 +115,14 @@ public record HistoryMonthIndex(
     bool Security)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Number of CVEs disclosed this month")]
+    public int? CveCount { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("CVE identifiers disclosed this month (for quick enumeration)")]
+    public IList<string>? CveRecords { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest patch release version in this month (e.g., '10.0.0')")]
     public string? LatestRelease { get; init; }
 

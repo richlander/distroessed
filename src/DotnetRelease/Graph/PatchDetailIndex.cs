@@ -33,6 +33,10 @@ public record PatchDetailIndex(
      Description("SDK patch versions shipped with this runtime patch")]
     public IReadOnlyList<string>? SdkPatches { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("CVE identifiers fixed in this release (for quick enumeration)")]
+    public IReadOnlyList<string>? CveRecords { get; init; }
+
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
@@ -57,10 +61,6 @@ public record PatchDetailIndexEmbedded
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK versions shipped with this runtime patch")]
     public IReadOnlyList<PatchSdkEntry>? Sdk { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE IDs associated with this patch release")]
-    public IReadOnlyList<string>? CveRecords { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this patch release")]

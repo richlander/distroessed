@@ -1084,12 +1084,11 @@ public class ReleaseIndexFiles
         }
 
         PatchDetailIndexEmbedded? embedded = null;
-        if (sdkEntries != null || cveDisclosures != null || sortedCveIds != null)
+        if (sdkEntries != null || cveDisclosures != null)
         {
             embedded = new PatchDetailIndexEmbedded
             {
                 Sdk = sdkEntries,
-                CveRecords = sortedCveIds,
                 Disclosures = cveDisclosures
             };
         }
@@ -1105,6 +1104,7 @@ public class ReleaseIndexFiles
             $"Patch information for .NET {patchVersion}")
         {
             SdkPatches = sdkVersionsList,
+            CveRecords = sortedCveIds,
             Links = links,
             Embedded = embedded,
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
