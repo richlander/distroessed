@@ -76,31 +76,31 @@ public class ReleaseNotesGraph
 
     /// <summary>
     /// Gets the release history index (chronological view).
-    /// URL: {baseUrl}/archives/index.json
+    /// URL: {baseUrl}/timeline/index.json
     /// Cached after first fetch.
     /// </summary>
     public async Task<ReleaseHistoryIndex?> GetReleaseHistoryIndexAsync(CancellationToken cancellationToken = default)
     {
-        string url = $"{_baseUrl}archives/index.json";
+        string url = $"{_baseUrl}timeline/index.json";
         return await _linkFollower.FetchAsync<ReleaseHistoryIndex>(url, cancellationToken);
     }
 
     /// <summary>
     /// Gets the history index for a specific year.
-    /// URL: {baseUrl}/archives/{year}/index.json
+    /// URL: {baseUrl}/timeline/{year}/index.json
     /// Cached after first fetch.
     /// </summary>
     /// <param name="year">Year (e.g., "2024", "2025")</param>
     public async Task<HistoryYearIndex?> GetYearIndexAsync(string year, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(year);
-        string url = $"{_baseUrl}archives/{year}/index.json";
+        string url = $"{_baseUrl}timeline/{year}/index.json";
         return await _linkFollower.FetchAsync<HistoryYearIndex>(url, cancellationToken);
     }
 
     /// <summary>
     /// Gets the history index for a specific year and month.
-    /// URL: {baseUrl}/archives/{year}/{month}/index.json
+    /// URL: {baseUrl}/timeline/{year}/{month}/index.json
     /// Cached after first fetch.
     /// </summary>
     /// <param name="year">Year (e.g., "2024", "2025")</param>
@@ -109,7 +109,7 @@ public class ReleaseNotesGraph
     {
         ArgumentNullException.ThrowIfNullOrEmpty(year);
         ArgumentNullException.ThrowIfNullOrEmpty(month);
-        string url = $"{_baseUrl}archives/{year}/{month}/index.json";
+        string url = $"{_baseUrl}timeline/{year}/{month}/index.json";
         return await _linkFollower.FetchAsync<HistoryMonthIndex>(url, cancellationToken);
     }
 

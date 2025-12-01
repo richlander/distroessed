@@ -116,7 +116,7 @@ Console.WriteLine($"   Months with CVEs: {monthsWithCves.Count()}");
 
 foreach (var month in monthsWithCves.Take(3))
 {
-    Console.WriteLine($"     - {month.YearMonth}: {month.CveCount} CVE(s), affecting {string.Join(", ", month.DotnetReleases ?? [])}");
+    Console.WriteLine($"     - {month.YearMonth}: {month.CveCount} CVE(s), affecting {string.Join(", ", month.Releases ?? [])}");
 }
 Console.WriteLine();
 
