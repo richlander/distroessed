@@ -820,19 +820,9 @@ public class ShipIndexFiles
                 HistoryFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineYearLink(year.Year) : fileLink.Title);
 
-            // Add latest-month link to year entry for symmetry with release entries
-            if (latestMonth != null)
-            {
-                var latestMonthPath = Path.Combine(yearPath, latestMonth, FileNames.Index);
-                var latestMonthRelativePath = Path.GetRelativePath(inputPath, latestMonthPath);
-                var latestMonthPathValue = "/" + latestMonthRelativePath.Replace("\\", "/");
-                overallYearHalLinks[LinkRelations.LatestMonth] = new HalLink(urlGenerator(latestMonthRelativePath, LinkStyle.Prod))
-                {
-                    Path = latestMonthPathValue,
-                    Title = $"Latest month ({IndexTitles.TimelineMonthLink(year.Year, latestMonth)})",
-                    Type = MediaType.HalJson
-                };
-            }
+            // NOTE: Do NOT add latest-month link here - it changes monthly
+            // and would cause the root timeline/index.json to change frequently.
+            // The latest-month link belongs in the year-level indexes (e.g., timeline/2025/index.json).
 
             yearEntries.Add(new HistoryYearEntry(
                 year.Year,
@@ -900,20 +890,9 @@ public class ShipIndexFiles
             };
         }
 
-        // Add latest-security-month link (global across all years)
-        if (globalLatestSecurityMonth != null)
-        {
-            // Parse "YYYY-MM" format
-            var parts = globalLatestSecurityMonth.Split('-');
-            var secYear = parts[0];
-            var secMonth = parts[1];
-            fullIndexLinks[LinkRelations.LatestSecurityMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{secYear}/{secMonth}/{FileNames.Index}")
-            {
-                Path = $"/{FileNames.Directories.Timeline}/{secYear}/{secMonth}/{FileNames.Index}",
-                Title = $"Latest security month ({globalLatestSecurityMonth})",
-                Type = MediaType.HalJson
-            };
-        }
+        // NOTE: Do NOT add latest-security-month link here - it changes frequently
+        // and would cause the root timeline/index.json to change with every security release.
+        // Users can find security releases by navigating through year -> month indexes.
 
         // Get the latest major version for the root history index
         var rootLatestVersion = allReleases.Max(numericStringComparer) ?? "unknown";

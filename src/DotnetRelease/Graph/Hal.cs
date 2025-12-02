@@ -90,11 +90,13 @@ public class HalHelpers
     };
 
     /// <summary>
-    /// Orders HAL links with standard relations first (self, next, prev), then domain-specific ones alphabetically.
+    /// Orders HAL links with standard relations first (self, next, prev), then HAL+JSON links alphabetically,
+    /// then non-HAL links (JSON, markdown) alphabetically.
     /// </summary>
     public static Dictionary<string, HalLink> OrderLinks(Dictionary<string, HalLink> links)
     {
         var ordered = new Dictionary<string, HalLink>();
+        var standardKeys = new[] { HalTerms.Self, HalTerms.Next, HalTerms.Prev };
 
         // Add standard relations in preferred order
         if (links.TryGetValue(HalTerms.Self, out var selfLink))
@@ -104,13 +106,16 @@ public class HalHelpers
         if (links.TryGetValue(HalTerms.Prev, out var prevLink))
             ordered[HalTerms.Prev] = prevLink;
 
-        // Add remaining links in alphabetical order
-        foreach (var kvp in links.OrderBy(k => k.Key))
+        // Add HAL+JSON links alphabetically (excluding standard keys already added)
+        foreach (var kvp in links.Where(k => k.Value.Type == MediaType.HalJson && !standardKeys.Contains(k.Key)).OrderBy(k => k.Key))
         {
-            if (kvp.Key != HalTerms.Self && kvp.Key != HalTerms.Next && kvp.Key != HalTerms.Prev)
-            {
-                ordered[kvp.Key] = kvp.Value;
-            }
+            ordered[kvp.Key] = kvp.Value;
+        }
+
+        // Add non-HAL+JSON links alphabetically (JSON, markdown, etc.)
+        foreach (var kvp in links.Where(k => k.Value.Type != MediaType.HalJson).OrderBy(k => k.Key))
+        {
+            ordered[kvp.Key] = kvp.Value;
         }
 
         return ordered;

@@ -16,51 +16,13 @@ public class ReleaseIndexFiles
     
     public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
     
-    private static UsageLinks? CreateUsageLinks(Dictionary<string, HalLink>? usageLinks = null)
-    {
-        if (usageLinks == null || usageLinks.Count == 0)
-        {
-            return null;
-        }
-        
-        return new UsageLinks
-        {
-            Links = usageLinks
-        };
-    }
-    
     // Glossary terms to exclude from VersionIndex (CVE-related terms belong in timeline)
     private static readonly string[] _excludedGlossaryTerms = ["cve", "cvss"];
-
-    private static (Dictionary<string, HalLink> remainingLinks, Dictionary<string, HalLink>? usageLinks) ExtractUsageLinks(Dictionary<string, HalLink> allLinks)
-    {
-        var usageLinks = new Dictionary<string, HalLink>();
-        var remainingLinks = new Dictionary<string, HalLink>();
-
-        foreach (var (key, link) in allLinks)
-        {
-            // Check if this is a usage-related link
-            if (key.StartsWith("usage") || key.StartsWith("glossary") || key.StartsWith("quick-reference"))
-            {
-                usageLinks[key] = link;
-            }
-            else
-            {
-                remainingLinks[key] = link;
-            }
-        }
-
-        return (remainingLinks, usageLinks.Count > 0 ? usageLinks : null);
-    }
 
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.DotNetReleaseIndex, LinkStyle.Prod) },
-        {"../llms/README.md", new FileLink("../llms/README.md", LinkTitles.UsageGuide, LinkStyle.Prod | LinkStyle.GitHub) },
-        {"../llms/quick-ref.md", new FileLink("../llms/quick-ref.md", LinkTitles.QuickReference, LinkStyle.Prod | LinkStyle.GitHub) },
-        {"../llms/glossary.md", new FileLink("../llms/glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
         {$"{FileNames.Directories.Timeline}/{FileNames.Index}", new FileLink($"{FileNames.Directories.Timeline}/{FileNames.Index}", IndexTitles.TimelineIndexLink, LinkStyle.Prod) },
-        {"support.md", new FileLink("support.md", LinkTitles.SupportPolicy, LinkStyle.Prod | LinkStyle.GitHub) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
@@ -281,9 +243,6 @@ public class ReleaseIndexFiles
 
             majorVersionLinks = orderedMajorVersionLinks;
 
-            // Extract usage links from majorVersionLinks (we don't include them at major version level)
-            var (remainingMajorVersionLinks, _) = ExtractUsageLinks(majorVersionLinks);
-
             // write major version index.json if there are patch releases found
             var majorIndexPath = Path.Combine(outputMajorVersionDir, FileNames.Index);
             var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, FileNames.Index));
@@ -321,7 +280,7 @@ public class ReleaseIndexFiles
                 Supported = lifecycle?.Supported,
                 GaDate = lifecycle?.GaDate,
                 EolDate = lifecycle?.EolDate,
-                Links = HalHelpers.OrderLinks(remainingMajorVersionLinks),
+                Links = HalHelpers.OrderLinks(majorVersionLinks),
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
                     patchEntries.Select(e => {
                         var year = e.Lifecycle?.GaDate.Year.ToString("D4");
@@ -397,44 +356,25 @@ public class ReleaseIndexFiles
             }
 
             // Same links as the major version index, but with a different base directory (to force different pathing)
+            // NOTE: Do NOT add latest-patch or latest-month links here - those change monthly
+            // and would cause the root index.json to change frequently. Those links belong
+            // in the major version indexes (e.g., 8.0/index.json) instead.
             var majorVersionWithinAllReleasesIndexLinks = halLinkGenerator.Generate(
                 majorVersionDir,
                 MainFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
-            // Add latest-patch and latest-month links using summary data (not patchEntries which filters by file existence)
-            var latestPatchSummary = summary.PatchReleases.FirstOrDefault();
-            if (latestPatchSummary != null)
-            {
-                var latestPatchIndexPath = $"{majorVersionDirName}/{latestPatchSummary.PatchVersion}/{FileNames.Index}";
-                majorVersionWithinAllReleasesIndexLinks[LinkRelations.LatestPatch] = new HalLink($"{Location.GitHubBaseUri}{latestPatchIndexPath}")
-                {
-                    Path = $"/{latestPatchIndexPath}",
-                    Title = $"Latest patch ({latestPatchSummary.PatchVersion})",
-                    Type = MediaType.HalJson
-                };
-
-                // Add latest-month link based on the latest patch's release date
-                var year = latestPatchSummary.ReleaseDate.Year.ToString("D4");
-                var month = latestPatchSummary.ReleaseDate.Month.ToString("D2");
-                var latestMonthPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
-                majorVersionWithinAllReleasesIndexLinks[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{latestMonthPath}")
-                {
-                    Path = $"/{latestMonthPath}",
-                    Title = $"Latest month ({year}-{month})",
-                    Type = MediaType.HalJson
-                };
-            }
-
             // Major version entries use flattened lifecycle properties
+            // NOTE: Do NOT include Years here - it changes every January for active releases
+            // and would cause the root index.json to change annually. Years data is available
+            // in the major version indexes (e.g., 8.0/index.json) and timeline/index.json.
             var majorEntry = new MajorReleaseVersionIndexEntry(majorVersionDirName)
             {
-                ReleaseType = lifecycle.ReleaseType,
-                Phase = lifecycle.Phase,
-                Supported = lifecycle.Supported,
-                GaDate = lifecycle.GaDate,
-                EolDate = lifecycle.EolDate,
-                Years = releaseYears.Count > 0 ? releaseYears.Select(y => y.ToString()).ToList() : null,
+                ReleaseType = lifecycle?.ReleaseType,
+                Phase = lifecycle?.Phase,
+                Supported = lifecycle?.Supported,
+                GaDate = lifecycle?.GaDate,
+                EolDate = lifecycle?.EolDate,
                 Links = HalHelpers.OrderLinks(majorVersionWithinAllReleasesIndexLinks)
             };
 
@@ -456,7 +396,7 @@ public class ReleaseIndexFiles
         {
             // Create a new ordered dictionary to maintain proper ordering
             var orderedRootLinks = new Dictionary<string, HalLink>();
-            
+
             // Add HAL+JSON links first
             foreach (var link in rootLinks.Where(kvp => kvp.Value.Type == MediaType.HalJson))
             {
@@ -509,27 +449,29 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // Calculate latest year for cross-reference to timeline
-            var latestYearForLink = summaries
-                .SelectMany(s => s.PatchReleases.Select(p => p.ReleaseDate.Year))
-                .DefaultIfEmpty(0)
-                .Max();
-            
-            if (latestYearForLink > 0)
-            {
-                orderedRootLinks[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestYearForLink}/{FileNames.Index}")
-                {
-                    Path = $"/{FileNames.Directories.Timeline}/{latestYearForLink}/{FileNames.Index}",
-                    Title = $"Latest year ({latestYearForLink})",
-                    Type = MediaType.HalJson
-                };
-            }
+            // NOTE: Do NOT add latest-year link here - it changes every January
+            // and would cause the root index.json to change annually. The timeline-index
+            // link provides access to the timeline, which has its own latest-year link.
 
             // Add non-HAL+JSON links (markdown files) after
             foreach (var link in rootLinks.Where(kvp => kvp.Value.Type != MediaType.HalJson))
             {
                 orderedRootLinks[link.Key] = link.Value;
             }
+
+            // Add llms-txt links last - these describe the graph for LLM consumption
+            orderedRootLinks["llms-txt"] = new HalLink($"{Location.GitHubBaseUri}llms/README.md")
+            {
+                Path = "/llms/README.md",
+                Title = "LLM Usage Guide",
+                Type = MediaType.Markdown
+            };
+            orderedRootLinks["llms-txt-quick-reference"] = new HalLink($"{Location.GitHubBaseUri}llms/quick-ref.md")
+            {
+                Path = "/llms/quick-ref.md",
+                Title = "LLM Quick Reference",
+                Type = MediaType.Markdown
+            };
 
             rootLinks = orderedRootLinks;
         }
@@ -543,17 +485,10 @@ public class ReleaseIndexFiles
         // Get the latest major version for the description (use latestRelease which handles stability correctly)
         var latestMajorVersion = latestRelease?.Version ?? majorEntries.Select(e => e.Version).Max(numericStringComparer);
         var description = $".NET Release Index (latest: {latestMajorVersion})";
-        
-        // Calculate latest year from all patch releases across all major versions
-        var latestYear = summaries
-            .SelectMany(s => s.PatchReleases.Select(p => p.ReleaseDate.Year))
-            .DefaultIfEmpty(0)
-            .Max()
-            .ToString();
-        
-        // Extract usage links from rootLinks
-        var (remainingRootLinks, usageLinksForRoot) = ExtractUsageLinks(rootLinks);
-        
+
+        // NOTE: Do NOT include LatestYear property - it changes every January
+        // and would cause the root index.json to change annually. The timeline-index
+        // link provides access to timeline/index.json which has its own latest_year.
         var majorIndex = new MajorReleaseVersionIndex(
                 ReleaseKind.ReleasesIndex,
                 IndexTitles.VersionIndexTitle,
@@ -561,9 +496,7 @@ public class ReleaseIndexFiles
         {
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
-            LatestYear = latestYear != "0" ? latestYear : null,
-            Links = HalHelpers.OrderLinks(remainingRootLinks),
-            Usage = CreateUsageLinks(usageLinksForRoot),
+            Links = HalHelpers.OrderLinks(rootLinks),
             Glossary = glossary,
             Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
