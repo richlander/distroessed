@@ -97,6 +97,10 @@ public record ReleaseVersionIndexEntry(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE IDs associated with this release")]
     public IReadOnlyList<string>? CveRecords { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("SDK versions included in this patch release")]
+    public IReadOnlyList<string>? SdkVersions { get; set; }
 }
 
 [JsonConverter(typeof(KebabCaseLowerStringEnumConverter<ReleaseKind>))]

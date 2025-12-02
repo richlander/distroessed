@@ -94,6 +94,9 @@ public record HistoryMonthSummary(
     string? LatestRelease,
     [Description("List of .NET major version identifiers that had releases this month")]
     IList<string> Releases,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Runtime patch versions released this month (e.g., ['10.0.0', '9.0.11', '8.0.22'])")]
+    IList<string>? RuntimePatches,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this month's content")]
     Dictionary<string, HalLink> Links
@@ -147,8 +150,8 @@ public record HistoryMonthIndex(
 [Description("Container for embedded month-level release entries")]
 public record HistoryMonthIndexEmbedded
 {
-    [Description("Major versions with releases this month, with full lifecycle information (same format as root index)")]
-    public List<MajorReleaseVersionIndexEntry>? Releases { get; set; }
+    [Description("Patch releases this month (symmetric with major version index structure)")]
+    public List<PatchReleaseVersionIndexEntry>? Releases { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this month")]

@@ -54,6 +54,10 @@ public record PatchReleaseVersionIndex(
      Description("Usage information and term definitions")]
     public UsageWithLinks? Usage { get; set; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Glossary of terms and definitions")]
+    public Dictionary<string, string>? Glossary { get; set; }
+
     [JsonPropertyName("_embedded"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded patch release entries, timeline years, and CVE records")]
@@ -104,6 +108,9 @@ public record PatchReleaseVersionIndexEntry(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
     SupportPhase? SupportPhase,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("SDK versions included in this patch release")]
+    IReadOnlyList<string>? SdkPatches,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this patch release's content")]
     Dictionary<string, HalLink> Links);

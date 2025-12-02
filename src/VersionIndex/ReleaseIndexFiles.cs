@@ -16,8 +16,11 @@ public class ReleaseIndexFiles
     
     public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
     
-    // Glossary terms to exclude from VersionIndex (CVE-related terms belong in timeline)
-    private static readonly string[] _excludedGlossaryTerms = ["cve", "cvss"];
+    // Glossary terms to exclude from root index (only lts/sts and latest-* terms are relevant at root level)
+    private static readonly string[] _rootExcludedGlossaryTerms = ["cve", "cvss", "preview", "go-live", "active", "maintenance", "eol", "feature-band", "patch", "latest-security"];
+
+    // Glossary terms to exclude from major version indexes (CVE terms belong in timeline)
+    private static readonly string[] _majorVersionExcludedGlossaryTerms = ["cve", "cvss"];
 
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
@@ -74,8 +77,9 @@ public class ReleaseIndexFiles
             Directory.CreateDirectory(outputDir);
         }
 
-        // Load glossary from centralized file, excluding CVE-related terms
-        var glossary = await GlossaryLoader.LoadExcludingAsync(inputDir, _excludedGlossaryTerms);
+        // Load glossaries from centralized file with appropriate exclusions
+        var rootGlossary = await GlossaryLoader.LoadExcludingAsync(inputDir, _rootExcludedGlossaryTerms);
+        var majorVersionGlossary = await GlossaryLoader.LoadExcludingAsync(inputDir, _majorVersionExcludedGlossaryTerms);
 
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
         List<MajorReleaseVersionIndexEntry> majorEntries = [];
@@ -281,6 +285,7 @@ public class ReleaseIndexFiles
                 GaDate = lifecycle?.GaDate,
                 EolDate = lifecycle?.EolDate,
                 Links = HalHelpers.OrderLinks(majorVersionLinks),
+                Glossary = majorVersionGlossary,
                 Embedded = patchEntries.Count > 0 || yearsEmbedded != null || allCveIds.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
                     patchEntries.Select(e => {
                         var year = e.Lifecycle?.GaDate.Year.ToString("D4");
@@ -322,6 +327,7 @@ public class ReleaseIndexFiles
                             e.CveRecords?.Count ?? 0,
                             e.CveRecords,
                             e.Lifecycle?.Phase,
+                            e.SdkVersions,
                             HalHelpers.OrderLinks(links));
                     }).ToList())
                 {
@@ -364,18 +370,25 @@ public class ReleaseIndexFiles
                 MainFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
-            // Major version entries use flattened lifecycle properties
-            // NOTE: Do NOT include Years here - it changes every January for active releases
-            // and would cause the root index.json to change annually. Years data is available
-            // in the major version indexes (e.g., 8.0/index.json) and timeline/index.json.
+            // Major version entries use minimal lifecycle properties for root index stability.
+            // Omitted properties (available in major version indexes like 8.0/index.json):
+            // - Phase: changes frequently (preview->go-live->active->maintenance)
+            // - GaDate: static, fetch from referenced resource
+            // - Years: changes every January for active releases
+            // - Path in links: redundant with href, keeps entries lean
+            // Root index focuses on: release_type, supported, eol_date (for planning)
+
+            // Strip path from links for root index entries (href is sufficient)
+            var minimalLinks = majorVersionWithinAllReleasesIndexLinks.ToDictionary(
+                kvp => kvp.Key,
+                kvp => new HalLink(kvp.Value.Href) { Title = kvp.Value.Title, Type = kvp.Value.Type });
+
             var majorEntry = new MajorReleaseVersionIndexEntry(majorVersionDirName)
             {
                 ReleaseType = lifecycle?.ReleaseType,
-                Phase = lifecycle?.Phase,
                 Supported = lifecycle?.Supported,
-                GaDate = lifecycle?.GaDate,
                 EolDate = lifecycle?.EolDate,
-                Links = HalHelpers.OrderLinks(majorVersionWithinAllReleasesIndexLinks)
+                Links = HalHelpers.OrderLinks(minimalLinks)
             };
 
             majorEntries.Add(majorEntry);
@@ -459,16 +472,10 @@ public class ReleaseIndexFiles
                 orderedRootLinks[link.Key] = link.Value;
             }
 
-            // Add llms-txt links last - these describe the graph for LLM consumption
+            // Add llms-txt link last - describes the graph for LLM consumption
             orderedRootLinks["llms-txt"] = new HalLink($"{Location.GitHubBaseUri}llms/README.md")
             {
                 Path = "/llms/README.md",
-                Title = "LLM Usage Guide",
-                Type = MediaType.Markdown
-            };
-            orderedRootLinks["llms-txt-quick-reference"] = new HalLink($"{Location.GitHubBaseUri}llms/quick-ref.md")
-            {
-                Path = "/llms/quick-ref.md",
                 Title = "LLM Quick Reference",
                 Type = MediaType.Markdown
             };
@@ -497,7 +504,7 @@ public class ReleaseIndexFiles
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
             Links = HalHelpers.OrderLinks(rootLinks),
-            Glossary = glossary,
+            Glossary = rootGlossary,
             Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
             Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
         };
@@ -690,10 +697,19 @@ public class ReleaseIndexFiles
                 nextSummary?.PatchVersion,
                 nextSummary?.PatchDirPath);
 
+            // Get SDK versions from components
+            var sdkVersions = summary.Components?
+                .Where(c => c.Name == "SDK")
+                .Select(c => c.Version)
+                .OrderByDescending(v => v, StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering))
+                .ToList();
+            if (sdkVersions?.Count == 0) sdkVersions = null;
+
             var indexEntry = new ReleaseVersionIndexEntry(summary.PatchVersion, links)
             {
                 CveRecords = cveIds,
-                Lifecycle = patchLifecycle
+                Lifecycle = patchLifecycle,
+                SdkVersions = sdkVersions
             };
             indexEntries.Add(indexEntry);
         }
@@ -1042,14 +1058,14 @@ public class ReleaseIndexFiles
 
         var patchDetailIndex = new PatchDetailIndex(
             ReleaseKind.PatchVersionIndex,
+            $".NET {patchVersion} Patch Index",
+            $"Patch information for .NET {patchVersion}",
             patchVersion,
             lifecycle?.GaDate,
+            lifecycle?.Phase,
             cveIds?.Count > 0,
             cveIds?.Count ?? 0,
-            sortedCveIds,
-            lifecycle?.Phase,
-            $".NET {patchVersion} Patch Index",
-            $"Patch information for .NET {patchVersion}")
+            sortedCveIds)
         {
             SdkPatches = sdkVersionsList,
             Links = HalHelpers.OrderLinks(links),

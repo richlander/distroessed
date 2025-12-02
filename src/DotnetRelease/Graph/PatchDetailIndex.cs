@@ -12,25 +12,25 @@ namespace DotnetRelease.Graph;
 public record PatchDetailIndex(
     [Description("Type of release document, always 'patch-index' for patch detail indexes")]
     ReleaseKind Kind,
+    [Description("Concise title for the document")]
+    string Title,
+    [Description("Description of the patch release")]
+    string Description,
     [Description("Patch version identifier (e.g., '8.0.1', '9.0.2')")]
     string Version,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release date when this patch became generally available")]
     DateTimeOffset? Date,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
+    SupportPhase? SupportPhase,
     [property: Description("True if this release includes security fixes (CVEs); defaults to true for safety")]
     bool Security,
     [Description("Number of CVEs fixed in this release")]
     int CveCount,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE identifiers fixed in this release (for quick enumeration)")]
-    IReadOnlyList<string>? CveRecords,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
-    SupportPhase? SupportPhase,
-    [Description("Concise title for the document")]
-    string Title,
-    [Description("Description of the patch release")]
-    string Description)
+    IReadOnlyList<string>? CveRecords)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK patch versions shipped with this runtime patch")]

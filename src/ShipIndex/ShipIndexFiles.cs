@@ -194,8 +194,25 @@ public class ShipIndexFiles
                     };
                 }
 
-                // Calculate latest release for this month (highest major version)
-                var monthLatestRelease = monthReleases.Max(numericStringComparer);
+                // Calculate latest stable release for this month (highest major version with GA patches)
+                var sortedMonthReleasesForSummary = monthReleases
+                    .OrderByDescending(v => v, numericStringComparer)
+                    .ToList();
+                var monthLatestRelease = sortedMonthReleasesForSummary
+                    .FirstOrDefault(version =>
+                    {
+                        if (!releasesByMajor.TryGetValue(version, out var patches))
+                            return false;
+                        return patches.Keys.Any(patchVersion =>
+                            ReleaseStability.DeterminePhaseFromVersion(patchVersion) == SupportPhase.Active);
+                    })
+                    ?? sortedMonthReleasesForSummary.FirstOrDefault();
+
+                // Collect runtime patch versions for this month (sorted by major version descending)
+                var runtimePatches = releasesByMajor
+                    .OrderByDescending(kvp => kvp.Key, numericStringComparer)
+                    .SelectMany(kvp => kvp.Value.Keys.OrderByDescending(v => v, numericStringComparer))
+                    .ToList();
 
                 var monthSummary = new HistoryMonthSummary(
                     month.Month,
@@ -204,6 +221,7 @@ public class ShipIndexFiles
                     cveSummariesForMonth?.Select(s => s.Id).ToList(),
                     monthLatestRelease,
                     [.. monthReleases],
+                    runtimePatches.Count > 0 ? runtimePatches : null,
                     monthSummaryLinks
                 );
                 monthSummaries.Add(monthSummary);
@@ -322,190 +340,104 @@ public class ShipIndexFiles
                     .OrderByDescending(v => v, numericStringComparer)
                     .ToList();
 
-                // Latest release is the highest major version (two-part, e.g., "10.0")
-                var latestReleaseForMonth = sortedMonthReleases.FirstOrDefault();
-
-                // Create embedded releases with lifecycle based on patch versions released this month
-                // Phase is determined from the patch version string, EOL from _manifest.json (via summary)
-                var embeddedReleases = sortedMonthReleases
-                    .Select(version =>
+                // Latest release is the highest stable major version (one that had GA patches this month)
+                // A version is stable if any of its patches this month are GA (not preview/rc)
+                var latestReleaseForMonth = sortedMonthReleases
+                    .FirstOrDefault(version =>
                     {
-                        var summary = summaries.FirstOrDefault(s => s.MajorVersion == version);
+                        if (!releasesByMajor.TryGetValue(version, out var patches))
+                            return false;
+                        // Check if any patch is GA (Active phase = not preview/rc)
+                        return patches.Keys.Any(patchVersion =>
+                            ReleaseStability.DeterminePhaseFromVersion(patchVersion) == SupportPhase.Active);
+                    })
+                    ?? sortedMonthReleases.FirstOrDefault(); // Fall back to highest if no stable releases
 
-                        // Determine phase from the patch versions released this month for this major version
-                        var patchVersionsForMajor = releasesByMajor.TryGetValue(version, out var patches)
-                            ? patches.Keys.ToList()
-                            : new List<string>();
+                // Create embedded releases - patch-centric (symmetric with major version index structure)
+                // Flatten all patches from all major versions released this month
+                var embeddedReleases = sortedMonthReleases
+                    .SelectMany(majorVersion =>
+                    {
+                        if (!releasesByMajor.TryGetValue(majorVersion, out var patches))
+                            return Enumerable.Empty<PatchReleaseVersionIndexEntry>();
 
-                        // Use the "best" phase among all patches (Active > GoLive > Preview)
-                        // If any patch is Active (GA), the month shows Active
-                        // Otherwise if any patch is GoLive (RC), show GoLive
-                        // Otherwise Preview
-                        var bestPhase = patchVersionsForMajor
-                            .Select(ReleaseStability.DeterminePhaseFromVersion)
-                            .OrderBy(p => p) // Active(2) < GoLive(1) < Preview(0) - but enum order is Preview=0, GoLive=1, Active=2
-                            .LastOrDefault(); // Take highest (Active if present)
+                        var summary = summaries.FirstOrDefault(s => s.MajorVersion == majorVersion);
 
-                        // If no patches found, fall back to preview
-                        if (patchVersionsForMajor.Count == 0)
+                        return patches.Keys.Select(patchVersion =>
                         {
-                            bestPhase = SupportPhase.Preview;
-                        }
+                            var patchInfo = patches[patchVersion];
+                            var phase = ReleaseStability.DeterminePhaseFromVersion(patchVersion);
 
-                        // Create lifecycle with phase from version, other data from summary
-                        Lifecycle? lifecycle = null;
-                        if (summary?.Lifecycle != null)
-                        {
-                            lifecycle = new Lifecycle(
-                                summary.Lifecycle.ReleaseType,
-                                bestPhase,
-                                summary.Lifecycle.GaDate,
-                                summary.Lifecycle.EolDate)
+                            // Filter CVE IDs for this major version
+                            IReadOnlyList<string>? patchCveIds = null;
+                            if (cveSummariesForMonth != null)
                             {
-                                Supported = ReleaseStability.IsSupportedPhase(bestPhase) && DateTimeOffset.UtcNow < summary.Lifecycle.EolDate
-                            };
-                        }
-
-                        // Build links for this release entry - HAL+JSON first, then JSON, then Markdown
-                        var releaseLinks = new Dictionary<string, HalLink>
-                        {
-                            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
-                            {
-                                Path = $"/{version}/{FileNames.Index}",
-                                Title = $".NET {version}",
-                                Type = MediaType.HalJson
-                            }
-                        };
-
-                        // Get patches for this version
-                        string? latestPatch = null;
-                        IList<string>? runtimePatches = null;
-                        IList<string>? sdkPatches = null;
-
-                        if (releasesByMajor.TryGetValue(version, out var patchesForVersion))
-                        {
-                            runtimePatches = patchesForVersion.Keys
-                                .OrderByDescending(v => v, numericStringComparer)
-                                .ToList();
-                            latestPatch = runtimePatches.FirstOrDefault();
-
-                            var sdks = patchesForVersion.Values
-                                .SelectMany(p => p.SdkVersions)
-                                .Distinct()
-                                .OrderByDescending(v => v, numericStringComparer)
-                                .ToList();
-
-                            sdkPatches = sdks.Count > 0 ? sdks : null;
-                        }
-
-                        // Add release-patch link (HAL+JSON)
-                        if (latestPatch != null)
-                        {
-                            // Determine the correct path - previews/RCs are in a different structure
-                            string? patchIndexPath = null;
-
-                            if (latestPatch.Contains("-preview.") || latestPatch.Contains("-rc."))
-                            {
-                                // Extract preview/rc number: "10.0.0-preview.1.25080.5" -> "preview1" or "10.0.0-rc.1.xxx" -> "rc1"
-                                var dashIndex = latestPatch.IndexOf('-');
-                                if (dashIndex > 0)
-                                {
-                                    var suffix = latestPatch.Substring(dashIndex + 1); // "preview.1.25080.5" or "rc.1.xxx"
-                                    var parts = suffix.Split('.');
-                                    if (parts.Length >= 2)
-                                    {
-                                        var previewOrRc = parts[0]; // "preview" or "rc"
-                                        var number = parts[1];       // "1", "2", etc.
-                                        var subdir = $"{previewOrRc}{number}"; // "preview1" or "rc1"
-                                        patchIndexPath = $"{version}/preview/{subdir}/{FileNames.Index}";
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                // GA release - standard path
-                                patchIndexPath = $"{version}/{latestPatch}/{FileNames.Index}";
+                                var filteredCves = cveSummariesForMonth
+                                    .Where(cve => cve.AffectedReleases?.Contains(majorVersion) == true)
+                                    .Select(cve => cve.Id)
+                                    .ToList();
+                                patchCveIds = filteredCves.Count > 0 ? filteredCves : null;
                             }
 
-                            if (patchIndexPath != null)
+                            // Get SDK versions for this specific patch
+                            var sdkVersions = patchInfo.SdkVersions.Count > 0
+                                ? patchInfo.SdkVersions.OrderByDescending(v => v, numericStringComparer).ToList()
+                                : null;
+
+                            // Find the patch summary to get PatchDirPath for the self link
+                            var patchSummaryForLinks = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == patchVersion);
+
+                            // Build links - self points to patch detail index
+                            // Use PatchDirPath if available (handles preview/rc paths correctly)
+                            var patchIndexPath = patchSummaryForLinks?.PatchDirPath != null
+                                ? $"{patchSummaryForLinks.PatchDirPath}/{FileNames.Index}"
+                                : $"{majorVersion}/{patchVersion}/{FileNames.Index}";
+
+                            var patchLinks = new Dictionary<string, HalLink>
                             {
-                                releaseLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
+                                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
                                 {
                                     Path = $"/{patchIndexPath}",
-                                    Title = $".NET {latestPatch}",
+                                    Title = $".NET {patchVersion}",
+                                    Type = MediaType.HalJson
+                                }
+                            };
+
+                            // Add latest-sdk link (HAL+JSON) - only if the index.json exists
+                            var sdkIndexPath = $"{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}";
+                            var fullSdkIndexPath = Path.Combine(inputPath, sdkIndexPath);
+                            if (File.Exists(fullSdkIndexPath))
+                            {
+                                patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
+                                {
+                                    Path = $"/{sdkIndexPath}",
+                                    Title = $".NET SDK {majorVersion} Release Information",
                                     Type = MediaType.HalJson
                                 };
                             }
-                        }
 
-                        // Add latest-sdk link (HAL+JSON) - only if the index.json exists
-                        var sdkIndexPath = $"{version}/{FileNames.Directories.Sdk}/{FileNames.Index}";
-                        var fullSdkIndexPath = Path.Combine(inputPath, sdkIndexPath);
-                        if (File.Exists(fullSdkIndexPath))
-                        {
-                            releaseLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
+                            // Get release date from the summary's patch releases if available
+                            DateTimeOffset? releaseDate = null;
+                            var patchSummary = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == patchVersion);
+                            if (patchSummary != null)
                             {
-                                Path = $"/{sdkIndexPath}",
-                                Title = $".NET SDK {version} Release Information",
-                                Type = MediaType.HalJson
-                            };
-                        }
-
-                        // Filter CVE IDs for this major version
-                        IList<string>? majorVersionCveIds = null;
-                        if (cveSummariesForMonth != null)
-                        {
-                            var filteredCves = cveSummariesForMonth
-                                .Where(cve => cve.AffectedReleases?.Contains(version) == true)
-                                .ToList();
-
-                            if (filteredCves.Count > 0)
-                            {
-                                majorVersionCveIds = filteredCves.Select(cve => cve.Id).ToList();
+                                releaseDate = new DateTimeOffset(patchSummary.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero);
                             }
-                        }
 
-                        // Add CVE links (JSON then Markdown) - only if there are CVEs for this version
-                        if (majorVersionCveIds != null)
-                        {
-                            var cveJsonPath = $"{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/{FileNames.Cve}";
-                            releaseLinks[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}")
-                            {
-                                Path = $"/{cveJsonPath}",
-                                Title = "CVE Information",
-                                Type = MediaType.Json
-                            };
-
-                            var cveMdPath = $"{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/cve.md";
-                            releaseLinks["cve-markdown"] = new HalLink($"{Location.GitHubBaseUri}{cveMdPath}")
-                            {
-                                Path = $"/{cveMdPath}",
-                                Title = "CVE Information",
-                                Type = MediaType.Markdown
-                            };
-                            releaseLinks["cve-markdown-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{cveMdPath}")
-                            {
-                                Path = $"/{cveMdPath}",
-                                Title = "CVE Information (Rendered)",
-                                Type = MediaType.Markdown
-                            };
-                        }
-
-                        return new MajorReleaseVersionIndexEntry(version)
-                        {
-                            ReleaseType = lifecycle?.ReleaseType,
-                            Phase = lifecycle?.Phase,
-                            Supported = lifecycle?.Supported,
-                            Security = majorVersionCveIds?.Count > 0,
-                            CveCount = majorVersionCveIds?.Count ?? 0,
-                            GaDate = lifecycle?.GaDate,
-                            EolDate = lifecycle?.EolDate,
-                            CveRecords = majorVersionCveIds,
-                            RuntimePatches = runtimePatches,
-                            SdkPatches = sdkPatches,
-                            Links = HalHelpers.OrderLinks(releaseLinks)
-                        };
+                            return new PatchReleaseVersionIndexEntry(
+                                patchVersion,
+                                releaseDate,
+                                year.Year,
+                                month.Month,
+                                patchCveIds?.Count > 0,
+                                patchCveIds?.Count ?? 0,
+                                patchCveIds,
+                                phase,
+                                sdkVersions as IReadOnlyList<string>,
+                                HalHelpers.OrderLinks(patchLinks));
+                        });
                     })
+                    .OrderByDescending(p => p.Version, numericStringComparer)
                     .ToList();
 
                 // Extract CVE IDs from disclosures for root-level quick enumeration

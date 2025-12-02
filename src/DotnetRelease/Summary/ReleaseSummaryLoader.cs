@@ -173,9 +173,12 @@ public static class ReleaseSummaryLoader
             var lifecycle = new Lifecycle(releaseType, phase, gaDate, eolDate);
             lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
 
+            // Use label from _manifest.json if available, otherwise default to ".NET {version}"
+            var versionLabel = partialManifest?.Label ?? $".NET {major.ChannelVersion}";
+
             MajorReleaseSummary majorSummary = new MajorReleaseSummary(
                 major.ChannelVersion,
-                $".NET " + major.ChannelVersion,
+                versionLabel,
                 lifecycle,
                 sdkBands,
                 patchVersions
