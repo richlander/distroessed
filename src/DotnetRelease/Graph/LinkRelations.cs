@@ -137,4 +137,10 @@ public static class LinkRelations
     /// Used in patch-version-index to link to the timeline year index.
     /// </summary>
     public const string ReleaseYear = "release-year";
+
+    /// <summary>
+    /// Link relation for breaking changes document.
+    /// Used in major-version-index to link to breaking-changes.json.
+    /// </summary>
+    public const string BreakingChangesJson = "breaking-changes-json";
 }

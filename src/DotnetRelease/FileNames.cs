@@ -17,6 +17,7 @@ public static class FileNames
     public const string PartialManifest = "_manifest.json";
     public const string ReleasesIndex = "releases-index.json";
     public const string PatchReleasesIndex = "patch-releases-index.json";
+    public const string BreakingChanges = "breaking-changes.json";
 
     // Schema file names (in schemas/ directory)
     public static class Schemas

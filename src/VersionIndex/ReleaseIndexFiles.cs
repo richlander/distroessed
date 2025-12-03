@@ -233,6 +233,19 @@ public class ReleaseIndexFiles
                 orderedMajorVersionLinks[link.Key] = link.Value;
             }
 
+            // 4b. Add breaking-changes-json link if the file exists
+            var breakingChangesPath = Path.Combine(majorVersionDir, FileNames.BreakingChanges);
+            if (File.Exists(breakingChangesPath))
+            {
+                var breakingChangesRelativePath = $"{majorVersionDirName}/{FileNames.BreakingChanges}";
+                orderedMajorVersionLinks[LinkRelations.BreakingChangesJson] = new HalLink($"{Location.GitHubBaseUri}{breakingChangesRelativePath}")
+                {
+                    Path = $"/{breakingChangesRelativePath}",
+                    Title = $".NET {majorVersionDirName} Breaking Changes",
+                    Type = MediaType.Json
+                };
+            }
+
             // 5. Add JSON-only links from aux mappings
             foreach (var link in auxLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
             {
