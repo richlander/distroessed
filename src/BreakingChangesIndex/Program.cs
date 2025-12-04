@@ -1,7 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using BreakingChangesIndex;
 
 // Generates breaking-changes.json files from dotnet/docs compatibility documentation
 // Data source: https://github.com/dotnet/docs/tree/main/docs/core/compatibility
+
+[module: UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This tool is not AOT compiled")]
+[module: UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "This tool is not trimmed")]
 
 if (args.Length == 0)
 {

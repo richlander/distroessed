@@ -1,5 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace BreakingChangesIndex;
 
@@ -8,13 +8,6 @@ namespace BreakingChangesIndex;
 /// </summary>
 public static class BreakingChangesGenerator
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-    };
-
     /// <summary>
     /// Generates a breaking-changes.json file for the specified .NET version.
     /// </summary>
@@ -22,6 +15,8 @@ public static class BreakingChangesGenerator
     /// <param name="outputPath">Path to write the breaking-changes.json file</param>
     /// <param name="version">The .NET major version (e.g., "10.0", "9.0")</param>
     /// <param name="schemaUri">Optional schema URI to include in the output</param>
+    [RequiresDynamicCode("Uses YamlDotNet which requires dynamic code")]
+    [RequiresUnreferencedCode("Uses YamlDotNet which requires unreferenced code")]
     public static async Task GenerateAsync(
         string docsCompatibilityPath,
         string outputPath,
@@ -117,7 +112,7 @@ public static class BreakingChangesGenerator
         };
 
         // Write output
-        var json = JsonSerializer.Serialize(document, JsonOptions);
+        var json = JsonSerializer.Serialize(document, BreakingChangesSerializerContext.Default.BreakingChangesDocument);
         await File.WriteAllTextAsync(outputPath, json + "\n");
 
         Console.WriteLine($"  Written to: {outputPath}");

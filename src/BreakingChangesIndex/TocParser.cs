@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -12,6 +13,8 @@ public static class TocParser
     /// Parses the toc.yml and returns breaking change file paths for the specified .NET version.
     /// </summary>
     /// <returns>Dictionary mapping category names to lists of file paths</returns>
+    [RequiresDynamicCode("YamlDotNet uses reflection for deserialization")]
+    [RequiresUnreferencedCode("YamlDotNet uses reflection for deserialization")]
     public static Dictionary<string, List<string>> GetBreakingChangesByVersion(string tocPath, string version)
     {
         var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
