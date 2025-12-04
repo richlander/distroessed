@@ -61,7 +61,7 @@ public static class BreakingChangesGenerator
                     continue;
                 }
 
-                var breakingChange = BreakingChangeParser.Parse(filePath, category, versionFolder);
+                var breakingChange = BreakingChangeParser.Parse(filePath, category, versionFolder, relativePath);
                 if (breakingChange != null)
                 {
                     allBreakingChanges.Add(breakingChange);

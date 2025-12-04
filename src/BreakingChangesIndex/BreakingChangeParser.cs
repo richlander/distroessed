@@ -19,7 +19,11 @@ public partial class BreakingChangeParser
     /// <summary>
     /// Parses a breaking change markdown file and returns a BreakingChange record.
     /// </summary>
-    public static BreakingChange? Parse(string filePath, string category, string majorVersion)
+    /// <param name="filePath">Full path to the markdown file</param>
+    /// <param name="category">Category name (e.g., "aspnet-core")</param>
+    /// <param name="majorVersion">Major version for ID generation (e.g., "10")</param>
+    /// <param name="relativePath">Relative path from toc.yml (e.g., "aspnet-core/10/file.md")</param>
+    public static BreakingChange? Parse(string filePath, string category, string majorVersion, string relativePath)
     {
         if (!File.Exists(filePath))
         {
@@ -28,6 +32,9 @@ public partial class BreakingChangeParser
 
         var content = File.ReadAllText(filePath);
         var fileName = Path.GetFileNameWithoutExtension(filePath);
+        var relativePathWithoutExtension = relativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+            ? relativePath[..^3]
+            : relativePath;
 
         // Extract YAML frontmatter
         var frontmatterMatch = YamlFrontmatterRegex.Match(content);
@@ -70,12 +77,12 @@ public partial class BreakingChangeParser
         // Build references
         var references = new List<BreakingChangeReference>();
 
-        // Documentation URL
-        var docUrl = $"https://learn.microsoft.com/dotnet/core/compatibility/{category}/{majorVersion}/{fileName}";
+        // Documentation URL (uses the relative path from toc.yml)
+        var docUrl = $"https://learn.microsoft.com/dotnet/core/compatibility/{relativePathWithoutExtension}";
         references.Add(new BreakingChangeReference("documentation", docUrl) { Title = "Breaking change documentation" });
 
-        // Documentation source URL
-        var sourceUrl = $"https://raw.githubusercontent.com/dotnet/docs/main/docs/core/compatibility/{category}/{majorVersion}/{fileName}.md";
+        // Documentation source URL (uses the relative path from toc.yml)
+        var sourceUrl = $"https://raw.githubusercontent.com/dotnet/docs/main/docs/core/compatibility/{relativePath}";
         references.Add(new BreakingChangeReference("documentation-source", sourceUrl) { Title = "Documentation source (markdown)" });
 
         // GitHub announcement if present in ms.custom
