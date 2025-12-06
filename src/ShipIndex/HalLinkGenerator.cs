@@ -69,6 +69,16 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             {
                 name = LinkRelations.CveJson;
             }
+            // Special case for supported-os.json - non-HAL JSON needs -json suffix
+            else if (filename == "supported-os.json")
+            {
+                name = "supported-os-json";
+            }
+            // Special case for linux-packages.json - non-HAL JSON needs -json suffix
+            else if (filename == "linux-packages.json")
+            {
+                name = "linux-packages-json";
+            }
             // Special case for README.md to use correct key name
             else if (filename == "README.md")
             {

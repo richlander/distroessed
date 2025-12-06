@@ -29,7 +29,7 @@ public static class ManifestGenerator
 
         // Use values from _manifest.json with computed fallbacks
         var releaseType = partial?.ReleaseType ?? (IsEvenMajorVersion(version) ? ReleaseType.LTS : ReleaseType.STS);
-        var phase = partial?.Phase ?? SupportPhase.Preview;
+        var phase = partial?.SupportPhase ?? SupportPhase.Preview;
         var gaDate = partial?.GaDate;
         var eolDate = partial?.EolDate;
 
@@ -46,26 +46,39 @@ public static class ManifestGenerator
             Console.WriteLine($"Warning: {version} - Missing ga_date or eol_date in _manifest.json");
         }
 
-        // Generate standard links and merge with partial manifest links
-        var links = halLinkGenerator.Generate(
-            majorVersionDir,
-            ReleaseIndexFiles.MainFileMappings.Values,
-            (fileLink, key) => key == HalTerms.Self ? versionLabel : fileLink.Title);
+        // Generate self link for manifest
+        var manifestPath = $"{version}/{FileNames.Manifest}";
+        var links = new Dictionary<string, HalLink>
+        {
+            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{manifestPath}")
+            {
+                Path = $"/{manifestPath}",
+                Title = $"{versionLabel} Manifest",
+                Type = MediaType.HalJson
+            }
+        };
 
-        // Merge in additional links from partial manifest (these override generated links)
+        // Generate operational/reference links from ManifestFileMappings
+        var operationalLinks = halLinkGenerator.Generate(
+            majorVersionDir,
+            ReleaseIndexFiles.ManifestFileMappings.Values,
+            (fileLink, key) => fileLink.Title,
+            includeSelf: false);
+
+        // Add operational links
+        foreach (var (key, link) in operationalLinks)
+        {
+            links[key] = link;
+        }
+
+        // Merge in additional links from partial manifest (skip self - we generate it)
         if (partial?.Links != null)
         {
             foreach (var (key, link) in partial.Links)
             {
-                // For self link, expand the path to full URL
-                if (key == HalTerms.Self && link.Href.StartsWith("/"))
-                {
-                    links[key] = halLinkGenerator.ExpandLink(link, versionLabel);
-                }
-                else
-                {
-                    links[key] = link;
-                }
+                if (key == HalTerms.Self)
+                    continue;
+                links[key] = link;
             }
         }
 
@@ -77,7 +90,7 @@ public static class ManifestGenerator
             partial?.Label ?? versionLabel)
         {
             ReleaseType = releaseType,
-            Phase = phase,
+            SupportPhase = phase,
             Supported = supported,
             GaDate = gaDate,
             EolDate = eolDate,

@@ -4,15 +4,15 @@ using System.Text.Json;
 namespace BreakingChangesIndex;
 
 /// <summary>
-/// Generates breaking-changes.json files from the dotnet/docs compatibility documentation.
+/// Generates compatibility.json files from the dotnet/docs compatibility documentation.
 /// </summary>
 public static class BreakingChangesGenerator
 {
     /// <summary>
-    /// Generates a breaking-changes.json file for the specified .NET version.
+    /// Generates a compatibility.json file for the specified .NET version.
     /// </summary>
     /// <param name="docsCompatibilityPath">Path to docs/core/compatibility in the dotnet/docs repo</param>
-    /// <param name="outputPath">Path to write the breaking-changes.json file</param>
+    /// <param name="outputPath">Path to write the compatibility.json file</param>
     /// <param name="version">The .NET major version (e.g., "10.0", "9.0")</param>
     /// <param name="schemaUri">Optional schema URI to include in the output</param>
     [RequiresDynamicCode("Uses YamlDotNet which requires dynamic code")]

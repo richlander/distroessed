@@ -28,19 +28,21 @@ public class ReleaseIndexFiles
         {$"{FileNames.Directories.Timeline}/{FileNames.Index}", new FileLink($"{FileNames.Directories.Timeline}/{FileNames.Index}", IndexTitles.TimelineIndexLink, LinkStyle.Prod) },
     };
 
-    public static readonly OrderedDictionary<string, FileLink> PatchFileMappings = new()
+    // Links for major version index - lean navigation hub
+    public static readonly OrderedDictionary<string, FileLink> MajorVersionFileMappings = new()
     {
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.Index, LinkStyle.Prod) },
         {FileNames.Manifest, new FileLink(FileNames.Manifest, LinkTitles.ReleaseManifest, LinkStyle.Prod) },
-        {FileNames.Releases, new FileLink(FileNames.Releases, LinkTitles.CompleteReleaseInformation, LinkStyle.Prod) },
-        {FileNames.Release, new FileLink(FileNames.Release, LinkTitles.Release, LinkStyle.Prod) }
     };
 
-    public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
+    // Links for manifest.json - operational/reference links
+    public static readonly OrderedDictionary<string, FileLink> ManifestFileMappings = new()
     {
+        {FileNames.Releases, new FileLink(FileNames.Releases, LinkTitles.CompleteReleaseInformation, LinkStyle.Prod) },
         {FileNames.SupportedOs, new FileLink(FileNames.SupportedOs, LinkTitles.SupportedOSes, LinkStyle.Prod) },
-        {"supported-os.md", new FileLink("supported-os.md", LinkTitles.SupportedOSes, LinkStyle.Prod | LinkStyle.GitHub) },
+        {FileNames.OsPackages, new FileLink(FileNames.OsPackages, LinkTitles.OsPackages, LinkStyle.Prod) },
         {"linux-packages.json", new FileLink("linux-packages.json", LinkTitles.LinuxPackages, LinkStyle.Prod) },
+        {"supported-os.md", new FileLink("supported-os.md", LinkTitles.SupportedOSes, LinkStyle.Prod | LinkStyle.GitHub) },
         {"linux-packages.md", new FileLink("linux-packages.md", LinkTitles.LinuxPackages, LinkStyle.Prod | LinkStyle.GitHub) },
         {"README.md", new FileLink("README.md", LinkTitles.ReleaseNotes, LinkStyle.GitHub) }
     };
@@ -132,21 +134,14 @@ public class ReleaseIndexFiles
             // Use lifecycle from summary (canonical source from ReleaseSummaryLoader)
             var lifecycle = summary.Lifecycle;
 
-            // Generate base links from PatchFileMappings first  
+            // Generate base links for major version index (lean navigation hub)
             var majorVersionLinks = halLinkGenerator.Generate(
                 majorVersionDir,
-                PatchFileMappings.Values,
+                MajorVersionFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? summary.MajorVersionLabel : fileLink.Title);
 
             // Generate patch version index; release-notes/8.0/index.json
             var patchEntries = await GetPatchIndexEntriesAsync(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, inputDir), lifecycle, outputDir, majorVersionDirName);
-
-            // Generate aux links
-            var auxLinks = halLinkGenerator.Generate(
-                majorVersionDir,
-                AuxFileMappings.Values,
-                (fileLink, key) => fileLink.Title,
-                includeSelf: false); // Don't create self link for aux files
 
             // Collect release timeline years (used for _embedded.years later)
             // Get unique years from patch releases for this major version
@@ -173,7 +168,10 @@ public class ReleaseIndexFiles
             var patchDescription = $".NET {majorVersionDirName} (latest: {latestPatchVersion})";
             var latestSecurityPatch = patchEntries.FirstOrDefault(e => e.CveRecords?.Count > 0);
 
-            // Reorder links to follow spec: HAL+JSON first, then JSON, then markdown
+            // Get latest patch directory path for release.json link
+            var latestPatchSummary = summary.PatchReleases.FirstOrDefault(p => p.PatchVersion == latestPatchVersion);
+
+            // Build ordered links for major version index (lean navigation hub)
             var orderedMajorVersionLinks = new Dictionary<string, HalLink>();
 
             // 1. Add HAL+JSON links from base mappings first
@@ -227,35 +225,29 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // 4. Add JSON-only links from base mappings
-            foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
+            // 4. Add latest-release-json link (small file, LLM-friendly)
+            if (latestPatchSummary?.PatchDirPath != null)
             {
-                orderedMajorVersionLinks[link.Key] = link.Value;
-            }
-
-            // 4b. Add breaking-changes-json link if the file exists
-            var breakingChangesPath = Path.Combine(majorVersionDir, FileNames.BreakingChanges);
-            if (File.Exists(breakingChangesPath))
-            {
-                var breakingChangesRelativePath = $"{majorVersionDirName}/{FileNames.BreakingChanges}";
-                orderedMajorVersionLinks[LinkRelations.BreakingChangesJson] = new HalLink($"{Location.GitHubBaseUri}{breakingChangesRelativePath}")
+                var latestReleaseJsonPath = $"{latestPatchSummary.PatchDirPath}/{FileNames.Release}";
+                orderedMajorVersionLinks["latest-release-json"] = new HalLink($"{Location.GitHubBaseUri}{latestReleaseJsonPath}")
                 {
-                    Path = $"/{breakingChangesRelativePath}",
-                    Title = $".NET {majorVersionDirName} Breaking Changes",
+                    Path = $"/{latestReleaseJsonPath}",
+                    Title = $"Latest release information ({latestPatchVersion})",
                     Type = MediaType.Json
                 };
             }
 
-            // 5. Add JSON-only links from aux mappings
-            foreach (var link in auxLinks.Where(kvp => kvp.Value.Type == MediaType.Json))
+            // 5. Add compatibility-json link if the file exists (high-value for upgrade decisions)
+            var compatibilityPath = Path.Combine(majorVersionDir, FileNames.Compatibility);
+            if (File.Exists(compatibilityPath))
             {
-                orderedMajorVersionLinks[link.Key] = link.Value;
-            }
-
-            // 6. Add markdown links from aux mappings
-            foreach (var link in auxLinks.Where(kvp => kvp.Value.Type == MediaType.Markdown))
-            {
-                orderedMajorVersionLinks[link.Key] = link.Value;
+                var compatibilityRelativePath = $"{majorVersionDirName}/{FileNames.Compatibility}";
+                orderedMajorVersionLinks[LinkRelations.CompatibilityJson] = new HalLink($"{Location.GitHubBaseUri}{compatibilityRelativePath}")
+                {
+                    Path = $"/{compatibilityRelativePath}",
+                    Title = $".NET {majorVersionDirName} Compatibility",
+                    Type = MediaType.Json
+                };
             }
 
             majorVersionLinks = orderedMajorVersionLinks;
@@ -287,13 +279,13 @@ public class ReleaseIndexFiles
             
             var patchVersionIndex = new PatchReleaseVersionIndex(
                 ReleaseKind.MajorVersionIndex,
-                $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Patch Release Index",
+                $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Release Index",
                 patchDescription)
             {
                 Latest = latestPatch?.Version,
                 LatestSecurity = latestSecurityPatch?.Version,
                 ReleaseType = lifecycle?.ReleaseType,
-                Phase = lifecycle?.Phase,
+                SupportPhase = lifecycle?.Phase,
                 Supported = lifecycle?.Supported,
                 GaDate = lifecycle?.GaDate,
                 EolDate = lifecycle?.EolDate,
@@ -690,10 +682,10 @@ public class ReleaseIndexFiles
 
             var patchLifecycle = new PatchLifecycle(patchPhase, patchReleaseDate);
 
-            // Determine prev/next patches (within same major version)
-            // summaryList is ordered newest to oldest, so prev is i+1 (older) and next is i-1 (newer)
+            // Determine prev patch (within same major version)
+            // summaryList is ordered newest to oldest, so prev is i+1 (older)
+            // NOTE: No "next" - patch indexes are immutable; navigate via "latest" and walk backwards
             var prevSummary = i + 1 < summaryList.Count ? summaryList[i + 1] : null;
-            var nextSummary = i > 0 ? summaryList[i - 1] : null;
 
             // Always generate patch detail index (for all patches, not just those with CVEs)
             await GeneratePatchDetailIndexAsync(
@@ -706,9 +698,7 @@ public class ReleaseIndexFiles
                 patchLifecycle,
                 cveIds,
                 prevSummary?.PatchVersion,
-                prevSummary?.PatchDirPath,
-                nextSummary?.PatchVersion,
-                nextSummary?.PatchDirPath);
+                prevSummary?.PatchDirPath);
 
             // Get SDK versions from components
             var sdkVersions = summary.Components?
@@ -741,9 +731,7 @@ public class ReleaseIndexFiles
         PatchLifecycle lifecycle,
         IReadOnlyList<string>? cveIds,
         string? prevPatchVersion,
-        string? prevPatchDirPath,
-        string? nextPatchVersion,
-        string? nextPatchDirPath)
+        string? prevPatchDirPath)
     {
         // Create patch detail index links - HAL+JSON links first, then JSON
         var links = new Dictionary<string, HalLink>
@@ -793,15 +781,8 @@ public class ReleaseIndexFiles
             };
         }
 
-        if (nextPatchVersion != null && nextPatchDirPath != null)
-        {
-            links[HalTerms.Next] = new HalLink($"{Location.GitHubBaseUri}{nextPatchDirPath}/{FileNames.Index}")
-            {
-                Path = $"/{nextPatchDirPath}/{FileNames.Index}",
-                Title = $"{nextPatchVersion} Patch Index",
-                Type = MediaType.HalJson
-            };
-        }
+        // NOTE: No "next" links - patch indexes are immutable once created.
+        // Navigation pattern: start from "latest" on major version index and walk backwards via "prev" links.
 
         // release-month will be added below after we determine the release date (HAL+JSON)
         // Then JSON links (release-json, cve-json) will be added at the end

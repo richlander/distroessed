@@ -153,7 +153,7 @@ public static class ReleaseSummaryLoader
                 eolDate = partialManifest.EolDate.Value;
                 releaseType = partialManifest.ReleaseType ?? major.ReleaseType;
                 phase = ReleaseStability.ComputeEffectivePhase(
-                    partialManifest.Phase ?? major.SupportPhase,
+                    partialManifest.SupportPhase ?? major.SupportPhase,
                     gaDate);
             }
             else

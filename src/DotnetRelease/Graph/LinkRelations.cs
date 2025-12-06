@@ -139,8 +139,8 @@ public static class LinkRelations
     public const string ReleaseYear = "release-year";
 
     /// <summary>
-    /// Link relation for breaking changes document.
-    /// Used in major-version-index to link to breaking-changes.json.
+    /// Link relation for compatibility document.
+    /// Used in major-version-index to link to compatibility.json.
     /// </summary>
-    public const string BreakingChangesJson = "breaking-changes-json";
+    public const string CompatibilityJson = "compatibility-json";
 }

@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using BreakingChangesIndex;
 
-// Generates breaking-changes.json files from dotnet/docs compatibility documentation
+// Generates compatibility.json files from dotnet/docs compatibility documentation
 // Data source: https://github.com/dotnet/docs/tree/main/docs/core/compatibility
 
 [module: UnconditionalSuppressMessage("AOT", "IL3050", Justification = "This tool is not AOT compiled")]
@@ -9,23 +9,24 @@ using BreakingChangesIndex;
 
 if (args.Length == 0)
 {
-    Console.Error.WriteLine("Usage: BreakingChangesIndex <docs-compatibility-path> <output-path> <version> [--schema <uri>]");
+    Console.Error.WriteLine("Usage: BreakingChangesIndex <docs-compatibility-path> <output-dir> <version> [--schema <uri>]");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Arguments:");
     Console.Error.WriteLine("  docs-compatibility-path  Path to docs/core/compatibility in dotnet/docs repo");
-    Console.Error.WriteLine("  output-path              Path for the generated breaking-changes.json file");
+    Console.Error.WriteLine("  output-dir               Output directory (file will be <version>/compatibility.json)");
     Console.Error.WriteLine("  version                  .NET major version (e.g., 10.0, 9.0, 8.0)");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Options:");
     Console.Error.WriteLine("  --schema <uri>           Schema URI to include in the output");
     Console.Error.WriteLine();
     Console.Error.WriteLine("Example:");
-    Console.Error.WriteLine("  BreakingChangesIndex ~/git/docs/docs/core/compatibility ~/git/core/release-notes/10.0/breaking-changes.json 10.0");
+    Console.Error.WriteLine("  BreakingChangesIndex ~/git/docs/docs/core/compatibility ~/git/core/release-notes 10.0");
+    Console.Error.WriteLine("  # Creates ~/git/core/release-notes/10.0/compatibility.json");
     return 1;
 }
 
 string? docsPath = null;
-string? outputPath = null;
+string? outputDir = null;
 string? version = null;
 string? schemaUri = null;
 
@@ -40,9 +41,9 @@ for (int i = 0; i < args.Length; i++)
     {
         docsPath = args[i];
     }
-    else if (outputPath == null)
+    else if (outputDir == null)
     {
-        outputPath = args[i];
+        outputDir = args[i];
     }
     else if (version == null)
     {
@@ -50,9 +51,9 @@ for (int i = 0; i < args.Length; i++)
     }
 }
 
-if (docsPath == null || outputPath == null || version == null)
+if (docsPath == null || outputDir == null || version == null)
 {
-    Console.Error.WriteLine("Error: docs-compatibility-path, output-path, and version are required");
+    Console.Error.WriteLine("Error: docs-compatibility-path, output-dir, and version are required");
     return 1;
 }
 
@@ -62,11 +63,14 @@ if (!Directory.Exists(docsPath))
     return 1;
 }
 
+// Construct output path: <output-dir>/<version>/compatibility.json
+var outputPath = Path.Combine(outputDir, version, "compatibility.json");
+
 // Ensure output directory exists
-var outputDir = Path.GetDirectoryName(outputPath);
-if (!string.IsNullOrEmpty(outputDir) && !Directory.Exists(outputDir))
+var outputFileDir = Path.GetDirectoryName(outputPath);
+if (!string.IsNullOrEmpty(outputFileDir) && !Directory.Exists(outputFileDir))
 {
-    Directory.CreateDirectory(outputDir);
+    Directory.CreateDirectory(outputFileDir);
 }
 
 try

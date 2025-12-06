@@ -27,5 +27,6 @@ public static class LinkTitles
     
     // OS and packages
     public static readonly string SupportedOSes = string.Intern("Supported OSes");
+    public static readonly string OsPackages = string.Intern("OS Packages");
     public static readonly string LinuxPackages = string.Intern("Linux Packages");
 }

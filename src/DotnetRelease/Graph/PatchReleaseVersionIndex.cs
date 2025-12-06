@@ -32,7 +32,7 @@ public record PatchReleaseVersionIndex(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Current support phase (preview, go-live, active, maintenance, eol)")]
-    public SupportPhase? Phase { get; init; }
+    public SupportPhase? SupportPhase { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Whether this version is currently supported")]

@@ -29,7 +29,7 @@ public class ReleaseSummary
     /// <summary>
     /// Current lifecycle phase (Preview, Active, Maintenance, Eol)
     /// </summary>
-    public SupportPhase? Phase => _entry.Phase;
+    public SupportPhase? Phase => _entry.SupportPhase;
 
     /// <summary>
     /// Date when this version became generally available (GA date)

@@ -278,43 +278,8 @@ public class ShipIndexFiles
                     }
                 }
 
-                // Next month link
-                if (currentMonthIndex < sortedMonths.Count - 1)
-                {
-                    // Next month in same year
-                    var nextMonth = sortedMonths[currentMonthIndex + 1];
-                    var nextMonthIndexPath = Path.Combine(yearPath, nextMonth, FileNames.Index);
-                    var nextMonthIndexRelativePath = Path.GetRelativePath(inputPath, nextMonthIndexPath);
-                    var nextMonthPathValue = "/" + nextMonthIndexRelativePath.Replace("\\", "/");
-                    monthIndexLinks[HalTerms.Next] = new HalLink(urlGenerator(nextMonthIndexRelativePath, LinkStyle.Prod))
-                    {
-                        Path = nextMonthPathValue,
-                        Title = IndexTitles.TimelineMonthLink(year.Year, nextMonth),
-                        Type = MediaType.HalJson
-                    };
-                }
-                else if (currentYearIndex < sortedYears.Count - 1)
-                {
-                    // Last month of year - link to first month of next year
-                    var nextYear = sortedYears[currentYearIndex + 1];
-                    if (releaseHistory.Years.TryGetValue(nextYear, out var nextYearData))
-                    {
-                        var nextYearMonths = nextYearData.Months.Keys.OrderBy(m => m, numericStringComparer).ToList();
-                        if (nextYearMonths.Count > 0)
-                        {
-                            var firstMonthOfNextYear = nextYearMonths.First();
-                            var nextMonthIndexPath = Path.Combine(historyPath, nextYear, firstMonthOfNextYear, FileNames.Index);
-                            var nextMonthIndexRelativePath = Path.GetRelativePath(inputPath, nextMonthIndexPath);
-                            var nextMonthPathValue = "/" + nextMonthIndexRelativePath.Replace("\\", "/");
-                            monthIndexLinks[HalTerms.Next] = new HalLink(urlGenerator(nextMonthIndexRelativePath, LinkStyle.Prod))
-                            {
-                                Path = nextMonthPathValue,
-                                Title = IndexTitles.TimelineMonthLink(nextYear, firstMonthOfNextYear),
-                                Type = MediaType.HalJson
-                            };
-                        }
-                    }
-                }
+                // NOTE: No "next" links - month indexes are immutable once created.
+                // Navigation pattern: start from latest-month and walk backwards via "prev" links.
 
                 // Add timeline-index link (grandparent)
                 monthIndexLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
@@ -520,20 +485,8 @@ public class ShipIndexFiles
                     Type = MediaType.HalJson
                 };
             }
-            if (currentYearIndex < sortedYears.Count - 1)
-            {
-                var nextYear = sortedYears[currentYearIndex + 1];
-                var nextYearPath = Path.Combine(historyPath, nextYear);
-                var nextYearIndexPath = Path.Combine(nextYearPath, FileNames.Index);
-                var nextYearIndexRelativePath = Path.GetRelativePath(inputPath, nextYearIndexPath);
-                var nextYearPathValue = "/" + nextYearIndexRelativePath.Replace("\\", "/");
-                yearHalLinks[HalTerms.Next] = new HalLink(urlGenerator(nextYearIndexRelativePath, LinkStyle.Prod))
-                {
-                    Path = nextYearPathValue,
-                    Title = IndexTitles.TimelineYearLink(nextYear),
-                    Type = MediaType.HalJson
-                };
-            }
+            // NOTE: No "next" links - year indexes are immutable after their last natural update.
+            // Navigation pattern: start from latest-year and walk backwards via "prev" links.
 
             // Add timeline-index link (parent)
             yearHalLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
@@ -707,7 +660,7 @@ public class ShipIndexFiles
                     return new MajorReleaseVersionIndexEntry(version)
                     {
                         ReleaseType = lifecycle?.ReleaseType,
-                        Phase = lifecycle?.Phase,
+                        SupportPhase = lifecycle?.Phase,
                         Supported = lifecycle?.Supported,
                         GaDate = lifecycle?.GaDate,
                         EolDate = lifecycle?.EolDate,

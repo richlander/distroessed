@@ -20,7 +20,7 @@ public record ReleaseManifest(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Current support phase (preview, go-live, active, maintenance, eol)")]
-    public SupportPhase? Phase { get; init; }
+    public SupportPhase? SupportPhase { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Whether this version is currently supported")]
@@ -69,7 +69,7 @@ public record PartialManifest
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Current support phase (preview, go-live, active, maintenance, eol)")]
-    public SupportPhase? Phase { get; init; }
+    public SupportPhase? SupportPhase { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Whether this version is currently supported (false = compute at generation time)")]
