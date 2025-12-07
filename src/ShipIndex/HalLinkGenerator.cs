@@ -105,7 +105,6 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
 
                     result[linkKey] = new HalLink(urlGenerator(relativePath, style))
                         {
-                            Path = pathValue,
                             Title = title,
                             Type = fileType
                         };

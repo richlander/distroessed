@@ -130,7 +130,6 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
 
                     result[linkKey] = new HalLink(urlGenerator(urlPath, style))
                         {
-                            Path = pathValue,
                             Title = title,
                             Type = fileType
                         };
@@ -155,7 +154,6 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
 
         return new HalLink(href)
         {
-            Path = partialLink.Path ?? partialLink.Href,
             Title = partialLink.Title ?? title,
             Type = partialLink.Type ?? MediaType.HalJson
         };

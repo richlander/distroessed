@@ -10,10 +10,6 @@ public record HalLink(
     string Href)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Absolute path from the repository root (starts with /)")]
-    public string? Path { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Descriptive title for the linked resource")]
     public string? Title { get; set; }
 

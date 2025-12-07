@@ -71,7 +71,6 @@ public class IndexHelpers
                 var key = isMarkdown ? $"{name}-markdown" : name;
                 yield return new HalTuple(key, ReleaseKind.Content, new HalLink(GetProdPath(urlRelativePath))
                 {
-                    Path = pathValue,
                     Title = mapping.Title,
                     Type = extension switch
                     {
@@ -88,7 +87,6 @@ public class IndexHelpers
                 var key = isMarkdown ? $"{name}-markdown-rendered" : name;
                 yield return new HalTuple(key, ReleaseKind.Content, new HalLink(GetGitHubPath(urlRelativePath))
                 {
-                    Path = pathValue,
                     Title = $"{mapping.Title} (Rendered)",
                     Type = MediaType.Markdown
                 });
@@ -113,7 +111,6 @@ public class IndexHelpers
 
         var link = new HalLink(prodPath)
         {
-            Path = pathValue,
             Title = $"{subtitle} {kind}",
             Type = type
         };

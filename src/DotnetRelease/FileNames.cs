@@ -33,6 +33,8 @@ public static class FileNames
         public const string SdkDownload = "dotnet-sdk-download.json";
         public const string PatchDetailIndex = "dotnet-patch-detail-index.json";
         public const string TimelineIndex = "dotnet-release-timeline-index.json";
+        public const string DownloadsIndex = "dotnet-downloads-index.json";
+        public const string ComponentDownload = "dotnet-component-download.json";
     }
 
     // Directory names
@@ -42,5 +44,6 @@ public static class FileNames
         public const string Schemas = "schemas";
         public const string Sdk = "sdk";
         public const string Preview = "preview";
+        public const string Downloads = "downloads";
     }
 }

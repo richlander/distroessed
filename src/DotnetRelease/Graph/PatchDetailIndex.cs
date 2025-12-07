@@ -33,8 +33,12 @@ public record PatchDetailIndex(
     IReadOnlyList<string>? CveRecords)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK patch versions shipped with this runtime patch")]
-    public IReadOnlyList<string>? SdkPatches { get; init; }
+     Description("Highest SDK version shipped with this runtime patch")]
+    public string? SdkRelease { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("SDK feature band versions shipped with this runtime patch")]
+    public IReadOnlyList<string>? SdkFeatureBands { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
@@ -54,28 +58,18 @@ public record PatchDetailIndex(
 /// <summary>
 /// Embedded content for patch detail index
 /// </summary>
-[Description("Container for embedded SDK versions and CVE disclosures")]
+[Description("Container for embedded SDK releases and CVE disclosures")]
 public record PatchDetailIndexEmbedded
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK versions shipped with this runtime patch")]
-    public IReadOnlyList<PatchSdkEntry>? Sdk { get; set; }
+     Description("Highest SDK release as a feature band object (for quick lookup)")]
+    public SdkFeatureBandEntry? SdkRelease { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("All SDK feature bands shipped with this runtime patch")]
+    public IReadOnlyList<SdkFeatureBandEntry>? SdkFeatureBands { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this patch release")]
     public IReadOnlyList<CveRecordSummary>? Disclosures { get; set; }
-}
-
-/// <summary>
-/// SDK entry for a patch release
-/// </summary>
-[Description("SDK version and links for a patch release")]
-public record PatchSdkEntry(
-    [Description("SDK version")]
-    string Version)
-{
-    [JsonPropertyName("_links"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Links to SDK feature band and release notes")]
-    public Dictionary<string, HalLink>? Links { get; init; }
 }

@@ -128,6 +128,12 @@ public enum ReleaseKind
     [Description("SDK download information for a feature band")]
     SdkDownload,
 
+    [Description("Downloads index for a major version")]
+    DownloadsIndex,
+
+    [Description("Component download information (runtime, aspnetcore, windowsdesktop, sdk)")]
+    ComponentDownload,
+
     [Description("General content document")]
     Content,
     

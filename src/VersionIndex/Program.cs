@@ -83,6 +83,9 @@ var summaries = await ReleaseSummaryLoader.GetReleaseSummariesAsync(inputDir)
 // Generate version index files (main index, per-major-version indexes, manifests)
 await ReleaseIndexFiles.GenerateAsync(summaries, inputDir, outputDir);
 
+// Generate downloads directory files for supported versions
+await DownloadsIndexFiles.GenerateAsync(summaries, outputDir);
+
 // Generate SDK index files for supported versions
 await SdkIndexFiles.GenerateAsync(summaries, outputDir);
 

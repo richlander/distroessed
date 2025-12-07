@@ -26,6 +26,10 @@ public record SdkVersionIndex(
      Description("Latest SDK version that includes security fixes")]
     public string? LatestSecurity { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest active feature band version (e.g., '8.0.4xx')")]
+    public string? LatestFeatureBand { get; init; }
+
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink>? Links { get; init; }
@@ -41,25 +45,26 @@ public record SdkVersionIndex(
     public GenerationMetadata? Metadata { get; set; }
 }
 
-[Description("Container for embedded SDK feature band entries and patch releases")]
+[Description("Container for embedded SDK feature band entries")]
 public record SdkVersionIndexEmbedded(
-    [Description("List of SDK patch release entries with version information and navigation links")]
-    List<SdkReleaseEntry> Releases,
     [Description("List of SDK feature band entries with version information and navigation links")]
     List<SdkFeatureBandEntry> FeatureBands);
 
 // Support phases are defined in https://github.com/dotnet/core/blob/main/release-policies.md
 [Description("Individual SDK feature band entry containing version metadata and navigation links")]
 public record SdkFeatureBandEntry(
-    [Description("Feature band version (e.g., '8.0.1xx', '8.0.4xx')")]
+    [Description("Latest SDK version in this feature band (e.g., '9.0.307')")]
     string Version,
+    [Description("Feature band identifier (e.g., '9.0.3xx')")]
+    string Band,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release date when this feature band became generally available")]
+     Description("Release date of the latest SDK in this feature band")]
     DateTimeOffset? Date,
-    [Description("Descriptive label for the feature band")]
-    string Label,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
+     Description("Descriptive label for the feature band")]
+    string? Label,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Support phase (preview, go-live, active, maintenance, eol)")]
     SupportPhase? SupportPhase,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this feature band's content")]

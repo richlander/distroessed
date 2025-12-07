@@ -10,7 +10,7 @@ namespace DotnetRelease.Graph;
 [JsonSerializable(typeof(PatchReleaseVersionIndex))]
 [JsonSerializable(typeof(PatchDetailIndex))]
 [JsonSerializable(typeof(PatchDetailIndexEmbedded))]
-[JsonSerializable(typeof(PatchSdkEntry))]
+[JsonSerializable(typeof(SdkFeatureBandEntry))]
 [JsonSerializable(typeof(ReleaseVersionIndex))]
 [JsonSerializable(typeof(MajorReleaseVersionIndexEntry))]
 [JsonSerializable(typeof(PatchReleaseVersionIndexEntry))]
@@ -67,5 +67,19 @@ public partial class HistoryYearIndexSerializerContext : JsonSerializerContext
 [JsonSerializable(typeof(SdkDownloadEmbedded))]
 [JsonSerializable(typeof(SdkDownloadFile))]
 public partial class SdkVersionIndexSerializerContext : JsonSerializerContext
+{
+}
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    WriteIndented = true)]
+[JsonSerializable(typeof(DownloadsIndex))]
+[JsonSerializable(typeof(DownloadsIndexEmbedded))]
+[JsonSerializable(typeof(ComponentEntry))]
+[JsonSerializable(typeof(FeatureBandEntry))]
+[JsonSerializable(typeof(ComponentDownload))]
+[JsonSerializable(typeof(ComponentDownloadEmbedded))]
+[JsonSerializable(typeof(DownloadFile))]
+public partial class DownloadsIndexSerializerContext : JsonSerializerContext
 {
 }

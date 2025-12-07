@@ -174,7 +174,6 @@ public class ShipIndexFiles
                 {
                     [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
                     {
-                        Path = monthIndexPathValue,
                         Title = IndexTitles.TimelineMonthLink(year.Year, month.Month),
                         Type = MediaType.HalJson
                     }
@@ -188,7 +187,6 @@ public class ShipIndexFiles
 
                     monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
                     {
-                        Path = cveJsonPathValue,
                         Title = LinkTitles.CveInformation,
                         Type = MediaType.Json
                     };
@@ -231,7 +229,6 @@ public class ShipIndexFiles
                 {
                     [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
                     {
-                        Path = monthIndexPathValue,
                         Title = IndexTitles.TimelineMonthLink(year.Year, month.Month),
                         Type = MediaType.HalJson
                     }
@@ -250,7 +247,6 @@ public class ShipIndexFiles
                     var prevMonthPathValue = "/" + prevMonthIndexRelativePath.Replace("\\", "/");
                     monthIndexLinks[HalTerms.Prev] = new HalLink(urlGenerator(prevMonthIndexRelativePath, LinkStyle.Prod))
                     {
-                        Path = prevMonthPathValue,
                         Title = IndexTitles.TimelineMonthLink(year.Year, prevMonth),
                         Type = MediaType.HalJson
                     };
@@ -270,7 +266,6 @@ public class ShipIndexFiles
                             var prevMonthPathValue = "/" + prevMonthIndexRelativePath.Replace("\\", "/");
                             monthIndexLinks[HalTerms.Prev] = new HalLink(urlGenerator(prevMonthIndexRelativePath, LinkStyle.Prod))
                             {
-                                Path = prevMonthPathValue,
                                 Title = IndexTitles.TimelineMonthLink(prevYear, lastMonthOfPrevYear),
                                 Type = MediaType.HalJson
                             };
@@ -284,7 +279,6 @@ public class ShipIndexFiles
                 // Add timeline-index link (grandparent)
                 monthIndexLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
                 {
-                    Path = $"/{FileNames.Directories.Timeline}/{FileNames.Index}",
                     Title = ".NET Release Timeline Index",
                     Type = MediaType.HalJson
                 };
@@ -292,7 +286,6 @@ public class ShipIndexFiles
                 // Add year-index link (parent)
                 monthIndexLinks[LinkRelations.YearIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{year.Year}/{FileNames.Index}")
                 {
-                    Path = $"/{FileNames.Directories.Timeline}/{year.Year}/{FileNames.Index}",
                     Title = $".NET Release Timeline Index - {year.Year}",
                     Type = MediaType.HalJson
                 };
@@ -362,7 +355,6 @@ public class ShipIndexFiles
                             {
                                 [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
                                 {
-                                    Path = $"/{patchIndexPath}",
                                     Title = $".NET {patchVersion}",
                                     Type = MediaType.HalJson
                                 }
@@ -375,7 +367,6 @@ public class ShipIndexFiles
                             {
                                 patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
                                 {
-                                    Path = $"/{sdkIndexPath}",
                                     Title = $".NET SDK {majorVersion} Release Information",
                                     Type = MediaType.HalJson
                                 };
@@ -465,7 +456,6 @@ public class ShipIndexFiles
             var yearIndexPathValue = "/" + yearIndexRelativePath.Replace("\\", "/");
             yearHalLinks[HalTerms.Self] = new HalLink(urlGenerator(yearIndexRelativePath, LinkStyle.Prod))
             {
-                Path = yearIndexPathValue,
                 Title = IndexTitles.TimelineYearLink(year.Year),
                 Type = MediaType.HalJson
             };
@@ -480,7 +470,6 @@ public class ShipIndexFiles
                 var prevYearPathValue = "/" + prevYearIndexRelativePath.Replace("\\", "/");
                 yearHalLinks[HalTerms.Prev] = new HalLink(urlGenerator(prevYearIndexRelativePath, LinkStyle.Prod))
                 {
-                    Path = prevYearPathValue,
                     Title = IndexTitles.TimelineYearLink(prevYear),
                     Type = MediaType.HalJson
                 };
@@ -491,7 +480,6 @@ public class ShipIndexFiles
             // Add timeline-index link (parent)
             yearHalLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
             {
-                Path = $"/{FileNames.Directories.Timeline}/{FileNames.Index}",
                 Title = ".NET Release Timeline Index",
                 Type = MediaType.HalJson
             };
@@ -510,7 +498,6 @@ public class ShipIndexFiles
                 var latestMonthPathValue = "/" + latestMonthRelativePath.Replace("\\", "/");
                 yearHalLinks[LinkRelations.LatestMonth] = new HalLink(urlGenerator(latestMonthRelativePath, LinkStyle.Prod))
                 {
-                    Path = latestMonthPathValue,
                     Title = $"Latest month ({IndexTitles.TimelineMonthLink(year.Year, latestMonth)})",
                     Type = MediaType.HalJson
                 };
@@ -538,7 +525,6 @@ public class ShipIndexFiles
                 var latestSecurityMonthPathValue = "/" + latestSecurityMonthRelativePath.Replace("\\", "/");
                 yearHalLinks[LinkRelations.LatestSecurityMonth] = new HalLink(urlGenerator(latestSecurityMonthRelativePath, LinkStyle.Prod))
                 {
-                    Path = latestSecurityMonthPathValue,
                     Title = $"Latest security month ({IndexTitles.TimelineMonthLink(year.Year, latestSecurityMonth)})",
                     Type = MediaType.HalJson
                 };
@@ -557,7 +543,6 @@ public class ShipIndexFiles
                 var latestReleaseIndexPath = $"{latestReleaseForYear}/{FileNames.Index}";
                 yearHalLinks[LinkRelations.LatestRelease] = new HalLink($"{Location.GitHubBaseUri}{latestReleaseIndexPath}")
                 {
-                    Path = $"/{latestReleaseIndexPath}",
                     Title = $"Latest release (.NET {latestReleaseForYear})",
                     Type = MediaType.HalJson
                 };
@@ -622,7 +607,6 @@ public class ShipIndexFiles
                     {
                         [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
                         {
-                            Path = $"/{version}/{FileNames.Index}",
                             Title = $".NET {version}",
                             Type = MediaType.HalJson
                         }
@@ -640,7 +624,6 @@ public class ShipIndexFiles
                         var latestPatchPath = $"{version}/{latestPatchForYear.PatchVersion}/{FileNames.Index}";
                         links[LinkRelations.LatestPatch] = new HalLink($"{Location.GitHubBaseUri}{latestPatchPath}")
                         {
-                            Path = $"/{latestPatchPath}",
                             Title = $"Latest patch ({latestPatchForYear.PatchVersion})",
                             Type = MediaType.HalJson
                         };
@@ -651,7 +634,6 @@ public class ShipIndexFiles
                         var latestMonthPath = $"{FileNames.Directories.Timeline}/{patchYear}/{patchMonth}/{FileNames.Index}";
                         links[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{latestMonthPath}")
                         {
-                            Path = $"/{latestMonthPath}",
                             Title = $"Latest month ({patchYear}-{patchMonth})",
                             Type = MediaType.HalJson
                         };
@@ -738,7 +720,6 @@ public class ShipIndexFiles
         // Add releases-index link pointing back to root index.json
         fullIndexLinks[LinkRelations.ReleasesIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Index}")
         {
-            Path = $"/{FileNames.Index}",
             Title = IndexTitles.VersionIndexTitle,
             Type = MediaType.HalJson
         };
@@ -748,7 +729,6 @@ public class ShipIndexFiles
         {
             fullIndexLinks[LinkRelations.Latest] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.MajorVersion}/{FileNames.Index}")
             {
-                Path = $"/{latestRelease.MajorVersion}/{FileNames.Index}",
                 Title = $"Latest .NET release (.NET {latestRelease.MajorVersion})",
                 Type = MediaType.HalJson
             };
@@ -758,7 +738,6 @@ public class ShipIndexFiles
         {
             fullIndexLinks[LinkRelations.LatestLts] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.MajorVersion}/{FileNames.Index}")
             {
-                Path = $"/{latestLtsRelease.MajorVersion}/{FileNames.Index}",
                 Title = $"Latest LTS release (.NET {latestLtsRelease.MajorVersion})",
                 Type = MediaType.HalJson
             };
@@ -769,7 +748,6 @@ public class ShipIndexFiles
         {
             fullIndexLinks[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestYear}/{FileNames.Index}")
             {
-                Path = $"/{FileNames.Directories.Timeline}/{latestYear}/{FileNames.Index}",
                 Title = $"Latest year ({latestYear})",
                 Type = MediaType.HalJson
             };
