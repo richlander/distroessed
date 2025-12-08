@@ -438,15 +438,6 @@ public class ReleaseIndexFiles
                 };
             }
 
-            // Add latest-sdk link if version supports SDK (8.0+)
-            if (latestRelease != null && IsVersionSdkSupported(latestRelease.Version))
-            {
-                orderedRootLinks["latest-sdk"] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.Version}/{FileNames.Directories.Sdk}/{FileNames.Index}")
-                {
-                    Title = LinkTitles.LatestSdk,
-                };
-            }
-
             // NOTE: Do NOT add latest-year link here - it changes every January
             // and would cause the root index.json to change annually. The timeline-index
             // link provides access to the timeline, which has its own latest-year link.
@@ -458,7 +449,9 @@ public class ReleaseIndexFiles
             }
 
             // Add llms-txt link last - describes the graph for LLM consumption
-            orderedRootLinks["llms-txt"] = new HalLink($"{Location.GitHubBaseUri}llms/reference.txt")
+            // Note: llms/ is at repo root, not inside release-notes/
+            var repoBaseUri = Location.GitHubBaseUri.Replace("/release-notes/", "/");
+            orderedRootLinks["llms-txt"] = new HalLink($"{repoBaseUri}llms/reference.txt")
             {
                 Title = "LLM Quick Reference",
                 Type = MediaType.Text
