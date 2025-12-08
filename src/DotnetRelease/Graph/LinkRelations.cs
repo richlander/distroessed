@@ -143,4 +143,11 @@ public static class LinkRelations
     /// Used in major-version-index to link to compatibility.json.
     /// </summary>
     public const string CompatibilityJson = "compatibility-json";
+
+    /// <summary>
+    /// Link relation for previous security release.
+    /// Used in patch-version-index and month-index to link to the previous release/month with security fixes.
+    /// Navigation pattern: start from "latest-security" and walk backwards via "prev-security" links.
+    /// </summary>
+    public const string PrevSecurity = "prev-security";
 }

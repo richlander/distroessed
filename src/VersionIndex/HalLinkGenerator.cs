@@ -128,10 +128,12 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
                     var baseTitle = titleGenerator(fileLink, linkKey);
                     var title = isMarkdown && style == LinkStyle.GitHub ? $"{baseTitle} (Rendered)" : baseTitle;
 
+                    // GitHub blob view renders markdown as HTML
+                    var linkType = style == LinkStyle.GitHub && isMarkdown ? MediaType.Html : fileType;
                     result[linkKey] = new HalLink(urlGenerator(urlPath, style))
                         {
                             Title = title,
-                            Type = fileType
+                            Type = linkType == MediaType.HalJson ? null : linkType
                         };
                 }
             }

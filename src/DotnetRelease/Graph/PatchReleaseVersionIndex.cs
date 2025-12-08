@@ -109,8 +109,8 @@ public record PatchReleaseVersionIndexEntry(
      Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
     SupportPhase? SupportPhase,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK versions included in this patch release")]
-    IReadOnlyList<string>? SdkPatches,
+     Description("Highest SDK version included in this patch release")]
+    string? SdkRelease,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this patch release's content")]
     Dictionary<string, HalLink> Links);

@@ -98,23 +98,17 @@ public class SdkIndexFiles
             ? latestFeatureBand.Version[..5] + "xx"
             : null;
 
-        // Create main links
+        // Create main links - self link has no title (inferable)
         var links = new Dictionary<string, HalLink>
         {
-            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelativePath}")
-            {
-                Title = $".NET SDK {summary.MajorVersion}",
-                Type = MediaType.HalJson
-            },
+            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelativePath}"),
             [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
             {
-                Title = $".NET {summary.MajorVersion}",
-                Type = MediaType.HalJson
+                Title = LinkTitles.MajorVersionIndex,
             },
             ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Downloads}/{FileNames.Index}")
             {
-                Title = $".NET {summary.MajorVersion} Downloads",
-                Type = MediaType.HalJson
+                Title = LinkTitles.DownloadsIndex,
             }
         };
 
@@ -153,8 +147,7 @@ public class SdkIndexFiles
                     var patchIndexPath = $"{latestPatchRelease.PatchDirPath}/{FileNames.Index}";
                     bandLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
                     {
-                        Title = latestPatchRelease.PatchVersion,
-                        Type = MediaType.HalJson
+                        Title = LinkTitles.PatchIndex,
                     };
                 }
 
@@ -166,8 +159,7 @@ public class SdkIndexFiles
                     var monthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
                     bandLinks["release-month"] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
                     {
-                        Title = $"{year}-{month}",
-                        Type = MediaType.HalJson
+                        Title = LinkTitles.TimelineMonthIndex,
                     };
                 }
 

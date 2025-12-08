@@ -99,8 +99,8 @@ public record MajorReleaseVersionIndexEntry(
     public IList<string>? RuntimePatches { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK patch versions for this major version released in the period")]
-    public IList<string>? SdkPatches { get; init; }
+     Description("Highest SDK version for this major version released in the period")]
+    public string? SdkRelease { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Years with releases for this major version (cross-reference to timeline)")]

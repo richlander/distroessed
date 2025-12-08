@@ -53,7 +53,6 @@ public static class ManifestGenerator
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{manifestPath}")
             {
                 Title = $"{versionLabel} Manifest",
-                Type = MediaType.HalJson
             }
         };
 
