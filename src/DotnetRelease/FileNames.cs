@@ -42,7 +42,7 @@ public static class FileNames
     public static class Directories
     {
         public const string Timeline = "timeline";
-        public const string Schemas = "schemas";
+        public const string Schemas = "schemas/v1";
         public const string Sdk = "sdk";
         public const string Preview = "preview";
         public const string Downloads = "downloads";

@@ -51,14 +51,11 @@ public static class ManifestGenerator
             Console.WriteLine($"Warning: {version} - Missing ga_date or eol_date in _manifest.json");
         }
 
-        // Generate self link for manifest
+        // Generate self link for manifest (href only)
         var manifestPath = $"{version}/{FileNames.Manifest}";
         var links = new Dictionary<string, HalLink>
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{manifestPath}")
-            {
-                Title = $"{versionLabel} Manifest",
-            }
         };
 
         // Generate operational/reference links from ManifestFileMappings
@@ -98,8 +95,7 @@ public static class ManifestGenerator
             Supported = supported,
             GaDate = gaDate,
             EolDate = eolDate,
-            Links = HalHelpers.OrderLinks(links),
-            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+            Links = HalHelpers.OrderLinks(links)
         };
     }
 

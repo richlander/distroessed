@@ -31,15 +31,12 @@ public static class CveTransformer
                 .Select(kv => kv.Key)
                 .ToList();
 
-            // Build links - use "self" as canonical link per HAL conventions
+            // Build links - use "self" as canonical link per HAL conventions (href only)
             var links = new Dictionary<string, object>();
             var announcementUrl = disclosure.References?.FirstOrDefault();
             if (announcementUrl != null)
             {
-                links["self"] = new HalLink(announcementUrl)
-                {
-                    Title = $"{disclosure.Id}"
-                };
+                links["self"] = new HalLink(announcementUrl);
             }
 
             // Build fix commit links

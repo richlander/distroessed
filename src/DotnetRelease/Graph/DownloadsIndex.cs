@@ -14,10 +14,11 @@ public record DownloadsIndex(
     [Description("Major version (e.g., '8.0', '9.0')")]
     string Version,
     [Description("Concise title for the document")]
-    string Title,
-    [Description("Description of the downloads index")]
-    string Description)
+    string Title)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the downloads index")]
+    public string? Description { get; init; }
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink>? Links { get; init; }
@@ -26,11 +27,6 @@ public record DownloadsIndex(
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded component and feature band entries")]
     public DownloadsIndexEmbedded? Embedded { get; init; }
-
-    [JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; init; }
 }
 
 [Description("Container for embedded component and feature band entries")]
@@ -85,10 +81,11 @@ public record ComponentDownload(
     [Description("Major version (e.g., '8.0', '9.0')")]
     string Version,
     [Description("Concise title for the document")]
-    string Title,
-    [Description("Description of the component download")]
-    string Description)
+    string Title)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the component download")]
+    public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Feature band version for SDK files (e.g., '8.0.4xx')")]
     public string? FeatureBand { get; init; }
@@ -101,11 +98,6 @@ public record ComponentDownload(
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded download file entries")]
     public ComponentDownloadEmbedded? Embedded { get; init; }
-
-    [JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; init; }
 }
 
 [Description("Container for component downloads keyed by runtime identifier")]

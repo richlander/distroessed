@@ -16,12 +16,6 @@ internal record PatchReleaseInfo(string PatchVersion, HashSet<string> SdkVersion
 
 public class ShipIndexFiles
 {
-    private static int _skippedFilesCount = 0;
-    
-    public static int SkippedFilesCount => _skippedFilesCount;
-    
-    public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
-
     // Links for timeline root index (timeline/index.json)
     public static readonly OrderedDictionary<string, FileLink> TimelineRootFileMappings = new()
     {
@@ -187,13 +181,10 @@ public class ShipIndexFiles
                 var monthIndexRelativePath = Path.GetRelativePath(inputPath, monthIndexPath);
                 var monthIndexPathValue = "/" + monthIndexRelativePath.Replace("\\", "/");
 
-                // Create simplified month summary for year index with proper self link and CVE links
+                // Create simplified month summary for year index with proper self link (href only) and CVE links
                 var monthSummaryLinks = new Dictionary<string, HalLink>
                 {
                     [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
-                    {
-                        Title = IndexTitles.TimelineMonthLink(year.Year, month.Month),
-                    }
                 };
 
                 // Add CVE JSON link if CVE records exist
@@ -241,13 +232,10 @@ public class ShipIndexFiles
                 );
                 monthSummaries.Add(monthSummary);
 
-                // Create detailed month index with proper self link
+                // Create detailed month index with proper self link - href only
                 var monthIndexLinks = new Dictionary<string, HalLink>(monthHistoryLinks)
                 {
                     [HalTerms.Self] = new HalLink(urlGenerator(monthIndexRelativePath, LinkStyle.Prod))
-                    {
-                        Title = IndexTitles.TimelineMonthLink(year.Year, month.Month),
-                    }
                 };
 
                 // Add next/prev links for month navigation (including cross-year boundaries)
@@ -378,9 +366,6 @@ public class ShipIndexFiles
                             var patchLinks = new Dictionary<string, HalLink>
                             {
                                 [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
-                                {
-                                    Title = $".NET {patchVersion}",
-                                }
                             };
 
                             // Add latest-sdk link (HAL+JSON) - only if the index.json exists
@@ -424,7 +409,6 @@ public class ShipIndexFiles
                 var monthIndex = new HistoryMonthIndex(
                     HistoryKind.MonthIndex,
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
-                    IndexTitles.TimelineMonthIndexDescription(year.Year, month.Month, monthLatestVersion),
                     year.Year,
                     month.Month,
                     cveSummariesForMonth?.Count > 0)
@@ -438,8 +422,7 @@ public class ShipIndexFiles
                     {
                         Releases = embeddedReleases,
                         Disclosures = cveSummariesForMonth
-                    },
-                    Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
+                    }
                 };
 
                 // Serialize to string first to add schema reference
@@ -454,17 +437,7 @@ public class ShipIndexFiles
                 // Write monthly index file
                 var currentMonthIndexPath = Path.Combine(monthPath, FileNames.Index);
                 var finalMonthIndexJson = (updatedMonthIndexJson ?? monthIndexJson) + '\n';
-                
-                if (HalJsonComparer.ShouldWriteFile(currentMonthIndexPath, finalMonthIndexJson))
-                {
-                    using Stream monthStream = File.Create(currentMonthIndexPath);
-                    using var monthWriter = new StreamWriter(monthStream);
-                    await monthWriter.WriteAsync(finalMonthIndexJson);
-                }
-                else
-                {
-                    _skippedFilesCount++;
-                }
+                await File.WriteAllTextAsync(currentMonthIndexPath, finalMonthIndexJson);
 
                 // Update previousSecurityMonth tracker if this month had security releases
                 // This is used for prev-security links in subsequent months
@@ -480,13 +453,9 @@ public class ShipIndexFiles
                 TimelineYearFileMappings.Values,
                 (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineYearLink(year.Year) : fileLink.Title);
 
-            // Add self link for year index (generated file may not exist yet)
+            // Add self link for year index (generated file may not exist yet) - href only
             var yearIndexRelativePath = Path.GetRelativePath(inputPath, Path.Combine(yearPath, FileNames.Index));
-            var yearIndexPathValue = "/" + yearIndexRelativePath.Replace("\\", "/");
-            yearHalLinks[HalTerms.Self] = new HalLink(urlGenerator(yearIndexRelativePath, LinkStyle.Prod))
-            {
-                Title = IndexTitles.TimelineYearLink(year.Year),
-            };
+            yearHalLinks[HalTerms.Self] = new HalLink(urlGenerator(yearIndexRelativePath, LinkStyle.Prod));
 
             // Add next/prev links for year navigation (currentYearIndex already calculated above)
             if (currentYearIndex > 0)
@@ -588,15 +557,13 @@ public class ShipIndexFiles
             var yearHistory = new HistoryYearIndex(
                 HistoryKind.YearIndex,
                 IndexTitles.TimelineYearTitle(year.Year),
-                IndexTitles.TimelineYearIndexDescription(year.Year, yearLatestVersion),
                 year.Year)
             {
                 LatestMonth = latestMonth,
                 LatestSecurityMonth = effectiveLatestSecurityMonth,
                 LatestRelease = latestReleaseForYear,
                 Releases = sortedReleasesForYear.Count > 0 ? sortedReleasesForYear : null,
-                Links = HalHelpers.OrderLinks(yearHalLinks),
-                Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
+                Links = HalHelpers.OrderLinks(yearHalLinks)
             };
 
             // Create embedded releases with lifecycle based on patch versions released this year
@@ -701,17 +668,7 @@ public class ShipIndexFiles
 
             var yearIndexPath = Path.Combine(yearPath, FileNames.Index);
             var finalYearIndexJson = (updatedYearIndexJson ?? yearIndexJson) + '\n';
-            
-            if (HalJsonComparer.ShouldWriteFile(yearIndexPath, finalYearIndexJson))
-            {
-                using Stream yearStream = File.Create(yearIndexPath);
-                using var yearWriter = new StreamWriter(yearStream);
-                await yearWriter.WriteAsync(finalYearIndexJson);
-            }
-            else
-            {
-                _skippedFilesCount++;
-            }
+            await File.WriteAllTextAsync(yearIndexPath, finalYearIndexJson);
 
             // for the overall index
 
@@ -724,20 +681,30 @@ public class ShipIndexFiles
             // and would cause the root timeline/index.json to change frequently.
             // The latest-month link belongs in the year-level indexes (e.g., timeline/2025/index.json).
 
-            yearEntries.Add(new HistoryYearEntry(
-                year.Year,
-                IndexTitles.TimelineYearDescription(year.Year))
+            // Strip title from self links for year entries (href is sufficient)
+            var minimalYearLinks = overallYearHalLinks.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Key == HalTerms.Self
+                    ? new HalLink(kvp.Value.Href)  // Self link: href only
+                    : new HalLink(kvp.Value.Href) { Title = kvp.Value.Title, Type = kvp.Value.Type });
+
+            yearEntries.Add(new HistoryYearEntry(year.Year)
             {
                 Releases = [.. sortedReleasesForYear],
-                Links = HalHelpers.OrderLinks(overallYearHalLinks)
-            }
-            );
+                Links = HalHelpers.OrderLinks(minimalYearLinks)
+            });
         }
 
         var fullIndexLinks = halLinkGenerator.Generate(
             historyPath,
             TimelineRootFileMappings.Values,
             (fileLink, key) => key == HalTerms.Self ? IndexTitles.TimelineIndexLink : fileLink.Title);
+
+        // Strip title from self link (href is sufficient)
+        if (fullIndexLinks.TryGetValue(HalTerms.Self, out var selfLink))
+        {
+            fullIndexLinks[HalTerms.Self] = new HalLink(selfLink.Href);
+        }
 
         // Calculate latest year
         var latestYear = sortedYears.LastOrDefault();
@@ -792,8 +759,7 @@ public class ShipIndexFiles
         // Create the history index
         var historyIndex = new ReleaseHistoryIndex(
             HistoryKind.TimelineIndex,
-            IndexTitles.TimelineIndexTitle,
-            IndexTitles.TimelineIndexDescription(rootLatestVersion))
+            IndexTitles.TimelineIndexTitle)
         {
             LatestYear = latestYear,
             Latest = latestRelease?.MajorVersion,
@@ -802,8 +768,7 @@ public class ShipIndexFiles
             Embedded = new ReleaseHistoryIndexEmbedded
             {
                 Years = [.. yearEntries.OrderByDescending(e => e.Year, StringComparer.OrdinalIgnoreCase)]
-            },
-            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "ShipIndex")
+            }
         };
 
         // Serialize to string first to add schema reference
@@ -817,16 +782,6 @@ public class ShipIndexFiles
 
         var historyIndexPath = Path.Combine(historyPath, FileNames.Index);
         var finalHistoryIndexJson = (updatedHistoryIndexJson ?? historyIndexJson) + '\n';
-        
-        if (HalJsonComparer.ShouldWriteFile(historyIndexPath, finalHistoryIndexJson))
-        {
-            using var historyStream = File.Create(historyIndexPath);
-            using var historyWriter = new StreamWriter(historyStream);
-            await historyWriter.WriteAsync(finalHistoryIndexJson);
-        }
-        else
-        {
-            _skippedFilesCount++;
-        }
+        await File.WriteAllTextAsync(historyIndexPath, finalHistoryIndexJson);
     }
 }

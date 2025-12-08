@@ -10,12 +10,6 @@ namespace VersionIndex;
 
 public class ReleaseIndexFiles
 {
-    private static int _skippedFilesCount = 0;
-    
-    public static int SkippedFilesCount => _skippedFilesCount;
-    
-    public static void ResetSkippedFilesCount() => _skippedFilesCount = 0;
-
     public static readonly OrderedDictionary<string, FileLink> MainFileMappings = new()
     {
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.DotNetReleaseIndex, LinkStyle.Prod) },
@@ -111,15 +105,7 @@ public class ReleaseIndexFiles
             var manifestJson = JsonSerializer.Serialize(
                 generatedManifest,
                 ReleaseManifestSerializerContext.Default.ReleaseManifest);
-            
-            if (HalJsonComparer.ShouldWriteFile(manifestPath, manifestJson))
-            {
-                await File.WriteAllTextAsync(manifestPath, manifestJson);
-            }
-            else
-            {
-                _skippedFilesCount++;
-            }
+            await File.WriteAllTextAsync(manifestPath, manifestJson);
 
             // Use lifecycle from summary (canonical source from ReleaseSummaryLoader)
             var lifecycle = summary.Lifecycle;
@@ -156,10 +142,13 @@ public class ReleaseIndexFiles
             // Build ordered links for major version index (lean navigation hub)
             var orderedMajorVersionLinks = new Dictionary<string, HalLink>();
 
-            // 1. Add HAL+JSON links from base mappings first
-            foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == MediaType.HalJson))
+            // 1. Add HAL+JSON links from base mappings first (Type is null for HAL+JSON)
+            // Strip title from self link (href is sufficient)
+            foreach (var link in majorVersionLinks.Where(kvp => kvp.Value.Type == null))
             {
-                orderedMajorVersionLinks[link.Key] = link.Value;
+                orderedMajorVersionLinks[link.Key] = link.Key == HalTerms.Self
+                    ? new HalLink(link.Value.Href)
+                    : link.Value;
             }
 
             // 2. Add SDK links for supported versions (8.0+) - these are HAL+JSON
@@ -254,13 +243,9 @@ public class ReleaseIndexFiles
                 yearsEmbedded = releaseYears.Select(year =>
                 {
                     var yearHistoryPath = $"{FileNames.Directories.Timeline}/{year}/{FileNames.Index}";
-                    var pathValue = "/" + yearHistoryPath;
                     var yearLinks = new Dictionary<string, HalLink>
                     {
                         [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{yearHistoryPath}")
-                        {
-                            Title = $".NET Release Timeline {year} (chronological)",
-                        }
                     };
                     return new TimelineYear(year.ToString(), yearLinks);
                 }).ToList();
@@ -268,8 +253,7 @@ public class ReleaseIndexFiles
             
             var patchVersionIndex = new PatchReleaseVersionIndex(
                 ReleaseKind.MajorVersionIndex,
-                $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Release Index",
-                patchDescription)
+                $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Release Index")
             {
                 TargetFramework = generatedManifest.TargetFramework,
                 Latest = latestPatch?.Version,
@@ -323,8 +307,7 @@ public class ReleaseIndexFiles
                     }).ToList())
                 {
                     Years = yearsEmbedded
-                } : null,
-                Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+                } : null
             };
 
             // Serialize to string first to add schema reference
@@ -339,17 +322,7 @@ public class ReleaseIndexFiles
             // Write to file
             var patchIndexPath = Path.Combine(outputMajorVersionDir, FileNames.Index);
             var finalPatchIndexJson = (updatedPatchIndexJson ?? patchIndexJson) + '\n';
-            
-            if (HalJsonComparer.ShouldWriteFile(patchIndexPath, finalPatchIndexJson))
-            {
-                using Stream patchStream = File.Create(patchIndexPath);
-                using var writer = new StreamWriter(patchStream);
-                await writer.WriteAsync(finalPatchIndexJson);
-            }
-            else
-            {
-                _skippedFilesCount++;
-            }
+            await File.WriteAllTextAsync(patchIndexPath, finalPatchIndexJson);
 
             // Same links as the major version index, but with a different base directory (to force different pathing)
             // NOTE: Do NOT add latest-patch or latest-month links here - those change monthly
@@ -363,22 +336,22 @@ public class ReleaseIndexFiles
             // Major version entries use minimal lifecycle properties for root index stability.
             // Omitted properties (available in major version indexes like 8.0/index.json):
             // - Phase: changes frequently (preview->go-live->active->maintenance)
-            // - GaDate: static, fetch from referenced resource
+            // - GaDate/EolDate: static, fetch from referenced resource
             // - Years: changes every January for active releases
-            // - Path in links: redundant with href, keeps entries lean
-            // Root index focuses on: release_type, supported, eol_date (for planning)
+            // - Path/Title in self links: redundant with href, keeps entries lean
+            // Root index focuses on: release_type, supported (for quick filtering)
 
-            // Strip path from links for root index entries (href is sufficient)
+            // Strip title and type from self links for root index entries (href is sufficient)
             var minimalLinks = majorVersionWithinAllReleasesIndexLinks.ToDictionary(
                 kvp => kvp.Key,
-                kvp => new HalLink(kvp.Value.Href) { Title = kvp.Value.Title, Type = kvp.Value.Type });
+                kvp => kvp.Key == HalTerms.Self
+                    ? new HalLink(kvp.Value.Href)  // Self link: href only
+                    : new HalLink(kvp.Value.Href) { Title = kvp.Value.Title, Type = kvp.Value.Type });
 
             var majorEntry = new MajorReleaseVersionIndexEntry(majorVersionDirName)
             {
-                TargetFramework = generatedManifest.TargetFramework,
                 ReleaseType = lifecycle?.ReleaseType,
                 Supported = lifecycle?.Supported,
-                EolDate = lifecycle?.EolDate,
                 Links = HalHelpers.OrderLinks(minimalLinks)
             };
 
@@ -401,8 +374,8 @@ public class ReleaseIndexFiles
             // Create a new ordered dictionary to maintain proper ordering
             var orderedRootLinks = new Dictionary<string, HalLink>();
 
-            // Add HAL+JSON links first
-            foreach (var link in rootLinks.Where(kvp => kvp.Value.Type == MediaType.HalJson))
+            // Add HAL+JSON links first (Type is null for HAL+JSON)
+            foreach (var link in rootLinks.Where(kvp => kvp.Value.Type == null))
             {
                 orderedRootLinks[link.Key] = link.Value;
             }
@@ -464,25 +437,18 @@ public class ReleaseIndexFiles
 
         // Create the major releases index; release-notes/index.json
         var rootIndexPath = Path.Combine(outputDir, FileNames.Index);
-        var rootIndexRelativePath = Path.GetRelativePath(inputDir, Path.Combine(inputDir, FileNames.Index));
-
-        // Get the latest major version for the description (use latestRelease which handles stability correctly)
-        var latestMajorVersion = latestRelease?.Version ?? majorEntries.Select(e => e.Version).Max(numericStringComparer);
-        var description = $".NET Release Index (latest: {latestMajorVersion})";
 
         // NOTE: Do NOT include LatestYear property - it changes every January
         // and would cause the root index.json to change annually. The timeline-index
         // link provides access to timeline/index.json which has its own latest_year.
         var majorIndex = new MajorReleaseVersionIndex(
                 ReleaseKind.ReleasesIndex,
-                IndexTitles.VersionIndexTitle,
-                description)
+                IndexTitles.VersionIndexTitle)
         {
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
             Links = HalHelpers.OrderLinks(rootLinks),
-            Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)]),
-            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+            Embedded = new MajorReleaseVersionIndexEmbedded([.. majorEntries.OrderByDescending(e => e.Version, numericStringComparer)])
         };
 
         // Serialize to string first to add schema reference
@@ -497,33 +463,7 @@ public class ReleaseIndexFiles
         // Write the major index file
         var rootMajorIndexPath = Path.Combine(outputDir, FileNames.Index);
         var finalMajorIndexJson = (updatedMajorIndexJson ?? majorIndexJson) + '\n';
-        
-        if (HalJsonComparer.ShouldWriteFile(rootMajorIndexPath, finalMajorIndexJson))
-        {
-            using Stream stream = File.Create(rootMajorIndexPath);
-            using var rootWriter = new StreamWriter(stream);
-            await rootWriter.WriteAsync(finalMajorIndexJson);
-        }
-        else
-        {
-            _skippedFilesCount++;
-        }
-
-        // Generate llms.txt file from the root links
-        // TODO: Add LlmsTxtGenerator dependency or move to separate tool
-        // var llmsTxtContent = LlmsTxtGenerator.Generate(rootLinks);
-        // Write llms.txt to repo root (parent of release-notes directory)
-        // var repoRoot = Directory.GetParent(outputDir)?.FullName ?? outputDir;
-        // var llmsTxtPath = Path.Combine(repoRoot, "llms.txt");
-        
-        // if (HalJsonComparer.ShouldWriteFile(llmsTxtPath, llmsTxtContent))
-        // {
-        //     await File.WriteAllTextAsync(llmsTxtPath, llmsTxtContent);
-        // }
-        // else
-        // {
-        //     _skippedFilesCount++;
-        // }
+        await File.WriteAllTextAsync(rootMajorIndexPath, finalMajorIndexJson);
     }
 
     // Generates index containing each patch release in the major version directory
@@ -579,16 +519,12 @@ public class ReleaseIndexFiles
             var urlRelativePath = Path.GetRelativePath(urlRootDir ?? inputRoot, releaseJson);
             var releaseJsonPathValue = "/" + relativePath.Replace("\\", "/");
 
-            // Create links - self now points to index.json, with separate link to release.json
+            // Create links - self now points to index.json (href only), with separate link to release.json
             // Use PatchDirPath for the URL path (handles preview/rc structure)
             var patchIndexPath = $"{summary.PatchDirPath}/{FileNames.Index}";
             var links = new Dictionary<string, HalLink>
                 {
-                    { HalTerms.Self, new HalLink(IndexHelpers.GetProdPath(patchIndexPath))
-                        {
-                            Title = $"{summary.PatchVersion} Patch Index",
-                        }
-                    }
+                    { HalTerms.Self, new HalLink(IndexHelpers.GetProdPath(patchIndexPath)) }
                 };
 
             // Determine CVE IDs - prefer cve.json (authoritative), fall back to releases.json
@@ -1014,7 +950,6 @@ public class ReleaseIndexFiles
         var patchDetailIndex = new PatchDetailIndex(
             ReleaseKind.PatchVersionIndex,
             $".NET {patchVersion} Patch Index",
-            $"Patch information for .NET {patchVersion}",
             patchVersion,
             lifecycle?.GaDate,
             lifecycle?.Phase,
@@ -1025,8 +960,7 @@ public class ReleaseIndexFiles
             SdkRelease = highestSdkVersion,
             SdkFeatureBands = sdkVersionsList,
             Links = HalHelpers.OrderLinks(links),
-            Embedded = embedded,
-            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+            Embedded = embedded
         };
 
         // Serialize
@@ -1047,14 +981,6 @@ public class ReleaseIndexFiles
 
         var indexPath = Path.Combine(outputPatchDir, FileNames.Index);
         var finalJson = (updatedJson ?? patchDetailJson) + '\n';
-        
-        if (HalJsonComparer.ShouldWriteFile(indexPath, finalJson))
-        {
-            await File.WriteAllTextAsync(indexPath, finalJson);
-        }
-        else
-        {
-            _skippedFilesCount++;
-        }
+        await File.WriteAllTextAsync(indexPath, finalJson);
     }
 }

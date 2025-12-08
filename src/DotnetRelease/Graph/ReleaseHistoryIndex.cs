@@ -8,10 +8,11 @@ public record ReleaseHistoryIndex(
     [Description("Type of timeline index (release-timeline-index, timeline-year-index, timeline-month-index)")]
     HistoryKind Kind,
     [Description("Concise title for the document")]
-    string Title,
-    [Description("Context-aware description of the time period")]
-    string Description)
+    string Title)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Context-aware description of the time period")]
+    public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest major .NET version (cross-reference to releases)")]
     public string? Latest { get; init; }
@@ -39,11 +40,6 @@ public record ReleaseHistoryIndex(
     [JsonPropertyName("_embedded"),
      Description("Embedded time-based navigation entries and release summaries")]
     public ReleaseHistoryIndexEmbedded? Embedded { get; set; }
-
-    [JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded chronological navigation entries")]
@@ -69,10 +65,11 @@ public record YearIndexEmbedded(
 [Description("Year entry in the release history, containing annual release information")]
 public record HistoryYearEntry(
     [Description("Year identifier (e.g., '2025')")]
-    string Year,
-    [Description("Description of the year's releases")]
-    string Description)
+    string Year)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the year's releases")]
+    public string? Description { get; init; }
     [Description("List of .NET version identifiers released during this year")]
     public IList<string>? Releases { get; set; }
 

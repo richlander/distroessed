@@ -13,10 +13,11 @@ public record MajorReleaseVersionIndex(
     [Description("Type of release document, always 'index' for version-based indexes")]
     ReleaseKind Kind,
     [Description("Concise title for the document")]
-    string Title,
-    [Description("Description of the index scope")]
-    string Description)
+    string Title)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the index scope")]
+    public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest stable .NET version")]
     public string? Latest { get; init; }
@@ -45,11 +46,6 @@ public record MajorReleaseVersionIndex(
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded major version entries")]
     public MajorReleaseVersionIndexEmbedded? Embedded { get; set; }
-
-    [property: JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded major version entries in a major release index")]

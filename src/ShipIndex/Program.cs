@@ -73,9 +73,6 @@ if (inputDir != outputDir)
     Console.WriteLine($"Output directory: {outputDir}");
 }
 
-// Reset skipped files counter
-ShipIndexFiles.ResetSkippedFilesCount();
-
 // Generate release summaries and calendar from source data
 var summaries = await ReleaseSummaryLoader.GetReleaseSummariesAsync(inputDir)
     ?? throw new InvalidOperationException("Failed to generate release summaries.");
@@ -85,8 +82,5 @@ ReleaseSummaryLoader.PopulateCveInformation(history, inputDir);
 
 // Generate ship timeline index files (timeline/index.json, year/month indexes)
 await ShipIndexFiles.GenerateAsync(inputDir, outputDir, history, summaries);
-
-// Display skipped files count
-Console.WriteLine($"Skipped {ShipIndexFiles.SkippedFilesCount} files because they did not change.");
 
 return 0;

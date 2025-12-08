@@ -10,11 +10,12 @@ public record HistoryYearIndex(
     HistoryKind Kind,
     [Description("Concise title for the document")]
     string Title,
-    [Description("Description of the year's releases")]
-    string Description,
     [Description("Year identifier (e.g., '2025')")]
     string Year)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the year's releases")]
+    public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest month with .NET releases in this year")]
     public string? LatestMonth { get; init; }
@@ -38,11 +39,6 @@ public record HistoryYearIndex(
     [JsonPropertyName("_embedded"),
      Description("Embedded monthly summaries and release listings")]
     public HistoryYearIndexEmbedded? Embedded { get; set; }
-
-    [JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded year-level navigation entries")]
@@ -108,8 +104,6 @@ public record HistoryMonthIndex(
     HistoryKind Kind,
     [Description("Concise title for the document")]
     string Title,
-    [Description("Description of the month's releases")]
-    string Description,
     [Description("Year identifier (e.g., '2025')")]
     string Year,
     [Description("Month identifier (e.g., '02' for February)")]
@@ -117,6 +111,9 @@ public record HistoryMonthIndex(
     [Description("True if any release this month includes security fixes")]
     bool Security)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the month's releases")]
+    public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Number of CVEs disclosed this month")]
     public int? CveCount { get; init; }
@@ -140,11 +137,6 @@ public record HistoryMonthIndex(
     [JsonPropertyName("_embedded"),
      Description("Embedded release listings for this month")]
     public HistoryMonthIndexEmbedded? Embedded { get; set; }
-
-    [JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded month-level release entries")]

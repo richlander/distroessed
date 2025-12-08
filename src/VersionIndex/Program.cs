@@ -73,11 +73,8 @@ if (inputDir != outputDir)
     Console.WriteLine($"Output directory: {outputDir}");
 }
 
-// Reset skipped files counter
-ReleaseIndexFiles.ResetSkippedFilesCount();
-
 // Generate release summaries from source data
-var summaries = await ReleaseSummaryLoader.GetReleaseSummariesAsync(inputDir) 
+var summaries = await ReleaseSummaryLoader.GetReleaseSummariesAsync(inputDir)
     ?? throw new InvalidOperationException("Failed to generate release summaries.");
 
 // Generate version index files (main index, per-major-version indexes, manifests)
@@ -88,8 +85,5 @@ await DownloadsIndexFiles.GenerateAsync(summaries, outputDir);
 
 // Generate SDK index files for supported versions
 await SdkIndexFiles.GenerateAsync(summaries, outputDir);
-
-// Display skipped files count
-Console.WriteLine($"Skipped {ReleaseIndexFiles.SkippedFilesCount} files because they did not change.");
 
 return 0;

@@ -14,10 +14,11 @@ public record PatchReleaseVersionIndex(
     [property: Description("Type of release document, always 'index' for version-based indexes")]
     ReleaseKind Kind,
     [property: Description("Concise title for the document")]
-    string Title,
-    [property: Description("Description of the index scope")]
-    string Description) : IReleaseVersionIndex
+    string Title) : IReleaseVersionIndex
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the index scope")]
+    public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Target framework moniker for this version (e.g., 'net10.0', 'netcoreapp3.1')")]
     public string? TargetFramework { get; init; }
@@ -66,11 +67,6 @@ public record PatchReleaseVersionIndex(
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded patch release entries, timeline years, and CVE records")]
     public PatchReleaseVersionIndexEmbedded? Embedded { get; set; }
-
-    [property: JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded patch release entries in a patch release index")]

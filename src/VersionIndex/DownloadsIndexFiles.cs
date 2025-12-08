@@ -188,16 +188,14 @@ public class DownloadsIndexFiles
         var downloadsIndex = new DownloadsIndex(
             ReleaseKind.DownloadsIndex,
             summary.MajorVersion,
-            $".NET {summary.MajorVersion} Downloads",
-            $"Evergreen download links for .NET {summary.MajorVersion} components")
+            $".NET {summary.MajorVersion} Downloads")
         {
             Links = HalHelpers.OrderLinks(links),
             Embedded = new DownloadsIndexEmbedded
             {
                 Components = components,
                 FeatureBands = featureBands.Count > 0 ? featureBands : null
-            },
-            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+            }
         };
 
         var json = JsonSerializer.Serialize(
@@ -400,13 +398,11 @@ public class DownloadsIndexFiles
             ReleaseKind.ComponentDownload,
             component,
             version,
-            $"{title} Downloads",
-            description)
+            $"{title} Downloads")
         {
             FeatureBand = featureBand,
             Links = HalHelpers.OrderLinks(links),
-            Embedded = new ComponentDownloadEmbedded(downloadFiles),
-            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+            Embedded = new ComponentDownloadEmbedded(downloadFiles)
         };
 
         var json = JsonSerializer.Serialize(

@@ -179,15 +179,13 @@ public class SdkIndexFiles
         var sdkIndex = new SdkVersionIndex(
             ReleaseKind.SdkIndex,
             summary.MajorVersion,
-            $".NET SDK {summary.MajorVersion}",
-            $"SDK feature band metadata for .NET {summary.MajorVersion}")
+            $".NET SDK {summary.MajorVersion}")
         {
             Latest = latestSdk,
             LatestSecurity = latestSecuritySdk,
             LatestFeatureBand = latestFeatureBandVersion,
             Links = HalHelpers.OrderLinks(links),
-            Embedded = new SdkVersionIndexEmbedded(featureBandEntries),
-            Metadata = new GenerationMetadata("1.0", DateTimeOffset.UtcNow, "VersionIndex")
+            Embedded = new SdkVersionIndexEmbedded(featureBandEntries)
         };
 
         // Serialize to JSON

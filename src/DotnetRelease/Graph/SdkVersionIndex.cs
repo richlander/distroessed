@@ -14,10 +14,11 @@ public record SdkVersionIndex(
     [Description("SDK major version (e.g., '8.0', '9.0')")]
     string Version,
     [Description("Concise title for the document")]
-    string Title,
-    [Description("Description of the SDK index")]
-    string Description)
+    string Title)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the SDK index")]
+    public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest SDK version")]
     public string? Latest { get; init; }
@@ -38,11 +39,6 @@ public record SdkVersionIndex(
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded SDK feature band entries and releases")]
     public SdkVersionIndexEmbedded? Embedded { get; set; }
-
-    [property: JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded SDK feature band entries")]

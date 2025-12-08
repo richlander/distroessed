@@ -41,11 +41,6 @@ public record ReleaseManifest(
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
-
-    [JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; init; }
 }
 
 [Description("Partial manifest data for hand-maintained release information - schema compatible with ReleaseManifest")]

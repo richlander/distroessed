@@ -37,10 +37,9 @@ public interface IReleaseVersionIndex
 {
     ReleaseKind Kind { get; }
     string Title { get; }
-    string Description { get; }
+    string? Description { get; }
     Dictionary<string, HalLink> Links { get; }
     UsageWithLinks? Usage { get; set; }
-    GenerationMetadata? Metadata { get; set; }
 }
 
 /// <summary>
@@ -70,11 +69,6 @@ public record ReleaseVersionIndex(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Lifecycle information (GA date, EOL date, release type, phase)")]
     public Lifecycle? Lifecycle { get; set; }
-
-    [property: JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 [Description("Container for embedded release entries in a version index (legacy)")]

@@ -14,8 +14,6 @@ public record PatchDetailIndex(
     ReleaseKind Kind,
     [Description("Concise title for the document")]
     string Title,
-    [Description("Description of the patch release")]
-    string Description,
     [Description("Patch version identifier (e.g., '8.0.1', '9.0.2')")]
     string Version,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
@@ -33,6 +31,9 @@ public record PatchDetailIndex(
     IReadOnlyList<string>? CveRecords)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Description of the patch release")]
+    public string? Description { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Highest SDK version shipped with this runtime patch")]
     public string? SdkRelease { get; init; }
 
@@ -48,11 +49,6 @@ public record PatchDetailIndex(
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Embedded runtime, SDK, and CVE disclosure information")]
     public PatchDetailIndexEmbedded? Embedded { get; set; }
-
-    [property: JsonPropertyName("_metadata"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Metadata about when and how this document was generated")]
-    public GenerationMetadata? Metadata { get; set; }
 }
 
 /// <summary>
