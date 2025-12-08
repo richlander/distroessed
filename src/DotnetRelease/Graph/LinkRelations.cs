@@ -145,6 +145,12 @@ public static class LinkRelations
     public const string CompatibilityJson = "compatibility-json";
 
     /// <summary>
+    /// Link relation for target frameworks document.
+    /// Used in major-version-index to link to target-frameworks.json.
+    /// </summary>
+    public const string TargetFrameworksJson = "target-frameworks-json";
+
+    /// <summary>
     /// Link relation for previous security release.
     /// Used in patch-version-index and month-index to link to the previous release/month with security fixes.
     /// Navigation pattern: start from "latest-security" and walk backwards via "prev-security" links.

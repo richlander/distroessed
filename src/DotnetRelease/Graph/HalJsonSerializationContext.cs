@@ -83,3 +83,12 @@ public partial class SdkVersionIndexSerializerContext : JsonSerializerContext
 public partial class DownloadsIndexSerializerContext : JsonSerializerContext
 {
 }
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    WriteIndented = true)]
+[JsonSerializable(typeof(TargetFrameworksIndex))]
+[JsonSerializable(typeof(TargetFrameworkEntry))]
+public partial class TargetFrameworksSerializerContext : JsonSerializerContext
+{
+}

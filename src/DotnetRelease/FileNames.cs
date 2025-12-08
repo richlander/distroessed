@@ -18,6 +18,7 @@ public static class FileNames
     public const string ReleasesIndex = "releases-index.json";
     public const string PatchReleasesIndex = "patch-releases-index.json";
     public const string Compatibility = "compatibility.json";
+    public const string TargetFrameworks = "target-frameworks.json";
 
     // Schema file names (in schemas/ directory)
     public static class Schemas

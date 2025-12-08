@@ -28,6 +28,11 @@ public static class ManifestGenerator
         }
 
         // Use values from _manifest.json with computed fallbacks
+        var targetFramework = partial?.TargetFramework;
+        if (targetFramework == null)
+        {
+            Console.WriteLine($"Warning: {version} - Missing target_framework in _manifest.json");
+        }
         var releaseType = partial?.ReleaseType ?? (IsEvenMajorVersion(version) ? ReleaseType.LTS : ReleaseType.STS);
         var phase = partial?.SupportPhase ?? SupportPhase.Preview;
         var gaDate = partial?.GaDate;
@@ -87,6 +92,7 @@ public static class ManifestGenerator
             partial?.Version ?? version,
             partial?.Label ?? versionLabel)
         {
+            TargetFramework = targetFramework,
             ReleaseType = releaseType,
             SupportPhase = phase,
             Supported = supported,

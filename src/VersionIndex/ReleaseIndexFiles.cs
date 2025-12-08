@@ -20,7 +20,6 @@ public class ReleaseIndexFiles
     {
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.DotNetReleaseIndex, LinkStyle.Prod) },
         {$"{FileNames.Directories.Timeline}/{FileNames.Index}", new FileLink($"{FileNames.Directories.Timeline}/{FileNames.Index}", IndexTitles.TimelineIndexLink, LinkStyle.Prod) },
-        {"glossary.md", new FileLink("glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
     // Links for major version index - lean navigation hub
@@ -28,7 +27,6 @@ public class ReleaseIndexFiles
     {
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.Index, LinkStyle.Prod) },
         {FileNames.Manifest, new FileLink(FileNames.Manifest, LinkTitles.ReleaseManifest, LinkStyle.Prod) },
-        {"../glossary.md", new FileLink("../glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
     // Links for manifest.json - operational/reference links
@@ -231,6 +229,18 @@ public class ReleaseIndexFiles
                 };
             }
 
+            // 6. Add target-frameworks-json link if the file exists
+            var targetFrameworksPath = Path.Combine(majorVersionDir, FileNames.TargetFrameworks);
+            if (File.Exists(targetFrameworksPath))
+            {
+                var targetFrameworksRelativePath = $"{majorVersionDirName}/{FileNames.TargetFrameworks}";
+                orderedMajorVersionLinks[LinkRelations.TargetFrameworksJson] = new HalLink($"{Location.GitHubBaseUri}{targetFrameworksRelativePath}")
+                {
+                    Title = $".NET {majorVersionDirName} Target Frameworks",
+                    Type = MediaType.Json
+                };
+            }
+
             majorVersionLinks = orderedMajorVersionLinks;
 
             // write major version index.json if there are patch releases found
@@ -261,6 +271,7 @@ public class ReleaseIndexFiles
                 $".NET {summary.MajorVersionLabel.Replace(".NET ", string.Empty)} Release Index",
                 patchDescription)
             {
+                TargetFramework = generatedManifest.TargetFramework,
                 Latest = latestPatch?.Version,
                 LatestSecurity = latestSecurityPatch?.Version,
                 ReleaseType = lifecycle?.ReleaseType,
@@ -364,6 +375,7 @@ public class ReleaseIndexFiles
 
             var majorEntry = new MajorReleaseVersionIndexEntry(majorVersionDirName)
             {
+                TargetFramework = generatedManifest.TargetFramework,
                 ReleaseType = lifecycle?.ReleaseType,
                 Supported = lifecycle?.Supported,
                 EolDate = lifecycle?.EolDate,
@@ -446,10 +458,10 @@ public class ReleaseIndexFiles
             }
 
             // Add llms-txt link last - describes the graph for LLM consumption
-            orderedRootLinks["llms-txt"] = new HalLink($"{Location.GitHubBaseUri}llms/README.md")
+            orderedRootLinks["llms-txt"] = new HalLink($"{Location.GitHubBaseUri}llms/reference.txt")
             {
                 Title = "LLM Quick Reference",
-                Type = MediaType.Markdown
+                Type = MediaType.Text
             };
 
             rootLinks = orderedRootLinks;

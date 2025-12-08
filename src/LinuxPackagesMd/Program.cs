@@ -104,6 +104,7 @@ static void WritePackageOverview(StreamWriter writer, OSPackagesOverview package
     }
 
     writer.Write(packageTable);
+    writer.WriteLine();
 
     foreach (var refLink in links.GetReferenceLinkAnchors())
     {

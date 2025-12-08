@@ -2,7 +2,7 @@
 
 # Function to create a symbolic link if it doesn't already exist
 create_symlink() {
-    source="../artifacts/publish/$1/release/$1"
+    source="../src/artifacts/publish/$1/release/$1"
     target="../tools/$1"
     if [ ! -L "$target" ]; then
         ln -s "$source" "$target"

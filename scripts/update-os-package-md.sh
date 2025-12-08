@@ -12,4 +12,6 @@ if [ ! -d "$SOURCE_DIRECTORY" ]; then
     exit 1
 fi
 
+../tools/LinuxPackagesMd 8 "$SOURCE_DIRECTORY"
 ../tools/LinuxPackagesMd 9 "$SOURCE_DIRECTORY"
+../tools/LinuxPackagesMd 10 "$SOURCE_DIRECTORY"

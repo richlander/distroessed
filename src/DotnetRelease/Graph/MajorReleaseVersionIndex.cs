@@ -63,6 +63,10 @@ public record MajorReleaseVersionIndexEntry(
     string Version)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Target framework moniker for this version (e.g., 'net10.0', 'netcoreapp3.1')")]
+    public string? TargetFramework { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
     public ReleaseType? ReleaseType { get; init; }
 

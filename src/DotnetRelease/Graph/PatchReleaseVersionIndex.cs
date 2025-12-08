@@ -19,6 +19,10 @@ public record PatchReleaseVersionIndex(
     string Description) : IReleaseVersionIndex
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Target framework moniker for this version (e.g., 'net10.0', 'netcoreapp3.1')")]
+    public string? TargetFramework { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest patch version")]
     public string? Latest { get; init; }
 

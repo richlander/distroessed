@@ -26,14 +26,12 @@ public class ShipIndexFiles
     public static readonly OrderedDictionary<string, FileLink> TimelineRootFileMappings = new()
     {
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.HistoryIndex, LinkStyle.Prod) },
-        {"../glossary.md", new FileLink("../glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
     // Links for timeline year index (timeline/YYYY/index.json)
     public static readonly OrderedDictionary<string, FileLink> TimelineYearFileMappings = new()
     {
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.HistoryIndex, LinkStyle.Prod) },
-        {"../../glossary.md", new FileLink("../../glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
     // Links for timeline month index (timeline/YYYY/MM/index.json)
@@ -42,7 +40,6 @@ public class ShipIndexFiles
         {FileNames.Index, new FileLink(FileNames.Index, LinkTitles.HistoryIndex, LinkStyle.Prod) },
         {FileNames.Cve, new FileLink(FileNames.Cve, LinkTitles.CveRecordsJson, LinkStyle.Prod) },
         {"cve.md", new FileLink("cve.md", LinkTitles.CveMarkdown, LinkStyle.Prod | LinkStyle.GitHub) },
-        {"../../../glossary.md", new FileLink("../../../glossary.md", LinkTitles.Glossary, LinkStyle.Prod | LinkStyle.GitHub) },
     };
 
     public static readonly OrderedDictionary<string, FileLink> ReleaseFileMappings = new()

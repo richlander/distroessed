@@ -15,6 +15,10 @@ public record ReleaseManifest(
     string Label)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Target framework moniker for this version (e.g., 'net10.0', 'netcoreapp3.1')")]
+    public string? TargetFramework { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
     public ReleaseType? ReleaseType { get; init; }
 
@@ -62,6 +66,10 @@ public record PartialManifest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Human-friendly version label (e.g., '.NET 8.0')")]
     public string? Label { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Target framework moniker for this version (e.g., 'net10.0', 'netcoreapp3.1')")]
+    public string? TargetFramework { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
