@@ -421,13 +421,13 @@ public class ReleaseIndexFiles
                 orderedRootLinks[link.Key] = link.Value;
             }
 
-            // Add llms-txt link last - describes the graph for LLM consumption
+            // Add llms-reference link last - describes the graph for LLM consumption
             // Note: llms/ is at repo root, not inside release-notes/
             var repoBaseUri = Location.GitHubBaseUri.Replace("/release-notes/", "/");
-            orderedRootLinks["llms-txt"] = new HalLink($"{repoBaseUri}llms/reference.txt")
+            orderedRootLinks["llms-reference"] = new HalLink($"{repoBaseUri}llms/reference.md")
             {
                 Title = "LLM Quick Reference",
-                Type = MediaType.Text
+                Type = MediaType.Markdown
             };
 
             rootLinks = orderedRootLinks;
