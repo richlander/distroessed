@@ -24,7 +24,7 @@ public class YearSummary
     /// <summary>
     /// Description of release activity for this year
     /// </summary>
-    public string Description => _yearEntry.Description;
+    public string? Description => _yearEntry.Description;
 
     /// <summary>
     /// .NET versions that had releases this year
