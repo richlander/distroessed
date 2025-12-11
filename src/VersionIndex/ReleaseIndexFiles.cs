@@ -446,7 +446,6 @@ public class ReleaseIndexFiles
                 ReleaseKind.ReleasesIndex,
                 IndexTitles.VersionIndexTitle)
         {
-            AiNote = "Before navigating this graph, read the guide referenced by the 'llms-txt' relation; it explains optimal query patterns.",
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
             Links = HalHelpers.OrderLinks(rootLinks),
