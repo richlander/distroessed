@@ -130,6 +130,8 @@ public static class LlmsIndexFiles
                 CveCount = cveIds?.Count ?? 0,
                 CveRecords = cveIds?.Count > 0 ? cveIds : null,
                 SupportPhase = summary.Lifecycle?.Phase,
+                Supported = summary.Lifecycle?.Supported ?? false,
+                EolDate = summary.Lifecycle != null ? DateOnly.FromDateTime(summary.Lifecycle.EolDate.DateTime) : null,
                 SdkVersion = sdkVersion,
                 Links = patchLinks
             };

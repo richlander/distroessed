@@ -97,6 +97,13 @@ public record LlmsPatchEntry(
      Description("Current support phase")]
     public SupportPhase? SupportPhase { get; init; }
 
+    [Description("Whether this release is currently supported")]
+    public bool Supported { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("End of life date for this release")]
+    public DateOnly? EolDate { get; init; }
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK version shipped with this runtime patch")]
     public string? SdkVersion { get; init; }
