@@ -142,8 +142,8 @@ public record HistoryMonthIndex(
 [Description("Container for embedded month-level release entries")]
 public record HistoryMonthIndexEmbedded
 {
-    [Description("Patch releases this month (symmetric with major version index structure)")]
-    public List<PatchReleaseVersionIndexEntry>? Releases { get; set; }
+    [Description("Patch releases this month - use 'release' property to filter by major version")]
+    public List<PatchReleaseVersionIndexEntry>? Patches { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this month")]

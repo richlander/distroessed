@@ -71,8 +71,8 @@ public record PatchReleaseVersionIndex(
 
 [Description("Container for embedded patch release entries in a patch release index")]
 public record PatchReleaseVersionIndexEmbedded(
-    [Description("List of patch release entries with simplified lifecycle information")]
-    List<PatchReleaseVersionIndexEntry> Releases)
+    [Description("List of patch release entries - use 'release' property to filter by major version")]
+    List<PatchReleaseVersionIndexEntry> Patches)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release timeline years with links to year-specific timelines")]
@@ -89,6 +89,9 @@ public record PatchReleaseVersionIndexEmbedded(
 public record PatchReleaseVersionIndexEntry(
     [property: Description("Patch version identifier (e.g., '8.0.1', '9.0.2')")]
     string Version,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Major version this patch belongs to (e.g., '9.0', '10.0') - enables filtering by release currency")]
+    string? Release,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release date when this patch became generally available")]
     DateTimeOffset? Date,
@@ -110,7 +113,7 @@ public record PatchReleaseVersionIndexEntry(
     SupportPhase? SupportPhase,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Highest SDK version included in this patch release")]
-    string? SdkRelease,
+    string? SdkVersion,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this patch release's content")]
     Dictionary<string, HalLink> Links);

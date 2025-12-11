@@ -92,3 +92,15 @@ public partial class DownloadsIndexSerializerContext : JsonSerializerContext
 public partial class TargetFrameworksSerializerContext : JsonSerializerContext
 {
 }
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    WriteIndented = true)]
+[JsonSerializable(typeof(LlmsIndex))]
+[JsonSerializable(typeof(LlmsIndexEmbedded))]
+[JsonSerializable(typeof(LlmsPatchEntry))]
+[JsonSerializable(typeof(LlmsSecurityStatusEntry))]
+[JsonSerializable(typeof(PartialLlmsIndex))]
+public partial class LlmsIndexSerializerContext : JsonSerializerContext
+{
+}

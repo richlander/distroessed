@@ -128,6 +128,9 @@ public enum ReleaseKind
     [Description("Component download information (runtime, aspnetcore, windowsdesktop, sdk)")]
     ComponentDownload,
 
+    [Description("AI-optimized index with latest patches and security status")]
+    LlmsIndex,
+
     [Description("General content document")]
     Content,
     

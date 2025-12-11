@@ -35,7 +35,7 @@ public record PatchDetailIndex(
     public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Highest SDK version shipped with this runtime patch")]
-    public string? SdkRelease { get; init; }
+    public string? SdkVersion { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK feature band versions shipped with this runtime patch")]
@@ -59,7 +59,7 @@ public record PatchDetailIndexEmbedded
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Highest SDK release as a feature band object (for quick lookup)")]
-    public SdkFeatureBandEntry? SdkRelease { get; set; }
+    public SdkFeatureBandEntry? Sdk { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("All SDK feature bands shipped with this runtime patch")]

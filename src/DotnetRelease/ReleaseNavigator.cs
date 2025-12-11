@@ -48,7 +48,7 @@ public class ReleaseNavigator
     public async Task<IEnumerable<PatchSummary>> GetAllPatchesAsync(CancellationToken cancellationToken = default)
     {
         var index = await GetPatchIndexAsync(cancellationToken);
-        return index.Embedded?.Releases?.Select(r => new PatchSummary(r))
+        return index.Embedded?.Patches?.Select(r => new PatchSummary(r))
             ?? Enumerable.Empty<PatchSummary>();
     }
 

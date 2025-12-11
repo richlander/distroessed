@@ -295,6 +295,7 @@ public class ReleaseIndexFiles
 
                         return new PatchReleaseVersionIndexEntry(
                             e.Version,
+                            summary.MajorVersion,
                             e.Lifecycle?.GaDate,
                             year,
                             month,
@@ -445,6 +446,7 @@ public class ReleaseIndexFiles
                 ReleaseKind.ReleasesIndex,
                 IndexTitles.VersionIndexTitle)
         {
+            AiNote = "Before navigating this graph, read the guide referenced by the 'llms-txt' relation; it explains optimal query patterns.",
             Latest = latestRelease?.Version,
             LatestLts = latestLtsRelease?.Version,
             Links = HalHelpers.OrderLinks(rootLinks),
@@ -941,7 +943,7 @@ public class ReleaseIndexFiles
         {
             embedded = new PatchDetailIndexEmbedded
             {
-                SdkRelease = sdkFeatureBandEntries?.FirstOrDefault(),  // highest SDK (list is sorted descending)
+                Sdk = sdkFeatureBandEntries?.FirstOrDefault(),  // highest SDK (list is sorted descending)
                 SdkFeatureBands = sdkFeatureBandEntries,
                 Disclosures = cveDisclosures
             };
@@ -957,7 +959,7 @@ public class ReleaseIndexFiles
             cveIds?.Count ?? 0,
             sortedCveIds)
         {
-            SdkRelease = highestSdkVersion,
+            SdkVersion = highestSdkVersion,
             SdkFeatureBands = sdkVersionsList,
             Links = HalHelpers.OrderLinks(links),
             Embedded = embedded

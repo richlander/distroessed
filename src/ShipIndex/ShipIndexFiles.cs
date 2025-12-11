@@ -389,6 +389,7 @@ public class ShipIndexFiles
 
                             return new PatchReleaseVersionIndexEntry(
                                 patchVersion,
+                                majorVersion,
                                 releaseDate,
                                 year.Year,
                                 month.Month,
@@ -420,7 +421,7 @@ public class ShipIndexFiles
                     Links = HalHelpers.OrderLinks(monthIndexLinks),
                     Embedded = new HistoryMonthIndexEmbedded
                     {
-                        Releases = embeddedReleases,
+                        Patches = embeddedReleases,
                         Disclosures = cveSummariesForMonth
                     }
                 };

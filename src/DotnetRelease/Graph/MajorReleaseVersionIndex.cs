@@ -16,6 +16,10 @@ public record MajorReleaseVersionIndex(
     string Title)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Note for AI assistants on how to navigate this graph")]
+    public string? AiNote { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Description of the index scope")]
     public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
