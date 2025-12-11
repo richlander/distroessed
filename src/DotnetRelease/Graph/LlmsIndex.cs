@@ -128,6 +128,10 @@ public record LlmsSecurityStatusEntry(
     public string? SdkVersion { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date of the security patch")]
+    public DateTimeOffset? Date { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Year of the security month")]
     public string? Year { get; init; }
 

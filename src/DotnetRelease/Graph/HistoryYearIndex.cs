@@ -79,6 +79,9 @@ public record HistoryMonthEntry(
 public record HistoryMonthSummary(
     [Description("Month identifier (e.g., '02' for February)")]
     string Month,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date for this month's patches")]
+    DateTimeOffset? Date,
     [Description("True if any release this month includes security fixes")]
     bool Security,
     [Description("Number of CVEs disclosed this month")]
@@ -108,6 +111,9 @@ public record HistoryMonthIndex(
     string Year,
     [Description("Month identifier (e.g., '02' for February)")]
     string Month,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date for this month's patches")]
+    DateTimeOffset? Date,
     [Description("True if any release this month includes security fixes")]
     bool Security)
 {

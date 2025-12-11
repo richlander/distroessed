@@ -118,6 +118,7 @@ public class ShipIndexFiles
 
                 HashSet<string> monthReleases = [];
                 Dictionary<string, Dictionary<string, PatchReleaseInfo>> releasesByMajor = new();
+                DateTimeOffset? monthReleaseDate = null;
 
                 // Process each day in the month
                 foreach (var days in month.Days.Values)
@@ -164,6 +165,19 @@ public class ShipIndexFiles
                             if (component.Name == "SDK")
                             {
                                 patches[runtimeVersion].SdkVersions.Add(component.Version);
+                            }
+                        }
+
+                        // Track release date for the month (use the latest date from any patch)
+                        var patchSummaryForDate = summaries
+                            .FirstOrDefault(s => s.MajorVersion == day.MajorVersion)
+                            ?.PatchReleases.FirstOrDefault(p => p.PatchVersion == day.PatchVersion);
+                        if (patchSummaryForDate != null)
+                        {
+                            var patchDate = new DateTimeOffset(patchSummaryForDate.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero);
+                            if (monthReleaseDate == null || patchDate > monthReleaseDate)
+                            {
+                                monthReleaseDate = patchDate;
                             }
                         }
                     }
@@ -222,6 +236,7 @@ public class ShipIndexFiles
 
                 var monthSummary = new HistoryMonthSummary(
                     month.Month,
+                    monthReleaseDate,
                     cveSummariesForMonth?.Count > 0,
                     cveSummariesForMonth?.Count ?? 0,
                     cveSummariesForMonth?.Select(s => s.Id).ToList(),
@@ -412,6 +427,7 @@ public class ShipIndexFiles
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
                     year.Year,
                     month.Month,
+                    monthReleaseDate,
                     cveSummariesForMonth?.Count > 0)
                 {
                     CveCount = monthCveIds?.Count > 0 ? monthCveIds.Count : null,

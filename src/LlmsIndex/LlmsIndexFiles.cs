@@ -108,6 +108,18 @@ public static class LlmsIndexFiles
                 };
             }
 
+            // Add release-major link to navigate to the major version index
+            patchLinks[LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+            {
+                Title = $".NET {summary.MajorVersion}"
+            };
+
+            // Add latest-sdk link to the SDK index for this major version
+            patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}")
+            {
+                Title = $".NET {summary.MajorVersion} SDK Index"
+            };
+
             var patchEntry = new LlmsPatchEntry(latestPatch.PatchVersion, summary.MajorVersion)
             {
                 ReleaseType = summary.Lifecycle?.ReleaseType,
@@ -125,94 +137,66 @@ public static class LlmsIndexFiles
             latestPatches.Add(patchEntry);
         }
 
-        // Find latest security month and build security status entries
-        List<LlmsSecurityStatusEntry>? latestSecurityMonth = null;
+        // Build latest security patch entries - one per supported release
+        // Each entry represents the most recent security patch for that release (may be from different months)
+        var latestSecurityPatches = new List<LlmsSecurityStatusEntry>();
         string? latestSecurityMonthYear = null;
         string? latestSecurityMonthNumber = null;
 
-        // Search for the latest security month by iterating years and months in reverse
-        var sortedYears = releaseHistory.Years.Keys
-            .OrderByDescending(y => y, numericStringComparer)
-            .ToList();
-
-        foreach (var yearKey in sortedYears)
+        foreach (var summary in supportedSummaries)
         {
-            var year = releaseHistory.Years[yearKey];
-            var sortedMonths = year.Months.Keys
-                .OrderByDescending(m => m, numericStringComparer)
-                .ToList();
+            // Find the latest security patch for this release
+            var latestSecurityPatch = summary.PatchReleases
+                .Where(p => p.CveList?.Count > 0)
+                .OrderByDescending(p => p.ReleaseDate)
+                .ThenByDescending(p => p.PatchVersion, numericStringComparer)
+                .FirstOrDefault();
 
-            foreach (var monthKey in sortedMonths)
+            if (latestSecurityPatch == null) continue;
+
+            var securityReleaseDate = new DateTimeOffset(latestSecurityPatch.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero);
+            var yearKey = latestSecurityPatch.ReleaseDate.Year.ToString("D4");
+            var monthKey = latestSecurityPatch.ReleaseDate.Month.ToString("D2");
+
+            // Track the overall latest security month (for the link)
+            var yearMonthKey = $"{yearKey}-{monthKey}";
+            var currentLatest = latestSecurityMonthYear != null ? $"{latestSecurityMonthYear}-{latestSecurityMonthNumber}" : null;
+            if (currentLatest == null || string.Compare(yearMonthKey, currentLatest, StringComparison.Ordinal) > 0)
             {
-                var month = year.Months[monthKey];
-
-                // Check if this month has CVEs by loading cve.json
-                var monthPath = Path.Combine(inputDir, FileNames.Directories.Timeline, yearKey, monthKey);
-                var cveRecords = await CveHandler.CveLoader.LoadCveRecordsFromDirectoryAsync(monthPath);
-
-                if (cveRecords?.Disclosures.Count > 0)
-                {
-                    latestSecurityMonthYear = yearKey;
-                    latestSecurityMonthNumber = monthKey;
-
-                    // Build security status entries for each supported release affected this month
-                    latestSecurityMonth = [];
-
-                    foreach (var summary in supportedSummaries)
-                    {
-                        // Get CVE IDs for this major version from the ReleaseCves dictionary
-                        if (cveRecords.ReleaseCves == null ||
-                            !cveRecords.ReleaseCves.TryGetValue(summary.MajorVersion, out var releaseCveIds) ||
-                            releaseCveIds.Count == 0)
-                        {
-                            continue;
-                        }
-
-                        // Find the patch released this month for this major version
-                        var patchThisMonth = summary.PatchReleases
-                            .FirstOrDefault(p =>
-                                p.ReleaseDate.Year.ToString("D4") == yearKey &&
-                                p.ReleaseDate.Month.ToString("D2") == monthKey);
-
-                        if (patchThisMonth == null) continue;
-
-                        var sdkVersion = patchThisMonth.Components?
-                            .Where(c => c.Name == "SDK")
-                            .Select(c => c.Version)
-                            .OrderByDescending(v => v, numericStringComparer)
-                            .FirstOrDefault();
-
-                        // Build links - self points to the month index
-                        var monthIndexPath = $"{FileNames.Directories.Timeline}/{yearKey}/{monthKey}/{FileNames.Index}";
-                        var securityLinks = new Dictionary<string, HalLink>
-                        {
-                            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
-                        };
-
-                        var cveIdsList = releaseCveIds.ToList();
-
-                        var securityEntry = new LlmsSecurityStatusEntry(summary.MajorVersion)
-                        {
-                            ReleaseType = summary.Lifecycle?.ReleaseType,
-                            Version = patchThisMonth.PatchVersion,
-                            SdkVersion = sdkVersion,
-                            Year = yearKey,
-                            Month = monthKey,
-                            Security = true,
-                            CveCount = cveIdsList.Count,
-                            CveRecords = cveIdsList,
-                            Links = securityLinks
-                        };
-
-                        latestSecurityMonth.Add(securityEntry);
-                    }
-
-                    // Found the latest security month, stop searching
-                    break;
-                }
+                latestSecurityMonthYear = yearKey;
+                latestSecurityMonthNumber = monthKey;
             }
 
-            if (latestSecurityMonth != null) break;
+            var sdkVersion = latestSecurityPatch.Components?
+                .Where(c => c.Name == "SDK")
+                .Select(c => c.Version)
+                .OrderByDescending(v => v, numericStringComparer)
+                .FirstOrDefault();
+
+            // Build links - self points to the month index for this security release
+            var monthIndexPath = $"{FileNames.Directories.Timeline}/{yearKey}/{monthKey}/{FileNames.Index}";
+            var securityLinks = new Dictionary<string, HalLink>
+            {
+                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
+            };
+
+            var cveIds = latestSecurityPatch.CveList?.Select(c => c.CveId).ToList();
+
+            var securityEntry = new LlmsSecurityStatusEntry(summary.MajorVersion)
+            {
+                ReleaseType = summary.Lifecycle?.ReleaseType,
+                Version = latestSecurityPatch.PatchVersion,
+                SdkVersion = sdkVersion,
+                Date = securityReleaseDate,
+                Year = yearKey,
+                Month = monthKey,
+                Security = true,
+                CveCount = cveIds?.Count ?? 0,
+                CveRecords = cveIds,
+                Links = securityLinks
+            };
+
+            latestSecurityPatches.Add(securityEntry);
         }
 
         // Build root links
@@ -316,7 +300,7 @@ public static class LlmsIndexFiles
             Embedded = new LlmsIndexEmbedded
             {
                 LatestPatches = latestPatches.Count > 0 ? latestPatches : null,
-                LatestSecurityMonth = latestSecurityMonth?.Count > 0 ? latestSecurityMonth : null
+                LatestSecurityMonth = latestSecurityPatches.Count > 0 ? latestSecurityPatches : null
             }
         };
 
