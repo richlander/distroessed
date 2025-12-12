@@ -270,13 +270,9 @@ public static class LlmsIndexFiles
             Title = ".NET Release Timeline Index"
         };
 
-        // Add llms-txt link (at repo root, not in release-notes/)
+        // Build llms.txt URL (at repo root, not in release-notes/)
         var repoBaseUri = Location.GitHubBaseUri.Replace("/release-notes/", "/");
-        links["llms-txt"] = new HalLink($"{repoBaseUri}llms.txt")
-        {
-            Title = "READ FIRST: AI navigation guide (links to full reference)",
-            Type = MediaType.Text
-        };
+        var llmsTxtUrl = $"{repoBaseUri}llms.txt";
 
         // Merge additional links from partial
         if (partial?.Links != null)
@@ -293,7 +289,8 @@ public static class LlmsIndexFiles
             ReleaseKind.LlmsIndex,
             partial?.Title ?? ".NET Release Index for AI")
         {
-            AiNote = partial?.AiNote,
+            AiNote = partial?.AiNote ?? "Read required_pre_read for optimal graph navigation and context",
+            RequiredPreRead = llmsTxtUrl,
             Latest = latestVersion,
             LatestLts = latestLtsVersion,
             LatestYear = latestYear,
