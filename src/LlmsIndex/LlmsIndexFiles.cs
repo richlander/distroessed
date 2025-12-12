@@ -293,7 +293,7 @@ public static class LlmsIndexFiles
             ReleaseKind.LlmsIndex,
             partial?.Title ?? ".NET Release Index for AI")
         {
-            AiNote = partial?.AiNote ?? "Read required_pre_read for optimal graph navigation and context; First file is a small quick reference, second is a schema reference. Read the first for sure and use the second for more complex queries.",
+            AiNote = partial?.AiNote ?? "Read llms.txt first (required). schema-reference.txt is optional, for complex queries involving SDK bands, OS packages and compatibility, or custom navigation patterns.",
             RequiredPreRead = requiredPreRead,
             Latest = latestVersion,
             LatestLts = latestLtsVersion,

@@ -77,10 +77,10 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             {
                 name = "release-manifest";
             }
-            // Special case for releases.json to match cve-json pattern
+            // Skip releases.json - too large for LLM consumption
             else if (filename == "releases.json")
             {
-                name = "releases-json";
+                continue;
             }
             // Special case for release.json to match cve-json pattern
             else if (filename == "release.json")

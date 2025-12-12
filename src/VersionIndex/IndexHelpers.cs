@@ -10,7 +10,6 @@ public class IndexHelpers
     private static readonly OrderedDictionary<string, ReleaseKindMapping> _halFileMappings = new()
     {
         { FileNames.Index, new ReleaseKindMapping("index", FileNames.Index, ReleaseKind.Index, MediaType.Json) },
-        { FileNames.Releases, new ReleaseKindMapping("releases", FileNames.Releases, ReleaseKind.MajorRelease, MediaType.Json) },
         { FileNames.Release, new ReleaseKindMapping("release", FileNames.Release, ReleaseKind.PatchRelease, MediaType.Json) },
         { FileNames.Manifest, new ReleaseKindMapping("manifest", FileNames.Manifest, ReleaseKind.Manifest, MediaType.Json) },
         { "usage.md", new ReleaseKindMapping("usage", "usage.md", ReleaseKind.Content, MediaType.Markdown) },
