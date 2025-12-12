@@ -270,9 +270,13 @@ public static class LlmsIndexFiles
             Title = ".NET Release Timeline Index"
         };
 
-        // Build llms.txt URL (at repo root, not in release-notes/)
+        // Build required_pre_read URLs (at repo root, not in release-notes/)
         var repoBaseUri = Location.GitHubBaseUri.Replace("/release-notes/", "/");
-        var llmsTxtUrl = $"{repoBaseUri}llms.txt";
+        var requiredPreRead = new List<string>
+        {
+            $"{repoBaseUri}llms.txt",
+            $"{repoBaseUri}llms/schema-reference.txt"
+        };
 
         // Merge additional links from partial
         if (partial?.Links != null)
@@ -289,8 +293,8 @@ public static class LlmsIndexFiles
             ReleaseKind.LlmsIndex,
             partial?.Title ?? ".NET Release Index for AI")
         {
-            AiNote = partial?.AiNote ?? "Read required_pre_read for optimal graph navigation and context",
-            RequiredPreRead = llmsTxtUrl,
+            AiNote = partial?.AiNote ?? "Read required_pre_read for optimal graph navigation and context; First file is a small quick reference, second is a schema reference. Read the first for sure and use the second for more complex queries.",
+            RequiredPreRead = requiredPreRead,
             Latest = latestVersion,
             LatestLts = latestLtsVersion,
             LatestYear = latestYear,

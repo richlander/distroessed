@@ -19,8 +19,8 @@ public record LlmsIndex(
     public string? AiNote { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("URL to required pre-reading for optimal graph navigation")]
-    public string? RequiredPreRead { get; init; }
+     Description("URLs to required pre-reading for optimal graph navigation (first is quick reference, second is schema reference)")]
+    public IReadOnlyList<string>? RequiredPreRead { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest stable major version (e.g., '10.0')")]
