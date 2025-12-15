@@ -47,18 +47,19 @@ public static class CveTransformer
                 {
                     if (cveRecords.Commits?.TryGetValue(hash, out var commitInfo) == true)
                     {
-                        var release = cveRecords.Products?
-                            .Where(p => p.CveId == disclosure.Id && p.Commits.Contains(hash))
-                            .Select(p => p.Release)
-                            .FirstOrDefault();
+                        // Find the product or package entry for this commit to get release and version info
+                        var productMatch = cveRecords.Products?
+                            .FirstOrDefault(p => p.CveId == disclosure.Id && p.Commits.Contains(hash));
 
-                        if (string.IsNullOrEmpty(release))
-                        {
-                            release = cveRecords.Packages?
-                                .Where(p => p.CveId == disclosure.Id && p.Commits.Contains(hash))
-                                .Select(p => p.Release)
-                                .FirstOrDefault();
-                        }
+                        var packageMatch = productMatch == null
+                            ? cveRecords.Packages?
+                                .FirstOrDefault(p => p.CveId == disclosure.Id && p.Commits.Contains(hash))
+                            : null;
+
+                        var release = productMatch?.Release ?? packageMatch?.Release;
+                        var minVulnerable = productMatch?.MinVulnerable ?? packageMatch?.MinVulnerable;
+                        var maxVulnerable = productMatch?.MaxVulnerable ?? packageMatch?.MaxVulnerable;
+                        var fixedVersion = productMatch?.Fixed ?? packageMatch?.Fixed;
 
                         var repoFullName = $"{commitInfo.Org}/{commitInfo.Repo}";
                         fixes.Add(new CommitLink(
@@ -67,7 +68,10 @@ public static class CveTransformer
                             commitInfo.Branch)
                         {
                             Title = $"Fix commit in {commitInfo.Repo} ({commitInfo.Branch})",
-                            Release = !string.IsNullOrEmpty(release) ? release : null
+                            Release = !string.IsNullOrEmpty(release) ? release : null,
+                            MinVulnerable = !string.IsNullOrEmpty(minVulnerable) ? minVulnerable : null,
+                            MaxVulnerable = !string.IsNullOrEmpty(maxVulnerable) ? maxVulnerable : null,
+                            Fixed = !string.IsNullOrEmpty(fixedVersion) ? fixedVersion : null
                         });
                     }
                 }

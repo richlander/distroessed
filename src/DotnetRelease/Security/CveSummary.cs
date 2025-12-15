@@ -63,8 +63,20 @@ public record CommitLink(
     public string? Title { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description(".NET release version (e.g., '8.0')")]
+     Description(".NET major release version (e.g., '8.0')")]
     public string? Release { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("First vulnerable version in this release (e.g., '8.0.0')")]
+    public string? MinVulnerable { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Last vulnerable version in this release (e.g., '8.0.16')")]
+    public string? MaxVulnerable { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("First fixed version in this release (e.g., '8.0.17')")]
+    public string? Fixed { get; set; }
 }
 
 [Description("Collection of simplified CVE records")]
