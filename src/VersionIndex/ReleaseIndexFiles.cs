@@ -26,6 +26,8 @@ public class ReleaseIndexFiles
     // Links for manifest.json - operational/reference links
     public static readonly OrderedDictionary<string, FileLink> ManifestFileMappings = new()
     {
+        {FileNames.Compatibility, new FileLink(FileNames.Compatibility, LinkTitles.Compatibility, LinkStyle.Prod) },
+        {FileNames.TargetFrameworks, new FileLink(FileNames.TargetFrameworks, LinkTitles.TargetFrameworks, LinkStyle.Prod) },
         {FileNames.SupportedOs, new FileLink(FileNames.SupportedOs, LinkTitles.SupportedOSes, LinkStyle.Prod) },
         {FileNames.OsPackages, new FileLink(FileNames.OsPackages, LinkTitles.OsPackages, LinkStyle.Prod) },
         {"linux-packages.json", new FileLink("linux-packages.json", LinkTitles.LinuxPackages, LinkStyle.Prod) },
@@ -191,41 +193,6 @@ public class ReleaseIndexFiles
                 orderedMajorVersionLinks["latest-security"] = new HalLink($"{Location.GitHubBaseUri}{latestSecurityPatchIndexPath}")
                 {
                     Title = LinkTitles.LatestSecurityPatch,
-                };
-            }
-
-            // 4. Add latest-release-json link (small file, LLM-friendly)
-            if (latestPatchSummary?.PatchDirPath != null)
-            {
-                var latestReleaseJsonPath = $"{latestPatchSummary.PatchDirPath}/{FileNames.Release}";
-                orderedMajorVersionLinks["latest-release-json"] = new HalLink($"{Location.GitHubBaseUri}{latestReleaseJsonPath}")
-                {
-                    Title = $"Latest release information ({latestPatchVersion})",
-                    Type = MediaType.Json
-                };
-            }
-
-            // 5. Add compatibility-json link if the file exists (high-value for upgrade decisions)
-            var compatibilityPath = Path.Combine(majorVersionDir, FileNames.Compatibility);
-            if (File.Exists(compatibilityPath))
-            {
-                var compatibilityRelativePath = $"{majorVersionDirName}/{FileNames.Compatibility}";
-                orderedMajorVersionLinks[LinkRelations.CompatibilityJson] = new HalLink($"{Location.GitHubBaseUri}{compatibilityRelativePath}")
-                {
-                    Title = $".NET {majorVersionDirName} Compatibility",
-                    Type = MediaType.Json
-                };
-            }
-
-            // 6. Add target-frameworks-json link if the file exists
-            var targetFrameworksPath = Path.Combine(majorVersionDir, FileNames.TargetFrameworks);
-            if (File.Exists(targetFrameworksPath))
-            {
-                var targetFrameworksRelativePath = $"{majorVersionDirName}/{FileNames.TargetFrameworks}";
-                orderedMajorVersionLinks[LinkRelations.TargetFrameworksJson] = new HalLink($"{Location.GitHubBaseUri}{targetFrameworksRelativePath}")
-                {
-                    Title = $".NET {majorVersionDirName} Target Frameworks",
-                    Type = MediaType.Json
                 };
             }
 
@@ -509,15 +476,6 @@ public class ReleaseIndexFiles
             // PatchDirPath is relative to the input root (e.g., "10.0/10.0.0" or "10.0/preview/preview1")
             // We need to construct the full path using the major version directory's parent
             var patchDir = Path.Combine(inputRoot, summary.PatchDirPath);
-
-            var releaseJson = Path.Combine(patchDir, FileNames.Release);
-            if (!File.Exists(releaseJson))
-            {
-                continue;
-            }
-            var relativePath = Path.GetRelativePath(inputRoot, releaseJson);
-            var urlRelativePath = Path.GetRelativePath(urlRootDir ?? inputRoot, releaseJson);
-            var releaseJsonPathValue = "/" + relativePath.Replace("\\", "/");
 
             // Create links - self now points to index.json (href only), with separate link to release.json
             // Use PatchDirPath for the URL path (handles preview/rc structure)
@@ -898,11 +856,15 @@ public class ReleaseIndexFiles
         }
 
         // Now add JSON links (after all HAL+JSON links)
-        links["release-json"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Release}")
+        // Only add release-json link if the file exists (older versions may not have it)
+        if (File.Exists(releaseJsonPath))
         {
-            Title = $"{patchVersion} Release Information",
-            Type = MediaType.Json
-        };
+            links["release-json"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Release}")
+            {
+                Title = $"{patchVersion} Release Information",
+                Type = MediaType.Json
+            };
+        }
 
         // Add CVE JSON link if there are disclosures
         if (hasCveDisclosures && timelineCveJsonPath != null)

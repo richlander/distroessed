@@ -47,4 +47,8 @@ public static class LinkTitles
     public static readonly string SupportedOSes = string.Intern("Supported OSes");
     public static readonly string OsPackages = string.Intern("OS Packages");
     public static readonly string LinuxPackages = string.Intern("Linux Packages");
+
+    // Reference data
+    public static readonly string Compatibility = string.Intern("Compatibility");
+    public static readonly string TargetFrameworks = string.Intern("Target Frameworks");
 }

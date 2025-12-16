@@ -120,6 +120,12 @@ public static class LlmsIndexFiles
                 Title = $".NET {summary.MajorVersion} SDK Index"
             };
 
+            // Add release-manifest link for direct access to reference data (compatibility, TFMs, OS support)
+            patchLinks[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}")
+            {
+                Title = $".NET {summary.MajorVersion} Manifest"
+            };
+
             var patchEntry = new LlmsPatchEntry(latestPatch.PatchVersion, summary.MajorVersion)
             {
                 ReleaseType = summary.Lifecycle?.ReleaseType,
@@ -270,13 +276,8 @@ public static class LlmsIndexFiles
             Title = ".NET Release Timeline Index"
         };
 
-        // Build required_pre_read URLs (at repo root, not in release-notes/)
-        var repoBaseUri = Location.GitHubBaseUri.Replace("/release-notes/", "/");
-        var requiredPreRead = new List<string>
-        {
-            $"{repoBaseUri}llms.txt",
-            $"{repoBaseUri}llms/schema-reference.txt"
-        };
+        // Build required_pre_read URL (skill file in release-notes/)
+        var requiredPreRead = $"{Location.GitHubBaseUri}skills/SKILL.md";
 
         // Merge additional links from partial
         if (partial?.Links != null)
@@ -293,7 +294,7 @@ public static class LlmsIndexFiles
             ReleaseKind.LlmsIndex,
             partial?.Title ?? ".NET Release Index for AI")
         {
-            AiNote = partial?.AiNote ?? "Read llms.txt first (required). schema-reference.txt is optional, for complex queries involving SDK bands, OS packages and compatibility, or custom navigation patterns.",
+            AiNote = partial?.AiNote ?? "ALWAYS read required_pre_read first. HAL graph—follow _links only, never construct URLs.",
             RequiredPreRead = requiredPreRead,
             Latest = latestVersion,
             LatestLts = latestLtsVersion,

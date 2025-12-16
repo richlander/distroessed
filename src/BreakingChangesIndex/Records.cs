@@ -51,7 +51,8 @@ public record BreakingChange(
     [JsonPropertyName("impact")]
     public string? Impact { get; init; }
 
-    [JsonPropertyName("required_action")]
+    // Excluded from JSON output - contains multi-line content that's better accessed via documentation link
+    [JsonIgnore]
     public string? RequiredAction { get; init; }
 
     [JsonPropertyName("references")]
