@@ -99,7 +99,7 @@ public partial class TargetFrameworksSerializerContext : JsonSerializerContext
 [JsonSerializable(typeof(LlmsIndex))]
 [JsonSerializable(typeof(LlmsIndexEmbedded))]
 [JsonSerializable(typeof(LlmsPatchEntry))]
-[JsonSerializable(typeof(LlmsSecurityStatusEntry))]
+[JsonSerializable(typeof(HistoryMonthSummary))]
 [JsonSerializable(typeof(PartialLlmsIndex))]
 public partial class LlmsIndexSerializerContext : JsonSerializerContext
 {

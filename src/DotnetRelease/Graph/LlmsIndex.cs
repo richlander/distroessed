@@ -56,8 +56,8 @@ public record LlmsIndexEmbedded
     public IReadOnlyList<LlmsPatchEntry>? LatestPatches { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Security status per release for the latest security month")]
-    public IReadOnlyList<LlmsSecurityStatusEntry>? LatestSecurityMonth { get; init; }
+     Description("Last 3 security months (most recent first), crossing year boundaries if needed")]
+    public IReadOnlyList<HistoryMonthSummary>? LatestSecurityMonths { get; init; }
 }
 
 /// <summary>
@@ -114,54 +114,6 @@ public record LlmsPatchEntry(
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links - self points to patch index")]
-    public Dictionary<string, HalLink> Links { get; init; } = [];
-}
-
-/// <summary>
-/// Security status entry for a release in the latest security month.
-/// Answers: "What do I need to know about security for each release?"
-/// </summary>
-[Description("Security status entry per release for the latest security month")]
-public record LlmsSecurityStatusEntry(
-    [property: Description("Major version (e.g., '9.0')")]
-    string Release)
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release type: lts or sts")]
-    public ReleaseType? ReleaseType { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Patch version with security fixes")]
-    public string? Version { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK version for the security patch")]
-    public string? SdkVersion { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release date of the security patch")]
-    public DateTimeOffset? Date { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Year of the security month")]
-    public string? Year { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Month of the security release")]
-    public string? Month { get; init; }
-
-    [Description("Always true for security status entries")]
-    public bool Security { get; init; } = true;
-
-    [Description("Number of CVEs addressed")]
-    public int CveCount { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE identifiers")]
-    public IReadOnlyList<string>? CveRecords { get; init; }
-
-    [JsonPropertyName("_links"),
-     Description("HAL+JSON links - self points to the month index")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
 }
 
