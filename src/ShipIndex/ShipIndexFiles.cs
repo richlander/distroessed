@@ -95,9 +95,6 @@ public class ShipIndexFiles
 
             HashSet<string> releasesForYear = [];
 
-            // Track all patch versions per major version for the year (for phase calculation)
-            Dictionary<string, List<string>> yearPatchVersionsByMajor = new();
-
             // Get sorted list of months for next/prev links
             var sortedMonths = year.Months.Keys.OrderBy(m => m, numericStringComparer).ToList();
 
@@ -138,18 +135,6 @@ public class ShipIndexFiles
                         monthReleases.Add(day.MajorVersion);
                         releasesForYear.Add(day.MajorVersion);
                         allReleases.Add(day.MajorVersion);
-
-                        // Track patch version for year-level phase calculation
-                        var runtimeVersionForYear = day.Components.FirstOrDefault(c => c.Name == "Runtime")?.Version ?? day.PatchVersion;
-                        if (!yearPatchVersionsByMajor.TryGetValue(day.MajorVersion, out var yearPatches))
-                        {
-                            yearPatches = new List<string>();
-                            yearPatchVersionsByMajor[day.MajorVersion] = yearPatches;
-                        }
-                        if (!yearPatches.Contains(runtimeVersionForYear))
-                        {
-                            yearPatches.Add(runtimeVersionForYear);
-                        }
 
                         // Group patches by major version, keyed by runtime version
                         if (!releasesByMajor.TryGetValue(day.MajorVersion, out var patches))
@@ -632,87 +617,9 @@ public class ShipIndexFiles
                 Links = HalHelpers.OrderLinks(yearHalLinks)
             };
 
-            // Create embedded releases with lifecycle based on patch versions released this year
-            // Phase is determined from the patch version strings, EOL from _manifest.json (via summary)
-            var releaseEntries = releasesForYear
-                .OrderByDescending(v => v, numericStringComparer)
-                .Select(version =>
-                {
-                    var summary = summaries.FirstOrDefault(s => s.MajorVersion == version);
-
-                    // Determine phase from the patch versions released this year for this major version
-                    var patchVersionsForMajor = yearPatchVersionsByMajor.TryGetValue(version, out var yearPatches)
-                        ? yearPatches
-                        : new List<string>();
-
-                    // Use the "best" phase among all patches (Active > GoLive > Preview)
-                    var bestPhase = patchVersionsForMajor
-                        .Select(ReleaseStability.DeterminePhaseFromVersion)
-                        .OrderBy(p => p)
-                        .LastOrDefault();
-
-                    // If no patches found, fall back to preview
-                    if (patchVersionsForMajor.Count == 0)
-                    {
-                        bestPhase = SupportPhase.Preview;
-                    }
-
-                    // Create lifecycle with phase from version, other data from summary
-                    Lifecycle? lifecycle = null;
-                    if (summary?.Lifecycle != null)
-                    {
-                        lifecycle = new Lifecycle(
-                            summary.Lifecycle.ReleaseType,
-                            bestPhase,
-                            summary.Lifecycle.GaDate,
-                            summary.Lifecycle.EolDate)
-                        {
-                            Supported = ReleaseStability.IsSupportedPhase(bestPhase) && DateTimeOffset.UtcNow < summary.Lifecycle.EolDate
-                        };
-                    }
-
-                    // Build links dictionary starting with self
-                    var links = new Dictionary<string, HalLink>
-                    {
-                        [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
-                    };
-
-                    // Find the latest patch for this release within this year
-                    var latestPatchForYear = summary?.PatchReleases
-                        .Where(p => p.ReleaseDate.Year.ToString() == year.Year)
-                        .OrderByDescending(p => p.ReleaseDate)
-                        .FirstOrDefault();
-
-                    // Note: No titles in _embedded links - context established by parent
-                    if (latestPatchForYear != null)
-                    {
-                        // Add latest-patch link
-                        var latestPatchPath = $"{version}/{latestPatchForYear.PatchVersion}/{FileNames.Index}";
-                        links[LinkRelations.LatestPatch] = new HalLink($"{Location.GitHubBaseUri}{latestPatchPath}");
-
-                        // Add latest-month link based on the latest patch's release date
-                        var patchYear = latestPatchForYear.ReleaseDate.Year.ToString("D4");
-                        var patchMonth = latestPatchForYear.ReleaseDate.Month.ToString("D2");
-                        var latestMonthPath = $"{FileNames.Directories.Timeline}/{patchYear}/{patchMonth}/{FileNames.Index}";
-                        links[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{latestMonthPath}");
-                    }
-
-                    return new MajorReleaseVersionIndexEntry(version)
-                    {
-                        ReleaseType = lifecycle?.ReleaseType,
-                        SupportPhase = lifecycle?.Phase,
-                        Supported = lifecycle?.Supported,
-                        GaDate = lifecycle?.GaDate,
-                        EolDate = lifecycle?.EolDate,
-                        Links = HalHelpers.OrderLinks(links)
-                    };
-                })
-                .ToList();
-
             yearHistory.Embedded = new HistoryYearIndexEmbedded
             {
-                Months = monthSummaries.AsEnumerable().Reverse().ToList(),
-                Releases = releaseEntries
+                Months = monthSummaries.AsEnumerable().Reverse().ToList()
             };
 
             // Serialize to string first to add schema reference

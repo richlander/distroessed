@@ -46,8 +46,6 @@ public record HistoryYearIndexEmbedded
 {
     [Description("Monthly release summaries for this year")]
     public List<HistoryMonthSummary>? Months { get; set; }
-    [Description("Major versions with releases during this year, with full lifecycle information")]
-    public List<MajorReleaseVersionIndexEntry>? Releases { get; set; }
 }
 
 [Description("Container for embedded monthly navigation entries")]
