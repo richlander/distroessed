@@ -254,10 +254,7 @@ public class ReleaseIndexFiles
                             if (e.CveRecords?.Count > 0)
                             {
                                 var cveJsonPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Cve}";
-                                links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}")
-                                {
-                                    Type = MediaType.Json
-                                };
+                                links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}");
                             }
                         }
 
@@ -767,13 +764,10 @@ public class ReleaseIndexFiles
                         var featureBand = $"{parts[0]}.{parts[1]}.{parts[2][0]}xx";
 
                         // Build links for this feature band entry
-                        // Note: No titles in _embedded links - context established by parent
+                        // Note: No titles or types in _embedded links - context established by parent
                         var bandLinks = new Dictionary<string, HalLink>
                         {
                             ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Directories.Downloads}/sdk-{featureBand}.json")
-                            {
-                                Type = MediaType.Json
-                            }
                         };
 
                         // Add release-month link if we have lifecycle date

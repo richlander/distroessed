@@ -217,10 +217,7 @@ public class ShipIndexFiles
                     var cveJsonRelativePath = Path.GetRelativePath(inputPath, Path.Combine(monthPath, FileNames.Cve));
                     var cveJsonPathValue = "/" + cveJsonRelativePath.Replace("\\", "/");
 
-                    monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
-                    {
-                        Type = MediaType.Json
-                    };
+                    monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod));
                 }
 
                 // Calculate latest stable release for this month (highest major version with GA patches)

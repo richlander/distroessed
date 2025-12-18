@@ -132,13 +132,10 @@ public class SdkIndexFiles
                 var latestPatchRelease = latestInBand.PatchRelease;
 
                 // Build links for this feature band
-                // Note: No titles in _embedded links - context established by parent
+                // Note: No titles or types in _embedded links - context established by parent
                 var bandLinks = new Dictionary<string, HalLink>
                 {
                     ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Downloads}/sdk-{bandVersion}.json")
-                    {
-                        Type = MediaType.Json
-                    }
                 };
 
                 // Add release-patch link (to the patch release this SDK is part of)

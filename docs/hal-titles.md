@@ -15,7 +15,7 @@ Most link titles describe the **resource type** being linked to (e.g., ".NET Maj
 
 Links in **`_links`** (root-level navigation) use full titles with version/date suffixes (e.g., ".NET Major Release Index - 10.0") because they cross context boundaries.
 
-Links in **`_embedded`** entries have **no titles** - context is established by the parent document, and the relation name + href provide sufficient information. This significantly reduces token usage for LLM consumers.
+Links in **`_embedded`** entries have **no titles or types** - context is established by the parent document, and the relation name + href provide sufficient information. This significantly reduces token usage for LLM consumers.
 
 Links in **manifest files** use simple titles (e.g., "Release notes", "Compatibility") because the version context is already established.
 

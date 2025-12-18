@@ -166,12 +166,10 @@ public class DownloadsIndexFiles
                 var bandFileName = $"sdk-{bandVersion}.json";
                 var bandRelativePath = $"{summary.MajorVersion}/{FileNames.Directories.Downloads}/{bandFileName}";
 
+                // Note: No titles or types in _embedded links - context established by parent
                 var bandLinks = new Dictionary<string, HalLink>
                 {
                     [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{bandRelativePath}")
-                    {
-                        Type = MediaType.Json
-                    }
                 };
 
                 return new FeatureBandEntry(bandVersion, $".NET SDK {bandVersion}", band.SupportPhase)
@@ -204,6 +202,7 @@ public class DownloadsIndexFiles
         await File.WriteAllTextAsync(indexPath, (jsonWithSchema ?? json) + '\n');
     }
 
+    // Note: No titles or types in _embedded links - context established by parent
     private static ComponentEntry CreateComponentEntry(string name, string title, string version)
     {
         var fileName = $"{name}.json";
@@ -212,9 +211,6 @@ public class DownloadsIndexFiles
         var links = new Dictionary<string, HalLink>
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{relativePath}")
-            {
-                Type = MediaType.Json
-            }
         };
 
         return new ComponentEntry(name, title) { Links = links };
@@ -226,16 +222,11 @@ public class DownloadsIndexFiles
         var relativePath = $"{version}/{FileNames.Directories.Downloads}/{fileName}";
         var sdkIndexPath = $"{version}/{FileNames.Directories.Sdk}/{FileNames.Index}";
 
+        // Note: No titles or types in _embedded links - context established by parent
         var links = new Dictionary<string, HalLink>
         {
-            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{relativePath}")
-            {
-                Type = MediaType.Json
-            },
+            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{relativePath}"),
             ["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
-            {
-                Title = $".NET SDK {version}",
-            }
         };
 
         return new ComponentEntry("sdk", ".NET SDK") { Links = links };
