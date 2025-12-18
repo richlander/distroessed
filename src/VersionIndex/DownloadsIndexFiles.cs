@@ -141,10 +141,7 @@ public class DownloadsIndexFiles
 
         var links = new Dictionary<string, HalLink>
         {
-            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelativePath}")
-            {
-                Title = $".NET {summary.MajorVersion} Downloads",
-            },
+            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelativePath}"),
             [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
             {
                 Title = $".NET {summary.MajorVersion}",
@@ -173,7 +170,6 @@ public class DownloadsIndexFiles
                 {
                     [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{bandRelativePath}")
                     {
-                        Title = $".NET SDK {bandVersion}",
                         Type = MediaType.Json
                     }
                 };
@@ -217,7 +213,6 @@ public class DownloadsIndexFiles
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{relativePath}")
             {
-                Title = title,
                 Type = MediaType.Json
             }
         };
@@ -235,7 +230,6 @@ public class DownloadsIndexFiles
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{relativePath}")
             {
-                Title = ".NET SDK",
                 Type = MediaType.Json
             },
             ["sdk-index"] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
@@ -351,7 +345,6 @@ public class DownloadsIndexFiles
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{relativePath}")
             {
-                Title = $"{title} Downloads",
                 Type = MediaType.Json
             },
             ["downloads-index"] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Directories.Downloads}/{FileNames.Index}")

@@ -38,6 +38,7 @@ public static class FileNames
         public const string TimelineIndex = "dotnet-release-timeline-index.json";
         public const string DownloadsIndex = "dotnet-downloads-index.json";
         public const string ComponentDownload = "dotnet-component-download.json";
+        public const string ReleaseManifest = "dotnet-release-manifest.json";
     }
 
     // Directory names

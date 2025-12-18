@@ -29,6 +29,8 @@ public partial class ReleaseVersionIndexSerializerContext : JsonSerializerContex
 
 [JsonSerializable(typeof(ReleaseManifest))]
 [JsonSerializable(typeof(PartialManifest))]
+[JsonSerializable(typeof(ContentManifest))]
+[JsonSerializable(typeof(PartialContentManifest))]
 public partial class ReleaseManifestSerializerContext : JsonSerializerContext
 {
 }

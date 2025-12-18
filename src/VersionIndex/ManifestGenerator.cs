@@ -59,6 +59,7 @@ public static class ManifestGenerator
         };
 
         // Generate operational/reference links from ManifestFileMappings
+        // Keep titles simple within manifest - version context is already established
         var operationalLinks = halLinkGenerator.Generate(
             majorVersionDir,
             ReleaseIndexFiles.ManifestFileMappings.Values,

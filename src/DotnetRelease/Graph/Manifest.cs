@@ -92,3 +92,32 @@ public record PartialManifest
     public Dictionary<string, HalLink>? Links { get; init; }
 }
 
+[Description("Simple content manifest containing documentation and resource links")]
+public record ContentManifest(
+    [Description("Type of manifest document")]
+    string Kind,
+    [Description("Concise title for the document")]
+    string Title)
+{
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links to documentation and resources")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
+}
+
+[Description("Partial content manifest for hand-maintained additions")]
+public record PartialContentManifest
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Type of manifest document")]
+    public string? Kind { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Concise title for the document")]
+    public string? Title { get; init; }
+
+    [JsonPropertyName("_links"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("HAL+JSON links to merge into the generated manifest")]
+    public Dictionary<string, HalLink>? Links { get; init; }
+}
+

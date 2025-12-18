@@ -88,7 +88,9 @@ public enum HistoryKind
     YearIndex,
     [Description("Month-specific index")]
     MonthIndex,
-    
+    [Description("Resource manifest for a timeline entry")]
+    Manifest,
+
     // Legacy values (deprecated, for backwards compatibility)
     [Description("Legacy: Use TimelineIndex instead")]
     ReleaseTimelineIndex,

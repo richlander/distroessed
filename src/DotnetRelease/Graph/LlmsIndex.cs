@@ -34,9 +34,10 @@ public record LlmsIndex(
      Description("Latest year with releases")]
     public string? LatestYear { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonPropertyName("supported_releases"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Supported major version identifiers (e.g., ['10.0', '9.0', '8.0'])")]
-    public IReadOnlyList<string>? Releases { get; init; }
+    public IReadOnlyList<string>? SupportedReleases { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]

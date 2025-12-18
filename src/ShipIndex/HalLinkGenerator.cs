@@ -7,14 +7,14 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
     private readonly string _rootPath = rootPath ?? throw new ArgumentNullException(nameof(rootPath));
     private readonly Func<string, LinkStyle, string> _urlGenerator = urlGenerator ?? throw new ArgumentNullException(nameof(urlGenerator));
 
-    public Dictionary<string, HalLink> Generate(string path,IEnumerable<FileLink> fileLinks, Func<FileLink, string, string> titleGenerator)
+    public Dictionary<string, HalLink> Generate(string path, IEnumerable<FileLink> fileLinks, Func<FileLink, string, string> titleGenerator, bool includeSelf = true)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(fileLinks);
         ArgumentNullException.ThrowIfNull(titleGenerator);
 
         var result = new Dictionary<string, HalLink>();
-        bool isSelf = true;
+        bool isSelf = includeSelf;
 
         foreach (var fileLink in fileLinks)
         {
@@ -101,13 +101,16 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
                     // Raw content (Prod) is the default, GitHub blob is the rendered version
                     var linkKey = selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown" : "markdown-rendered")}" : name);
                     var baseTitle = titleGenerator(fileLink, linkKey);
-                    var title = isMarkdown && style == LinkStyle.GitHub ? $"{baseTitle} (Rendered)" : baseTitle;
+                    // Don't append "(Rendered)" if the title already contains it (custom title provided)
+                    var title = isMarkdown && style == LinkStyle.GitHub && !baseTitle.Contains("(Rendered)")
+                        ? $"{baseTitle} (Rendered)"
+                        : baseTitle;
 
                     // GitHub blob view renders markdown as HTML
                     var linkType = style == LinkStyle.GitHub && isMarkdown ? MediaType.Html : fileType;
                     result[linkKey] = new HalLink(urlGenerator(relativePath, style))
                         {
-                            Title = title,
+                            Title = linkKey == HalTerms.Self ? null : title,
                             Type = linkType == MediaType.HalJson ? null : linkType
                         };
                 }

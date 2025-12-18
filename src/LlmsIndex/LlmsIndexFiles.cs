@@ -86,9 +86,13 @@ public static class LlmsIndexFiles
             // Build patch entry links - self points to patch index
             var patchDirPath = latestPatch.PatchDirPath ?? $"{summary.MajorVersion}/{latestPatch.PatchVersion}";
             var patchIndexPath = $"{patchDirPath}/{FileNames.Index}";
+            var isSecurity = cveIds?.Count > 0;
+            var selfTitle = isSecurity
+                ? $"Latest security patch - .NET {latestPatch.PatchVersion}"
+                : $"Latest patch - .NET {latestPatch.PatchVersion}";
             var patchLinks = new Dictionary<string, HalLink>
             {
-                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
+                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}") { Title = selfTitle }
             };
 
             // Find latest security patch for this release (for quick hop when security=false)
@@ -104,26 +108,20 @@ public static class LlmsIndexFiles
                 var securityPatchIndexPath = $"{securityPatchDirPath}/{FileNames.Index}";
                 patchLinks[LinkRelations.LatestSecurity] = new HalLink($"{Location.GitHubBaseUri}{securityPatchIndexPath}")
                 {
-                    Title = latestSecurityPatch.PatchVersion
+                    Title = $"Latest security patch - .NET {latestSecurityPatch.PatchVersion}"
                 };
             }
 
             // Add release-major link to navigate to the major version index
             patchLinks[LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
             {
-                Title = $".NET {summary.MajorVersion}"
-            };
-
-            // Add latest-sdk link to the SDK index for this major version
-            patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}")
-            {
-                Title = $".NET {summary.MajorVersion} SDK Index"
+                Title = $"Major release - .NET {summary.MajorVersion}"
             };
 
             // Add release-manifest link for direct access to reference data (compatibility, TFMs, OS support)
             patchLinks[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}")
             {
-                Title = $".NET {summary.MajorVersion} Manifest"
+                Title = $"Manifest - .NET {summary.MajorVersion}"
             };
 
             var patchEntry = new LlmsPatchEntry(latestPatch.PatchVersion, summary.MajorVersion)
@@ -145,10 +143,10 @@ public static class LlmsIndexFiles
             latestPatches.Add(patchEntry);
         }
 
-        // Build latest security months - last 3 months with security releases (crossing year boundaries)
-        var latestSecurityMonths = new List<HistoryMonthSummary>();
+        // Find latest security month for the link
+        string? latestSecurityMonthYear = null;
+        string? latestSecurityMonthNumber = null;
 
-        // Collect all months with their year context, then filter to security months
         var allMonths = releaseHistory.Years
             .SelectMany(y => y.Value.Months.Select(m => (Year: y.Key, Month: m.Key, Data: m.Value)))
             .OrderByDescending(m => m.Year)
@@ -157,93 +155,17 @@ public static class LlmsIndexFiles
 
         foreach (var (yearKey, monthKey, monthData) in allMonths)
         {
-            if (latestSecurityMonths.Count >= 3)
-                break;
-
-            // Get all releases for this month and check for CVEs
-            var monthReleases = monthData.Days.Values
+            // Check if this month has any CVEs
+            var hasCves = monthData.Days.Values
                 .SelectMany(d => d.Releases)
-                .ToList();
+                .Any(r => r.CveList?.Count > 0);
 
-            var cveIds = monthReleases
-                .Where(r => r.CveList != null)
-                .SelectMany(r => r.CveList!)
-                .Select(c => c.CveId)
-                .Distinct()
-                .ToList();
-
-            // Skip non-security months
-            if (cveIds.Count == 0)
-                continue;
-
-            // Get release date (use first day with releases)
-            var firstDay = monthData.Days.Values
-                .OrderBy(d => d.Date)
-                .FirstOrDefault();
-            var monthReleaseDate = firstDay != null
-                ? new DateTimeOffset(firstDay.Date, TimeOnly.MinValue, TimeSpan.Zero)
-                : (DateTimeOffset?)null;
-
-            // Get major versions that had releases this month
-            var majorVersions = monthReleases
-                .Select(r => r.MajorVersion)
-                .Distinct()
-                .OrderByDescending(v => v, numericStringComparer)
-                .ToList();
-
-            // Find latest release (prefer active/supported)
-            var monthLatestRelease = majorVersions.FirstOrDefault();
-
-            // Collect runtime patch versions for this month
-            var runtimePatches = monthReleases
-                .Select(r => r.PatchVersion)
-                .Distinct()
-                .OrderByDescending(v => v, numericStringComparer)
-                .ToList();
-
-            // Build links
-            var monthIndexPath = $"{FileNames.Directories.Timeline}/{yearKey}/{monthKey}/{FileNames.Index}";
-            var monthLinks = new Dictionary<string, HalLink>
+            if (hasCves)
             {
-                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
-            };
-
-            // Add cve-json link
-            var cveJsonPath = $"{FileNames.Directories.Timeline}/{yearKey}/{monthKey}/{FileNames.Cve}";
-            monthLinks[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}")
-            {
-                Title = LinkTitles.CveRecordsJson,
-                Type = MediaType.Json
-            };
-
-            var monthSummary = new HistoryMonthSummary(
-                monthKey,
-                monthReleaseDate,
-                true, // security is always true since we filtered
-                cveIds.Count,
-                cveIds,
-                monthLatestRelease,
-                majorVersions,
-                runtimePatches.Count > 0 ? runtimePatches : null,
-                monthLinks
-            );
-
-            latestSecurityMonths.Add(monthSummary);
-        }
-
-        // Track the latest security month year/number for the link (from first entry which is most recent)
-        string? latestSecurityMonthYear = null;
-        string? latestSecurityMonthNumber = null;
-        if (latestSecurityMonths.Count > 0)
-        {
-            var firstMonth = latestSecurityMonths[0];
-            latestSecurityMonthNumber = firstMonth.Month;
-            // Find which year this month belongs to
-            latestSecurityMonthYear = allMonths
-                .First(m => m.Month == firstMonth.Month &&
-                       m.Data.Days.Values.SelectMany(d => d.Releases)
-                           .Any(r => r.CveList?.Count > 0))
-                .Year;
+                latestSecurityMonthYear = yearKey;
+                latestSecurityMonthNumber = monthKey;
+                break;
+            }
         }
 
         // Build root links
@@ -257,7 +179,7 @@ public static class LlmsIndexFiles
         {
             links[LinkRelations.Latest] = new HalLink($"{Location.GitHubBaseUri}{latestVersion}/{FileNames.Index}")
             {
-                Title = $".NET {latestVersion}"
+                Title = $"Latest release - .NET {latestVersion}"
             };
         }
 
@@ -265,7 +187,7 @@ public static class LlmsIndexFiles
         {
             links[LinkRelations.LatestLts] = new HalLink($"{Location.GitHubBaseUri}{latestLtsVersion}/{FileNames.Index}")
             {
-                Title = $".NET {latestLtsVersion} (LTS)"
+                Title = $"Latest LTS release - .NET {latestLtsVersion}"
             };
         }
 
@@ -273,26 +195,8 @@ public static class LlmsIndexFiles
         {
             links[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestYear}/{FileNames.Index}")
             {
-                Title = latestYear
+                Title = $"Latest year - {latestYear}"
             };
-        }
-
-        // Add latest-month link (most recent month with any releases)
-        var latestMonthYear = releaseHistory.Years.Keys
-            .OrderByDescending(y => y, numericStringComparer)
-            .FirstOrDefault();
-        if (latestMonthYear != null && releaseHistory.Years.TryGetValue(latestMonthYear, out var latestMonthYearData))
-        {
-            var latestMonthNumber = latestMonthYearData.Months.Keys
-                .OrderByDescending(m => m, numericStringComparer)
-                .FirstOrDefault();
-            if (latestMonthNumber != null)
-            {
-                links[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestMonthYear}/{latestMonthNumber}/{FileNames.Index}")
-                {
-                    Title = $"{latestMonthYear}-{latestMonthNumber}"
-                };
-            }
         }
 
         // Add latest-security-month link
@@ -300,7 +204,7 @@ public static class LlmsIndexFiles
         {
             links[LinkRelations.LatestSecurityMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestSecurityMonthYear}/{latestSecurityMonthNumber}/{FileNames.Index}")
             {
-                Title = $"{latestSecurityMonthYear}-{latestSecurityMonthNumber}"
+                Title = $"Latest security month - {IndexTitles.FormatMonthYear(latestSecurityMonthYear, latestSecurityMonthNumber)}"
             };
         }
 
@@ -338,12 +242,11 @@ public static class LlmsIndexFiles
             Latest = latestVersion,
             LatestLts = latestLtsVersion,
             LatestYear = latestYear,
-            Releases = supportedReleases,
+            SupportedReleases = supportedReleases,
             Links = HalHelpers.OrderLinks(links),
             Embedded = new LlmsIndexEmbedded
             {
-                LatestPatches = latestPatches.Count > 0 ? latestPatches : null,
-                LatestSecurityMonths = latestSecurityMonths.Count > 0 ? latestSecurityMonths : null
+                LatestPatches = latestPatches.Count > 0 ? latestPatches : null
             }
         };
 

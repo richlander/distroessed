@@ -136,7 +136,7 @@ public class SdkIndexFiles
                 {
                     ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Downloads}/sdk-{bandVersion}.json")
                     {
-                        Title = $".NET SDK {bandVersion} Downloads",
+                        Title = $"Downloads - .NET SDK {bandVersion}",
                         Type = MediaType.Json
                     }
                 };
@@ -147,7 +147,7 @@ public class SdkIndexFiles
                     var patchIndexPath = $"{latestPatchRelease.PatchDirPath}/{FileNames.Index}";
                     bandLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
                     {
-                        Title = LinkTitles.PatchIndex,
+                        Title = $".NET Patch Release Index - {latestPatchRelease.PatchVersion}",
                     };
                 }
 
