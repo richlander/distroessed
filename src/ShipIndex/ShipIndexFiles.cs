@@ -219,7 +219,6 @@ public class ShipIndexFiles
 
                     monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
                     {
-                        Title = $"CVE records - {IndexTitles.FormatMonthYear(year.Year, month.Month)}",
                         Type = MediaType.Json
                     };
                 }
@@ -400,14 +399,12 @@ public class ShipIndexFiles
                             };
 
                             // Add latest-sdk link (HAL+JSON) - only if the index.json exists
+                            // Note: No titles in _embedded links - context established by parent
                             var sdkIndexPath = $"{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}";
                             var fullSdkIndexPath = Path.Combine(inputPath, sdkIndexPath);
                             if (File.Exists(fullSdkIndexPath))
                             {
-                                patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}")
-                                {
-                                    Title = $"Latest SDK - .NET {majorVersion}",
-                                };
+                                patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}");
                             }
 
                             // Get release date from the summary's patch releases if available
@@ -715,23 +712,18 @@ public class ShipIndexFiles
                         .OrderByDescending(p => p.ReleaseDate)
                         .FirstOrDefault();
 
+                    // Note: No titles in _embedded links - context established by parent
                     if (latestPatchForYear != null)
                     {
                         // Add latest-patch link
                         var latestPatchPath = $"{version}/{latestPatchForYear.PatchVersion}/{FileNames.Index}";
-                        links[LinkRelations.LatestPatch] = new HalLink($"{Location.GitHubBaseUri}{latestPatchPath}")
-                        {
-                            Title = $"Latest patch - {latestPatchForYear.PatchVersion}",
-                        };
+                        links[LinkRelations.LatestPatch] = new HalLink($"{Location.GitHubBaseUri}{latestPatchPath}");
 
                         // Add latest-month link based on the latest patch's release date
                         var patchYear = latestPatchForYear.ReleaseDate.Year.ToString("D4");
                         var patchMonth = latestPatchForYear.ReleaseDate.Month.ToString("D2");
                         var latestMonthPath = $"{FileNames.Directories.Timeline}/{patchYear}/{patchMonth}/{FileNames.Index}";
-                        links[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{latestMonthPath}")
-                        {
-                            Title = $"Latest month - {IndexTitles.FormatMonthYear(patchYear, patchMonth)}",
-                        };
+                        links[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{latestMonthPath}");
                     }
 
                     return new MajorReleaseVersionIndexEntry(version)
@@ -776,12 +768,10 @@ public class ShipIndexFiles
             // and would cause the root timeline/index.json to change frequently.
             // The latest-month link belongs in the year-level indexes (e.g., timeline/2025/index.json).
 
-            // Strip title from self links for year entries (href is sufficient)
+            // Strip titles from all links for embedded year entries - context established by parent
             var minimalYearLinks = overallYearHalLinks.ToDictionary(
                 kvp => kvp.Key,
-                kvp => kvp.Key == HalTerms.Self
-                    ? new HalLink(kvp.Value.Href)  // Self link: href only
-                    : new HalLink(kvp.Value.Href) { Title = kvp.Value.Title, Type = kvp.Value.Type });
+                kvp => new HalLink(kvp.Value.Href) { Type = kvp.Value.Type });
 
             yearEntries.Add(new HistoryYearEntry(year.Year)
             {
