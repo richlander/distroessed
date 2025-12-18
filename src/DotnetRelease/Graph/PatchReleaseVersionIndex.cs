@@ -75,10 +75,6 @@ public record PatchReleaseVersionIndexEmbedded(
     List<PatchReleaseVersionIndexEntry> Patches)
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release timeline years with links to year-specific timelines")]
-    public List<TimelineYear>? Years { get; set; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE IDs affecting this major version")]
     public IReadOnlyList<string>? CveRecords { get; set; }
 }
@@ -118,10 +114,3 @@ public record PatchReleaseVersionIndexEntry(
      Description("HAL+JSON links for navigation to this patch release's content")]
     Dictionary<string, HalLink> Links);
 
-[Description("Timeline year with links to year-specific timeline")]
-public record TimelineYear(
-    [Description("Year (e.g., '2025')")]
-    string Year,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for navigation to this year's timeline")]
-    Dictionary<string, HalLink> Links);

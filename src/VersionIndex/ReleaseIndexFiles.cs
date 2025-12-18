@@ -125,14 +125,6 @@ public class ReleaseIndexFiles
             // Generate patch version index; release-notes/8.0/index.json
             var patchEntries = await GetPatchIndexEntriesAsync(summaryTable[majorVersionDirName].PatchReleases, new PathContext(majorVersionDir, inputDir), lifecycle, outputDir, majorVersionDirName);
 
-            // Collect release timeline years (used for _embedded.years later)
-            // Get unique years from patch releases for this major version
-            var releaseYears = summary.PatchReleases
-                .Select(p => p.ReleaseDate.Year)
-                .Distinct()
-                .OrderByDescending(y => y)
-                .ToList();
-
             // Determine latest and latest-security
             // Patches are ordered latest first, so first entry is latest
             var latestPatch = patchEntries.FirstOrDefault();
@@ -207,21 +199,6 @@ public class ReleaseIndexFiles
             var majorIndexPath = Path.Combine(outputMajorVersionDir, FileNames.Index);
             var relativeMajorIndexPath = Path.GetRelativePath(inputDir, Path.Combine(majorVersionDir, FileNames.Index));
 
-            // Build years array for embedded data
-            List<TimelineYear>? yearsEmbedded = null;
-            if (releaseYears.Count > 0)
-            {
-                yearsEmbedded = releaseYears.Select(year =>
-                {
-                    var yearHistoryPath = $"{FileNames.Directories.Timeline}/{year}/{FileNames.Index}";
-                    var yearLinks = new Dictionary<string, HalLink>
-                    {
-                        [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{yearHistoryPath}")
-                    };
-                    return new TimelineYear(year.ToString(), yearLinks);
-                }).ToList();
-            }
-            
             var patchVersionIndex = new PatchReleaseVersionIndex(
                 ReleaseKind.MajorVersionIndex,
                 $".NET Major Release Index - {summary.MajorVersionLabel.Replace(".NET ", string.Empty)}")
@@ -235,7 +212,7 @@ public class ReleaseIndexFiles
                 GaDate = lifecycle?.GaDate,
                 EolDate = lifecycle?.EolDate,
                 Links = HalHelpers.OrderLinks(majorVersionLinks),
-                Embedded = patchEntries.Count > 0 || yearsEmbedded != null ? new PatchReleaseVersionIndexEmbedded(
+                Embedded = patchEntries.Count > 0 ? new PatchReleaseVersionIndexEmbedded(
                     patchEntries.Select(e => {
                         var year = e.Lifecycle?.GaDate.Year.ToString("D4");
                         var month = e.Lifecycle?.GaDate.Month.ToString("D2");
@@ -270,10 +247,7 @@ public class ReleaseIndexFiles
                             e.Lifecycle?.Phase,
                             e.SdkVersions?.FirstOrDefault(),
                             HalHelpers.OrderLinks(links));
-                    }).ToList())
-                {
-                    Years = yearsEmbedded
-                } : null
+                    }).ToList()) : null
             };
 
             // Serialize to string first to add schema reference
