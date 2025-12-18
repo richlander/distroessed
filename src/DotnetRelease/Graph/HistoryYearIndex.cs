@@ -79,23 +79,8 @@ public record HistoryMonthEntry(
 public record HistoryMonthSummary(
     [Description("Month identifier (e.g., '02' for February)")]
     string Month,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release date for this month's patches")]
-    DateTimeOffset? Date,
     [Description("True if any release this month includes security fixes")]
     bool Security,
-    [Description("Number of CVEs disclosed this month")]
-    int CveCount,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("CVE identifiers for this month")]
-    IList<string>? CveRecords,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest major version with releases this month (e.g., '10.0')")]
-    string? LatestRelease,
-    [Description("List of .NET major version identifiers that had releases this month")]
-    IList<string> Releases,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Runtime patch versions released this month (e.g., ['10.0.0', '9.0.11', '8.0.22'])")]
-    IList<string>? RuntimePatches,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this month's content")]
     Dictionary<string, HalLink> Links

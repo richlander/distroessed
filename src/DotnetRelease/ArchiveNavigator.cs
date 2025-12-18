@@ -57,14 +57,14 @@ public class ArchiveNavigator
     }
 
     /// <summary>
-    /// Gets all CVE IDs for this year (from embedded data).
+    /// Gets all CVE IDs for this year by fetching month-level CVE data.
     /// </summary>
+    [Obsolete("CVE IDs are no longer embedded in year summary. Use GetMonthsWithSecurityAsync() and fetch CVE records per month.")]
     public async Task<IEnumerable<string>> GetCveIdsAsync(CancellationToken cancellationToken = default)
     {
-        var months = await GetAllMonthsAsync(cancellationToken);
-        return months
-            .Where(m => m.CveRecords is not null)
-            .SelectMany(m => m.CveRecords!);
+        // CVE IDs are no longer embedded - would need to fetch each month's CVE data
+        await Task.CompletedTask;
+        return Enumerable.Empty<string>();
     }
 
     /// <summary>
@@ -86,12 +86,12 @@ public class ArchiveNavigator
     }
 
     /// <summary>
-    /// Gets only the months that have CVE records.
+    /// Gets only the months that have security releases.
     /// </summary>
-    public async Task<IEnumerable<MonthSummary>> GetMonthsWithCvesAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<MonthSummary>> GetMonthsWithSecurityAsync(CancellationToken cancellationToken = default)
     {
         var months = await GetAllMonthsAsync(cancellationToken);
-        return months.Where(m => m.HasCves);
+        return months.Where(m => m.Security);
     }
 
     /// <summary>

@@ -1,4 +1,3 @@
-using DotnetRelease.Security;
 using DotnetRelease.Graph;
 
 namespace DotnetRelease;
@@ -36,32 +35,9 @@ public class MonthSummary
     public string YearMonth => $"{_year}-{Month}";
 
     /// <summary>
-    /// .NET versions that had releases this month
+    /// True if this month had security releases
     /// </summary>
-    public IList<string>? Releases => _monthSummary.Releases;
-
-    /// <summary>
-    /// CVE identifiers for this month
-    /// </summary>
-    public IList<string>? CveRecords => _monthSummary.CveRecords;
-
-    /// <summary>
-    /// True if this month has CVE records
-    /// </summary>
-    public bool HasCves => CveRecords?.Count > 0;
-
-    /// <summary>
-    /// Number of CVEs disclosed this month
-    /// </summary>
-    public int CveCount => CveRecords?.Count ?? 0;
-
-    /// <summary>
-    /// Gets the CVE IDs for this month
-    /// </summary>
-    public IEnumerable<string> GetCveIds()
-    {
-        return CveRecords ?? Enumerable.Empty<string>();
-    }
+    public bool Security => _monthSummary.Security;
 
     /// <summary>
     /// HAL links for navigation to this month's content

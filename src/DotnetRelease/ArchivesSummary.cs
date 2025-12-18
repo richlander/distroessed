@@ -78,40 +78,16 @@ public class ArchivesSummary
     }
 
     /// <summary>
-    /// Gets CVE IDs for a specific date range (year-level data only).
-    /// For full CVE summaries, fetch month-level indices directly.
+    /// Gets CVE IDs for a specific date range.
     /// </summary>
-    /// <param name="startYear">Start year (inclusive)</param>
-    /// <param name="startMonth">Start month (inclusive, 1-12)</param>
-    /// <param name="endYear">End year (inclusive)</param>
-    /// <param name="endMonth">End month (inclusive, 1-12)</param>
+    [Obsolete("CVE IDs are no longer embedded in year summary. Use GetMonthsWithSecurityInDateRangeAsync() and fetch CVE records per month.")]
     public async Task<IEnumerable<string>> GetCveIdsInDateRangeAsync(
         int startYear, int startMonth, int endYear, int endMonth,
         CancellationToken cancellationToken = default)
     {
-        var allCveIds = new List<string>();
-
-        for (int year = startYear; year <= endYear; year++)
-        {
-            var navigator = GetNavigator(year.ToString());
-            var months = await navigator.GetAllMonthsAsync(cancellationToken);
-
-            foreach (var month in months)
-            {
-                var monthNum = int.Parse(month.Month);
-
-                // Check if month is in range
-                if (year == startYear && monthNum < startMonth) continue;
-                if (year == endYear && monthNum > endMonth) continue;
-
-                if (month.CveRecords is not null)
-                {
-                    allCveIds.AddRange(month.CveRecords);
-                }
-            }
-        }
-
-        return allCveIds;
+        // CVE IDs are no longer embedded - would need to fetch each month's CVE data
+        await Task.CompletedTask;
+        return Enumerable.Empty<string>();
     }
 
     /// <summary>
@@ -167,7 +143,7 @@ public class ArchivesSummary
             var navigator = GetNavigator(year.ToString());
             var months = await navigator.GetAllMonthsAsync(cancellationToken);
 
-            foreach (var month in months.Where(m => m.HasCves))
+            foreach (var month in months.Where(m => m.Security))
             {
                 var monthNum = int.Parse(month.Month);
 

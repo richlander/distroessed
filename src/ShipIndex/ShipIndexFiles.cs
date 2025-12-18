@@ -220,35 +220,9 @@ public class ShipIndexFiles
                     monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod));
                 }
 
-                // Calculate latest stable release for this month (highest major version with GA patches)
-                var sortedMonthReleasesForSummary = monthReleases
-                    .OrderByDescending(v => v, numericStringComparer)
-                    .ToList();
-                var monthLatestRelease = sortedMonthReleasesForSummary
-                    .FirstOrDefault(version =>
-                    {
-                        if (!releasesByMajor.TryGetValue(version, out var patches))
-                            return false;
-                        return patches.Keys.Any(patchVersion =>
-                            ReleaseStability.DeterminePhaseFromVersion(patchVersion) == SupportPhase.Active);
-                    })
-                    ?? sortedMonthReleasesForSummary.FirstOrDefault();
-
-                // Collect runtime patch versions for this month (sorted by major version descending)
-                var runtimePatches = releasesByMajor
-                    .OrderByDescending(kvp => kvp.Key, numericStringComparer)
-                    .SelectMany(kvp => kvp.Value.Keys.OrderByDescending(v => v, numericStringComparer))
-                    .ToList();
-
                 var monthSummary = new HistoryMonthSummary(
                     month.Month,
-                    monthReleaseDate,
                     cveSummariesForMonth?.Count > 0,
-                    cveSummariesForMonth?.Count ?? 0,
-                    cveSummariesForMonth?.Select(s => s.Id).ToList(),
-                    monthLatestRelease,
-                    [.. monthReleases],
-                    runtimePatches.Count > 0 ? runtimePatches : null,
                     monthSummaryLinks
                 );
                 monthSummaries.Add(monthSummary);
