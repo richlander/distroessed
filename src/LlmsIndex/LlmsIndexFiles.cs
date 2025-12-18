@@ -84,15 +84,12 @@ public static class LlmsIndexFiles
             }
 
             // Build patch entry links - self points to patch index
+            // Note: No titles in embedded links - context established by parent, saves tokens for LLM consumers
             var patchDirPath = latestPatch.PatchDirPath ?? $"{summary.MajorVersion}/{latestPatch.PatchVersion}";
             var patchIndexPath = $"{patchDirPath}/{FileNames.Index}";
-            var isSecurity = cveIds?.Count > 0;
-            var selfTitle = isSecurity
-                ? $"Latest security patch - .NET {latestPatch.PatchVersion}"
-                : $"Latest patch - .NET {latestPatch.PatchVersion}";
             var patchLinks = new Dictionary<string, HalLink>
             {
-                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}") { Title = selfTitle }
+                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
             };
 
             // Find latest security patch for this release (for quick hop when security=false)
@@ -106,23 +103,14 @@ public static class LlmsIndexFiles
             {
                 var securityPatchDirPath = latestSecurityPatch.PatchDirPath ?? $"{summary.MajorVersion}/{latestSecurityPatch.PatchVersion}";
                 var securityPatchIndexPath = $"{securityPatchDirPath}/{FileNames.Index}";
-                patchLinks[LinkRelations.LatestSecurity] = new HalLink($"{Location.GitHubBaseUri}{securityPatchIndexPath}")
-                {
-                    Title = $"Latest security patch - .NET {latestSecurityPatch.PatchVersion}"
-                };
+                patchLinks[LinkRelations.LatestSecurity] = new HalLink($"{Location.GitHubBaseUri}{securityPatchIndexPath}");
             }
 
             // Add release-major link to navigate to the major version index
-            patchLinks[LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
-            {
-                Title = $"Major release - .NET {summary.MajorVersion}"
-            };
+            patchLinks[LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}");
 
             // Add release-manifest link for direct access to reference data (compatibility, TFMs, OS support)
-            patchLinks[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}")
-            {
-                Title = $"Manifest - .NET {summary.MajorVersion}"
-            };
+            patchLinks[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
 
             var patchEntry = new LlmsPatchEntry(latestPatch.PatchVersion, summary.MajorVersion)
             {

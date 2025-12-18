@@ -132,11 +132,11 @@ public class SdkIndexFiles
                 var latestPatchRelease = latestInBand.PatchRelease;
 
                 // Build links for this feature band
+                // Note: No titles in _embedded links - context established by parent
                 var bandLinks = new Dictionary<string, HalLink>
                 {
                     ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Downloads}/sdk-{bandVersion}.json")
                     {
-                        Title = $"Downloads - .NET SDK {bandVersion}",
                         Type = MediaType.Json
                     }
                 };
@@ -145,10 +145,7 @@ public class SdkIndexFiles
                 if (latestPatchRelease?.PatchDirPath != null)
                 {
                     var patchIndexPath = $"{latestPatchRelease.PatchDirPath}/{FileNames.Index}";
-                    bandLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
-                    {
-                        Title = $".NET Patch Release Index - {latestPatchRelease.PatchVersion}",
-                    };
+                    bandLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}");
                 }
 
                 // Add release-month link
@@ -157,10 +154,7 @@ public class SdkIndexFiles
                     var year = latestPatchRelease.ReleaseDate.Year.ToString("D4");
                     var month = latestPatchRelease.ReleaseDate.Month.ToString("D2");
                     var monthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
-                    bandLinks["release-month"] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
-                    {
-                        Title = LinkTitles.TimelineMonthIndex,
-                    };
+                    bandLinks["release-month"] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}");
                 }
 
                 return new SdkFeatureBandEntry(

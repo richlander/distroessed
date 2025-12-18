@@ -244,13 +244,11 @@ public class ReleaseIndexFiles
                         var links = new Dictionary<string, HalLink>(e.Links);
 
                         // Add release-month link if we have date info
+                        // Note: No titles in _embedded links - context established by parent
                         if (year != null && month != null)
                         {
                             var monthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
-                            links[LinkRelations.ReleaseMonth] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
-                            {
-                                Title = IndexTitles.TimelineMonthLink(year, month),
-                            };
+                            links[LinkRelations.ReleaseMonth] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}");
 
                             // Add cve-json link for security patches
                             if (e.CveRecords?.Count > 0)
@@ -258,7 +256,6 @@ public class ReleaseIndexFiles
                                 var cveJsonPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Cve}";
                                 links[LinkRelations.CveJson] = new HalLink($"{Location.GitHubBaseUri}{cveJsonPath}")
                                 {
-                                    Title = $"CVE records - {IndexTitles.FormatMonthYear(year, month)}",
                                     Type = MediaType.Json
                                 };
                             }
@@ -770,11 +767,11 @@ public class ReleaseIndexFiles
                         var featureBand = $"{parts[0]}.{parts[1]}.{parts[2][0]}xx";
 
                         // Build links for this feature band entry
+                        // Note: No titles in _embedded links - context established by parent
                         var bandLinks = new Dictionary<string, HalLink>
                         {
                             ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Directories.Downloads}/sdk-{featureBand}.json")
                             {
-                                Title = $"Downloads - .NET SDK {featureBand}",
                                 Type = MediaType.Json
                             }
                         };
@@ -785,17 +782,11 @@ public class ReleaseIndexFiles
                             var year = lifecycle.GaDate.Year.ToString("D4");
                             var month = lifecycle.GaDate.Month.ToString("D2");
                             var monthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
-                            bandLinks["release-month"] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}")
-                            {
-                                Title = IndexTitles.TimelineMonthLink(year, month),
-                            };
+                            bandLinks["release-month"] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}");
                         }
 
                         // Add release-patch link (to this patch release)
-                        bandLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Index}")
-                        {
-                            Title = $".NET Patch Release Index - {patchVersion}",
-                        };
+                        bandLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Index}");
 
                         sdkFeatureBandEntries.Add(new SdkFeatureBandEntry(
                             sdkVersion,                  // version (latest SDK in band for this patch)
