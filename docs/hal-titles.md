@@ -61,7 +61,7 @@ Source code: `src/VersionIndex/` (version), `src/ShipIndex/` (timeline), `src/Ll
 | link | `latest-security-month` | Latest security month | Latest security month - October 2025 |
 | link | `latest-year` | Latest year | Latest year - 2025 |
 | link | `release-major` | Major release | Major release - .NET 10.0 |
-| link | `release-manifest` | Manifest | Manifest - .NET 10.0 |
+| link | `manifest` | Manifest | Manifest - .NET 10.0 |
 | link | `downloads` | Downloads | Downloads - .NET 10.0 |
 | link | `latest-sdk` | Latest SDK | Latest SDK - .NET 10.0 |
 | link | `cve-json` | CVE records | CVE records - October 2025 |
@@ -80,4 +80,4 @@ Source code: `src/VersionIndex/` (version), `src/ShipIndex/` (timeline), `src/Ll
 
 The `self` link in `latest_patches` objects within `llms.json` includes a title that varies based on whether the patch is a security release. When the patch contains CVEs, the title is "Latest security patch - .NET {version}". Otherwise, it is "Latest patch - .NET {version}". This provides symmetry with the `latest-security` link and ensures the titles match when the latest patch is itself a security patch.
 
-The `release-manifest` link title varies by context. In release indexes (version-based), it uses "Manifest - .NET {version}". In timeline indexes (date-based), it uses "Manifest - {month year}" (e.g., "Manifest - December 2025").
+The `manifest` link title varies by context. In release indexes (version-based), it uses "Manifest - .NET {version}". In timeline indexes (date-based), it uses "Manifest - {month year}" (e.g., "Manifest - December 2025").

@@ -464,7 +464,7 @@ public class ShipIndexFiles
                 {
                     var monthManifest = new ContentManifest(
                         "manifest",
-                        $"Release Manifest - {IndexTitles.FormatMonthYear(year.Year, month.Month)}")
+                        $"Manifest - {IndexTitles.FormatMonthYear(year.Year, month.Month)}")
                     {
                         Links = HalHelpers.OrderLinks(monthManifestLinks)
                     };

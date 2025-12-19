@@ -978,7 +978,7 @@ public class ReleaseIndexFiles
         // Write manifest.json
         var manifest = new ContentManifest(
             "manifest",
-            $"Release Manifest - .NET {patchVersion}")
+            $"Manifest - .NET {patchVersion}")
         {
             Links = HalHelpers.OrderLinks(manifestLinks)
         };
