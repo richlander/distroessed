@@ -283,7 +283,7 @@ public class ShipIndexFiles
                 };
 
                 // Add manifest link for documentation/markdown resources
-                monthIndexLinks[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/{FileNames.Manifest}")
+                monthIndexLinks[LinkRelations.Manifest] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{year.Year}/{month.Month}/{FileNames.Manifest}")
                 {
                     Title = $"Manifest - {IndexTitles.FormatMonthYear(year.Year, month.Month)}",
                 };

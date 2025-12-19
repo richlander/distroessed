@@ -50,11 +50,11 @@ public static class LinkRelations
     public const string MonthIndex = "month-index";
     
     // Manifest and supplementary documents
-    
+
     /// <summary>
-    /// Link relation for release manifest documents
+    /// Link relation for manifest documents
     /// </summary>
-    public const string ReleaseManifest = "release-manifest";
+    public const string Manifest = "manifest";
     
     /// <summary>
     /// Link relation for CVE information documents

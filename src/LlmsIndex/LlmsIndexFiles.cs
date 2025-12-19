@@ -109,8 +109,8 @@ public static class LlmsIndexFiles
             // Add release-major link to navigate to the major version index
             patchLinks[LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}");
 
-            // Add release-manifest link for direct access to reference data (compatibility, TFMs, OS support)
-            patchLinks[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
+            // Add manifest link for direct access to reference data (compatibility, TFMs, OS support)
+            patchLinks[LinkRelations.Manifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
 
             var patchEntry = new LlmsPatchEntry(latestPatch.PatchVersion, summary.MajorVersion)
             {

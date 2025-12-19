@@ -52,7 +52,7 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             // Special case for manifest.json to use correct key name
             else if (filename == "manifest.json")
             {
-                name = LinkRelations.ReleaseManifest;
+                name = LinkRelations.Manifest;
             }
             // Skip releases.json - too large for LLM consumption
             else if (filename == "releases.json")

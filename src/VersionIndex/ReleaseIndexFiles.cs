@@ -118,7 +118,7 @@ public class ReleaseIndexFiles
                 (fileLink, key) => key switch
                 {
                     HalTerms.Self => summary.MajorVersionLabel,
-                    LinkRelations.ReleaseManifest => $"Manifest - .NET {majorVersionDirName}",
+                    LinkRelations.Manifest => $"Manifest - .NET {majorVersionDirName}",
                     _ => fileLink.Title
                 });
 
@@ -274,7 +274,7 @@ public class ReleaseIndexFiles
                 (fileLink, key) => key switch
                 {
                     HalTerms.Self => summary.MajorVersionLabel,
-                    LinkRelations.ReleaseManifest => $"Manifest - .NET {majorVersionDirName}",
+                    LinkRelations.Manifest => $"Manifest - .NET {majorVersionDirName}",
                     _ => fileLink.Title
                 });
 
@@ -703,7 +703,7 @@ public class ReleaseIndexFiles
         }
 
         // Add manifest link to index
-        links[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Manifest}")
+        links[LinkRelations.Manifest] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Manifest}")
         {
             Title = $"Manifest - .NET {majorVersion}",
         };
