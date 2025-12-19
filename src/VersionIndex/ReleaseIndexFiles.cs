@@ -672,6 +672,33 @@ public class ReleaseIndexFiles
             };
         }
 
+        // Add additional markdown files (component-specific release notes like aspnetcore.md, csharp.md, etc.)
+        var mainMdFile = File.Exists(versionMdPath) ? $"{patchVersion}.md" : "README.md";
+        var additionalMdFiles = Directory.GetFiles(patchDir, "*.md")
+            .Select(Path.GetFileName)
+            .Where(f => f != null && !f.Equals(mainMdFile, StringComparison.OrdinalIgnoreCase) && !f.Equals("README.md", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var mdFile in additionalMdFiles)
+        {
+            // Convert filename to relation name: aspnetcore.md -> aspnetcore-markdown
+            var baseName = Path.GetFileNameWithoutExtension(mdFile)!;
+            var relationName = $"{baseName.ToLowerInvariant()}-markdown";
+            var title = FormatMarkdownTitle(baseName);
+
+            manifestLinks[relationName] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{mdFile}")
+            {
+                Title = title,
+                Type = MediaType.Markdown
+            };
+            manifestLinks[$"{relationName}-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{patchDirPath}/{mdFile}")
+            {
+                Title = $"{title} (Rendered)",
+                Type = MediaType.Html
+            };
+        }
+
         // Add manifest link to index
         links[LinkRelations.ReleaseManifest] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Manifest}")
         {
@@ -963,5 +990,56 @@ public class ReleaseIndexFiles
 
         var manifestPath = Path.Combine(outputPatchDir, FileNames.Manifest);
         await File.WriteAllTextAsync(manifestPath, (updatedManifestJson ?? manifestJson) + '\n');
+    }
+
+    /// <summary>
+    /// Formats a markdown filename base into a human-readable title.
+    /// </summary>
+    private static string FormatMarkdownTitle(string baseName)
+    {
+        // Handle known component names with special formatting
+        return baseName.ToLowerInvariant() switch
+        {
+            "aspnetcore" => "ASP.NET Core",
+            "dotnetmaui" or "maui" => ".NET MAUI",
+            "csharp" => "C#",
+            "fsharp" => "F#",
+            "vb" or "visualbasic" => "Visual Basic",
+            "efcore" or "entityframeworkcore" => "Entity Framework Core",
+            "wpf" => "WPF",
+            "winforms" => "Windows Forms",
+            "windowsdesktop" => "Windows Desktop",
+            "sdk" => "SDK",
+            "runtime" => "Runtime",
+            "libraries" => "Libraries",
+            "networking" => "Networking",
+            "containers" => "Containers",
+            "blazor" => "Blazor",
+            "signalr" => "SignalR",
+            "grpc" => "gRPC",
+            "json" => "JSON",
+            "xml" => "XML",
+            "api" or "apis" => "APIs",
+            _ => ToTitleCase(baseName)
+        };
+    }
+
+    /// <summary>
+    /// Converts a string to title case, handling camelCase and kebab-case.
+    /// </summary>
+    private static string ToTitleCase(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        // Handle kebab-case: split on hyphens, title case each word
+        if (input.Contains('-'))
+        {
+            return string.Join(" ", input.Split('-').Select(word =>
+                char.ToUpperInvariant(word[0]) + word[1..].ToLowerInvariant()));
+        }
+
+        // Simple title case for single words
+        return char.ToUpperInvariant(input[0]) + input[1..].ToLowerInvariant();
     }
 }
