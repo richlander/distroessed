@@ -682,9 +682,9 @@ public class ReleaseIndexFiles
 
         foreach (var mdFile in additionalMdFiles)
         {
-            // Convert filename to relation name: aspnetcore.md -> aspnetcore-markdown
+            // Convert filename to relation name: aspnetcore.md -> whats-new-aspnetcore
             var baseName = Path.GetFileNameWithoutExtension(mdFile)!;
-            var relationName = $"{baseName.ToLowerInvariant()}-markdown";
+            var relationName = $"whats-new-{baseName.ToLowerInvariant()}";
 
             // Extract H1 title from the markdown file, fall back to formatted filename
             var mdFilePath = Path.Combine(patchDir, mdFile!);
