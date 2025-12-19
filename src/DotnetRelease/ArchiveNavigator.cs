@@ -57,35 +57,6 @@ public class ArchiveNavigator
     }
 
     /// <summary>
-    /// Gets all CVE IDs for this year by fetching month-level CVE data.
-    /// </summary>
-    [Obsolete("CVE IDs are no longer embedded in year summary. Use GetMonthsWithSecurityAsync() and fetch CVE records per month.")]
-    public async Task<IEnumerable<string>> GetCveIdsAsync(CancellationToken cancellationToken = default)
-    {
-        // CVE IDs are no longer embedded - would need to fetch each month's CVE data
-        await Task.CompletedTask;
-        return Enumerable.Empty<string>();
-    }
-
-    /// <summary>
-    /// Gets all CVE summaries for this year (requires fetching month-level data).
-    /// </summary>
-    [Obsolete("CVE summaries are now at month level. Use GetCveIdsAsync() for year-level data or fetch month indices directly.")]
-    public async Task<IEnumerable<CveRecordSummary>> GetCveSummariesAsync(CancellationToken cancellationToken = default)
-    {
-        throw new NotSupportedException("CVE summaries are now only available at the month level. Use GetCveIdsAsync() for CVE IDs at year level.");
-    }
-
-    /// <summary>
-    /// Gets the count of CVEs for this year.
-    /// </summary>
-    public async Task<int> GetCveCountAsync(CancellationToken cancellationToken = default)
-    {
-        var cveIds = await GetCveIdsAsync(cancellationToken);
-        return cveIds.Count();
-    }
-
-    /// <summary>
     /// Gets only the months that have security releases.
     /// </summary>
     public async Task<IEnumerable<MonthSummary>> GetMonthsWithSecurityAsync(CancellationToken cancellationToken = default)
