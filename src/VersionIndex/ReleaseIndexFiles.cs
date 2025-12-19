@@ -682,9 +682,14 @@ public class ReleaseIndexFiles
 
         foreach (var mdFile in additionalMdFiles)
         {
-            // Convert filename to relation name: aspnetcore.md -> whats-new-aspnetcore
             var baseName = Path.GetFileNameWithoutExtension(mdFile)!;
-            var relationName = $"whats-new-{baseName.ToLowerInvariant()}";
+
+            // Determine relation name based on whether filename looks like a version
+            // Version files (e.g., 9.0.111.md) -> release-notes-9.0.111-markdown
+            // Component files (e.g., aspnetcore.md) -> whats-new-aspnetcore
+            var relationName = IsVersionString(baseName)
+                ? $"release-notes-{baseName.ToLowerInvariant()}-markdown"
+                : $"whats-new-{baseName.ToLowerInvariant()}";
 
             // Extract H1 title from the markdown file, fall back to formatted filename
             var mdFilePath = Path.Combine(patchDir, mdFile!);
@@ -988,6 +993,17 @@ public class ReleaseIndexFiles
 
         var manifestPath = Path.Combine(outputPatchDir, FileNames.Manifest);
         await File.WriteAllTextAsync(manifestPath, (updatedManifestJson ?? manifestJson) + '\n');
+    }
+
+    /// <summary>
+    /// Checks if a string looks like a version number (e.g., "9.0.111", "10.0.0-preview.1").
+    /// </summary>
+    private static bool IsVersionString(string name)
+    {
+        // Version strings start with a digit and contain at least one dot
+        return !string.IsNullOrEmpty(name)
+            && char.IsDigit(name[0])
+            && name.Contains('.');
     }
 
     /// <summary>
