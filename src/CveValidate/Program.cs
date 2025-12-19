@@ -149,6 +149,7 @@ return failureCount > 0 ? 1 : 0;
 static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool quietMode)
 {
     var errors = new List<string>();
+    var warnings = new List<string>();
 
     try
     {
@@ -171,7 +172,7 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool qui
         ValidateReleaseFields(cves, errors);
         ValidateReleaseVersionFormats(cves, errors);
         ValidateCommitBranchMatch(cves, errors);
-        ValidateForeignKeys(cves, errors);
+        ValidateForeignKeys(cves, errors, warnings);
         ValidateDictionaries(cves, errors);
         await ValidateNuGetPackages(cves, errors);
         await ValidateAgainstReleasesJson(filePath, cves, errors);
@@ -182,7 +183,7 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool qui
             await ValidateMsrcData(filePath, cves, errors);
         }
 
-        if (errors.Count == 0)
+        if (errors.Count == 0 && warnings.Count == 0)
         {
             if (!quietMode)
             {
@@ -194,8 +195,9 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool qui
         else
         {
             Console.WriteLine($"Validating: {filePath}");
+            ReportWarnings(warnings);
             ReportErrors(errors);
-            return false;
+            return errors.Count == 0; // Warnings don't cause failure
         }
     }
     catch (JsonException ex)
@@ -787,7 +789,7 @@ static int CompareSemVer((Version version, string? prerelease) a, (Version versi
     return string.Compare(a.prerelease, b.prerelease, StringComparison.OrdinalIgnoreCase);
 }
 
-static void ValidateForeignKeys(CveRecords cves, List<string> errors)
+static void ValidateForeignKeys(CveRecords cves, List<string> errors, List<string> warnings)
 {
     // Collect all CVE IDs
     var cveIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -832,12 +834,16 @@ static void ValidateForeignKeys(CveRecords cves, List<string> errors)
                 }
                 else
                 {
-                    // Check for empty strings in commits array
+                    // Check for empty strings and that commits exist in the commits dictionary
                     foreach (var commit in product.Commits)
                     {
                         if (string.IsNullOrWhiteSpace(commit))
                         {
                             errors.Add($"Product '{product.Name}' for {product.CveId} has empty or whitespace commit hash");
+                        }
+                        else if (!commitHashes.Contains(commit))
+                        {
+                            warnings.Add($"Product '{product.Name}' for {product.CveId} references commit not in .commits: {commit}");
                         }
                     }
                 }
@@ -868,12 +874,16 @@ static void ValidateForeignKeys(CveRecords cves, List<string> errors)
                 }
                 else
                 {
-                    // Check for empty strings in commits array
+                    // Check for empty strings and that commits exist in the commits dictionary
                     foreach (var commit in package.Commits)
                     {
                         if (string.IsNullOrWhiteSpace(commit))
                         {
                             errors.Add($"Package '{package.Name}' for {package.CveId} has empty or whitespace commit hash");
+                        }
+                        else if (!commitHashes.Contains(commit))
+                        {
+                            warnings.Add($"Package '{package.Name}' for {package.CveId} references commit not in .commits: {commit}");
                         }
                     }
                 }
@@ -1082,6 +1092,14 @@ static async Task<string?> ValidateSingleUrl(HttpClient client, string url)
     catch (TaskCanceledException)
     {
         return $"URL request timeout: {url}";
+    }
+}
+
+static void ReportWarnings(List<string> warnings)
+{
+    foreach (var warning in warnings)
+    {
+        Console.WriteLine($"  ⚠ {warning}");
     }
 }
 

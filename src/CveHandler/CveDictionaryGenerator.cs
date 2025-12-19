@@ -1,3 +1,4 @@
+using System.Globalization;
 using DotnetRelease.Security;
 
 namespace CveHandler;
@@ -7,6 +8,11 @@ namespace CveHandler;
 /// </summary>
 public static class CveDictionaryGenerator
 {
+    /// <summary>
+    /// Comparer that sorts strings with numeric ordering (e.g., "2" before "10")
+    /// </summary>
+    private static readonly StringComparer NumericComparer =
+        StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
     /// <summary>
     /// Generates all lookup dictionaries from CVE records
     /// </summary>
@@ -107,21 +113,25 @@ public static class CveDictionaryGenerator
             AddSeverityMappings(severityCves, disclosure.Id, disclosure.Cvss.Severity);
         }
 
+        // Sort CVE ID lists with numeric ordering (CVE-2025-55247 before CVE-2025-55315)
         foreach (var list in productCves.Values)
-            list.Sort();
+            list.Sort(NumericComparer);
         foreach (var list in packageCves.Values)
-            list.Sort();
+            list.Sort(NumericComparer);
+        // Sort version lists with numeric ordering (8.0 before 9.0 before 10.0)
         foreach (var list in cveReleases.Values)
-            list.Sort();
+            list.Sort(NumericComparer);
         foreach (var list in releaseCves.Values)
-            list.Sort();
+            list.Sort(NumericComparer);
 
         return new GeneratedDictionaries(
-            CveReleases: cveReleases.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
+            // CVE IDs as keys - use numeric ordering
+            CveReleases: cveReleases.OrderBy(k => k.Key, NumericComparer).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
             ProductCves: productCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
             PackageCves: packageCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
             ProductName: productName.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => v.Value),
-            ReleaseCves: releaseCves.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
+            // Version numbers as keys - use numeric ordering
+            ReleaseCves: releaseCves.OrderBy(k => k.Key, NumericComparer).ToDictionary(k => k.Key, v => (IList<string>)v.Value),
             SeverityCves: FinalizeSeverityDictionary(severityCves)
         );
     }
@@ -175,7 +185,7 @@ public static class CveDictionaryGenerator
         }
 
         return cveCommits
-            .OrderBy(k => k.Key)
+            .OrderBy(k => k.Key, NumericComparer)
             .ToDictionary(
                 k => k.Key,
                 v => (IList<string>)v.Value.OrderBy(c => c).ToList()
@@ -222,7 +232,7 @@ public static class CveDictionaryGenerator
     private static IDictionary<string, IList<string>> FinalizeSeverityDictionary(Dictionary<string, HashSet<string>> severityCves) =>
         SeverityLevels.ToDictionary(
             level => level,
-            level => (IList<string>)severityCves[level].OrderBy(id => id).ToList(),
+            level => (IList<string>)severityCves[level].OrderBy(id => id, NumericComparer).ToList(),
             StringComparer.OrdinalIgnoreCase);
 }
 
