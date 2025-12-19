@@ -354,15 +354,6 @@ public class ShipIndexFiles
                                 [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
                             };
 
-                            // Add latest-sdk link (HAL+JSON) - only if the index.json exists
-                            // Note: No titles in _embedded links - context established by parent
-                            var sdkIndexPath = $"{majorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}";
-                            var fullSdkIndexPath = Path.Combine(inputPath, sdkIndexPath);
-                            if (File.Exists(fullSdkIndexPath))
-                            {
-                                patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{sdkIndexPath}");
-                            }
-
                             // Get release date from the summary's patch releases if available
                             DateTimeOffset? releaseDate = null;
                             var patchSummary = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == patchVersion);
