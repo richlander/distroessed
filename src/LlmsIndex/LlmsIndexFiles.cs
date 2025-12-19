@@ -109,22 +109,25 @@ public static class LlmsIndexFiles
             // Add release-major link to navigate to the major version index
             patchLinks[LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}");
 
+            // Add latest-sdk link for versions that support SDK hive (8.0+)
+            var majorVersionParts = summary.MajorVersion.Split('.');
+            if (majorVersionParts.Length >= 1 && int.TryParse(majorVersionParts[0], out var majorNum) && majorNum >= 8)
+            {
+                patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}");
+            }
+
             // Add manifest link for direct access to reference data (compatibility, TFMs, OS support)
             patchLinks[LinkRelations.Manifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
 
             var patchEntry = new LlmsPatchEntry(latestPatch.PatchVersion, summary.MajorVersion)
             {
                 ReleaseType = summary.Lifecycle?.ReleaseType,
-                Date = releaseDate,
-                Year = releaseDate.Year.ToString("D4"),
-                Month = releaseDate.Month.ToString("D2"),
                 Security = cveIds?.Count > 0,
-                CveCount = cveIds?.Count ?? 0,
-                CveRecords = cveIds?.Count > 0 ? cveIds : null,
                 SupportPhase = summary.Lifecycle?.Phase,
                 Supported = summary.Lifecycle?.Supported ?? false,
-                EolDate = summary.Lifecycle != null ? DateOnly.FromDateTime(summary.Lifecycle.EolDate.DateTime) : null,
                 SdkVersion = sdkVersion,
+                LatestSecurity = latestSecurityPatch?.PatchVersion,
+                LatestSecurityDate = latestSecurityPatch?.ReleaseDate,
                 Links = patchLinks
             };
 
@@ -229,7 +232,6 @@ public static class LlmsIndexFiles
             RequiredPreRead = requiredPreRead,
             Latest = latestVersion,
             LatestLts = latestLtsVersion,
-            LatestYear = latestYear,
             SupportedReleases = supportedReleases,
             Links = HalHelpers.OrderLinks(links),
             Embedded = new LlmsIndexEmbedded

@@ -30,10 +30,6 @@ public record LlmsIndex(
      Description("Latest LTS major version")]
     public string? LatestLts { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest year with releases")]
-    public string? LatestYear { get; init; }
-
     [JsonPropertyName("supported_releases"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Supported major version identifiers (e.g., ['10.0', '9.0', '8.0'])")]
@@ -76,27 +72,8 @@ public record LlmsPatchEntry(
      Description("Release type: lts or sts")]
     public ReleaseType? ReleaseType { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release date")]
-    public DateTimeOffset? Date { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release year (e.g., '2025')")]
-    public string? Year { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release month (e.g., '10')")]
-    public string? Month { get; init; }
-
     [Description("Whether this release includes security fixes")]
     public bool Security { get; init; }
-
-    [Description("Number of CVEs addressed (0 if not a security release)")]
-    public int CveCount { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE identifiers (omitted when cve_count is 0)")]
-    public IReadOnlyList<string>? CveRecords { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Current support phase")]
@@ -106,12 +83,16 @@ public record LlmsPatchEntry(
     public bool Supported { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("End of life date for this release")]
-    public DateOnly? EolDate { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("SDK version shipped with this runtime patch")]
     public string? SdkVersion { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest security patch version for this release")]
+    public string? LatestSecurity { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date of the latest security patch")]
+    public DateOnly? LatestSecurityDate { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links - self points to patch index")]
