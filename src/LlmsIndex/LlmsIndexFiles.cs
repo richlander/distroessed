@@ -208,7 +208,7 @@ public static class LlmsIndexFiles
         };
 
         // Build required_pre_read URL (skill file in release-notes/)
-        var requiredPreRead = $"{Location.GitHubBaseUri}skills/SKILL.md";
+        var requiredPreRead = $"{Location.GitHubBaseUri}skills/dotnet-releases/SKILL.md";
 
         // Merge additional links from partial
         if (partial?.Links != null)
