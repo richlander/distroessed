@@ -685,17 +685,15 @@ public class ReleaseIndexFiles
             // Convert filename to relation name: aspnetcore.md -> aspnetcore-markdown
             var baseName = Path.GetFileNameWithoutExtension(mdFile)!;
             var relationName = $"{baseName.ToLowerInvariant()}-markdown";
-            var title = FormatMarkdownTitle(baseName);
+
+            // Extract H1 title from the markdown file, fall back to formatted filename
+            var mdFilePath = Path.Combine(patchDir, mdFile!);
+            var title = await ExtractMarkdownH1Async(mdFilePath) ?? FormatMarkdownTitle(baseName);
 
             manifestLinks[relationName] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{mdFile}")
             {
                 Title = title,
                 Type = MediaType.Markdown
-            };
-            manifestLinks[$"{relationName}-rendered"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{patchDirPath}/{mdFile}")
-            {
-                Title = $"{title} (Rendered)",
-                Type = MediaType.Html
             };
         }
 
@@ -990,6 +988,41 @@ public class ReleaseIndexFiles
 
         var manifestPath = Path.Combine(outputPatchDir, FileNames.Manifest);
         await File.WriteAllTextAsync(manifestPath, (updatedManifestJson ?? manifestJson) + '\n');
+    }
+
+    /// <summary>
+    /// Extracts the H1 title from a markdown file.
+    /// Returns null if no H1 is found.
+    /// </summary>
+    private static async Task<string?> ExtractMarkdownH1Async(string filePath)
+    {
+        try
+        {
+            using var reader = new StreamReader(filePath);
+            string? line;
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                // Skip empty lines
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                // Check for ATX-style H1: # Title
+                if (line.StartsWith("# "))
+                {
+                    return line[2..].Trim();
+                }
+
+                // If the first non-empty line isn't an H1, stop looking
+                // (H1 should be at the top of the document)
+                break;
+            }
+        }
+        catch
+        {
+            // Ignore errors reading the file
+        }
+
+        return null;
     }
 
     /// <summary>
