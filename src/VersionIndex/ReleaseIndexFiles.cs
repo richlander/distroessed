@@ -245,7 +245,7 @@ public class ReleaseIndexFiles
                             e.CveRecords?.Count ?? 0,
                             e.CveRecords,
                             e.Lifecycle?.Phase,
-                            e.Lifecycle?.Phase != null ? ReleaseStability.IsSupportedPhase(e.Lifecycle.Phase) : null,
+                            null, // Supported is inherited from major version root, not needed per-patch
                             e.SdkVersions?.FirstOrDefault(),
                             HalHelpers.OrderLinks(links));
                     }).ToList()) : null
