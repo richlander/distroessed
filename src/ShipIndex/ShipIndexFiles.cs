@@ -296,19 +296,6 @@ public class ShipIndexFiles
                     .OrderByDescending(v => v, numericStringComparer)
                     .ToList();
 
-                // Latest release is the highest stable major version (one that had GA patches this month)
-                // A version is stable if any of its patches this month are GA (not preview/rc)
-                var latestReleaseForMonth = sortedMonthReleases
-                    .FirstOrDefault(version =>
-                    {
-                        if (!releasesByMajor.TryGetValue(version, out var patches))
-                            return false;
-                        // Check if any patch is GA (Active phase = not preview/rc)
-                        return patches.Keys.Any(patchVersion =>
-                            ReleaseStability.DeterminePhaseFromVersion(patchVersion) == SupportPhase.Active);
-                    })
-                    ?? sortedMonthReleases.FirstOrDefault(); // Fall back to highest if no stable releases
-
                 // Create embedded releases - patch-centric (symmetric with major version index structure)
                 // Flatten all patches from all major versions released this month
                 // Note: Timeline represents historical releases, so we include ALL patches (including previews)
@@ -374,6 +361,7 @@ public class ShipIndexFiles
                                 patchCveIds?.Count ?? 0,
                                 patchCveIds,
                                 phase,
+                                ReleaseStability.IsSupportedPhase(phase),
                                 sdkVersions?.FirstOrDefault(),
                                 HalHelpers.OrderLinks(patchLinks));
                         });
@@ -394,7 +382,6 @@ public class ShipIndexFiles
                 {
                     CveCount = monthCveIds?.Count > 0 ? monthCveIds.Count : null,
                     CveRecords = monthCveIds?.Count > 0 ? monthCveIds : null,
-                    LatestRelease = latestReleaseForMonth,
                     Releases = sortedMonthReleases,
                     Links = HalHelpers.OrderLinks(monthIndexLinks),
                     Embedded = new HistoryMonthIndexEmbedded
@@ -588,7 +575,7 @@ public class ShipIndexFiles
             if (latestReleaseForYear != null)
             {
                 var latestReleaseIndexPath = $"{latestReleaseForYear}/{FileNames.Index}";
-                yearHalLinks[LinkRelations.LatestRelease] = new HalLink($"{Location.GitHubBaseUri}{latestReleaseIndexPath}")
+                yearHalLinks[LinkRelations.Latest] = new HalLink($"{Location.GitHubBaseUri}{latestReleaseIndexPath}")
                 {
                     Title = $"Latest release - .NET {latestReleaseForYear}",
                 };
@@ -605,7 +592,7 @@ public class ShipIndexFiles
             {
                 LatestMonth = latestMonth,
                 LatestSecurityMonth = effectiveLatestSecurityMonth,
-                LatestRelease = latestReleaseForYear,
+                Latest = latestReleaseForYear,
                 Releases = sortedReleasesForYear.Count > 0 ? sortedReleasesForYear : null,
                 Links = HalHelpers.OrderLinks(yearHalLinks)
             };

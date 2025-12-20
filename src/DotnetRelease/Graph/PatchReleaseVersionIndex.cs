@@ -108,6 +108,9 @@ public record PatchReleaseVersionIndexEntry(
      Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
     SupportPhase? SupportPhase,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Whether this release was supported at time of release (go-live, active, or maintenance phase)")]
+    bool? Supported,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Highest SDK version included in this patch release")]
     string? SdkVersion,
     [property: JsonPropertyName("_links"),

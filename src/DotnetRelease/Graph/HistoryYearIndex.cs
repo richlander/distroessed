@@ -25,8 +25,8 @@ public record HistoryYearIndex(
     public string? LatestSecurityMonth { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest patch release version in this year (e.g., '10.0.0')")]
-    public string? LatestRelease { get; init; }
+     Description("Latest major version with GA releases in this year (e.g., '10.0')")]
+    public string? Latest { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Major versions with releases in this year (e.g., ['10.0', '9.0', '8.0'])")]
@@ -110,10 +110,6 @@ public record HistoryMonthIndex(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE identifiers disclosed this month (for quick enumeration)")]
     public IList<string>? CveRecords { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest patch release version in this month (e.g., '10.0.0')")]
-    public string? LatestRelease { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Major versions with releases in this month (e.g., ['10.0', '9.0', '8.0'])")]
