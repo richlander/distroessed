@@ -311,6 +311,8 @@ public class ShipIndexFiles
 
                 // Create embedded releases - patch-centric (symmetric with major version index structure)
                 // Flatten all patches from all major versions released this month
+                // Note: Timeline represents historical releases, so we include ALL patches (including previews)
+                // even if the major version has since reached GA. This preserves release history.
                 var embeddedReleases = sortedMonthReleases
                     .SelectMany(majorVersion =>
                     {

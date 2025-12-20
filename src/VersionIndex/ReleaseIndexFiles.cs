@@ -436,7 +436,9 @@ public class ReleaseIndexFiles
                 continue;
             }
 
-            // Use PatchDirPath if available (handles preview/rc paths), otherwise fall back to PatchVersion
+            // Skip patches without a directory - this naturally filters out older preview/RC releases
+            // that only have markdown files (e.g., 8.0/preview/*.md) rather than full directories.
+            // Newer releases (10.0+) have proper directories (e.g., 10.0/preview/preview1/) and are included.
             if (summary.PatchDirPath == null)
             {
                 continue;
