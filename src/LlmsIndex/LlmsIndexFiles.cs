@@ -229,6 +229,7 @@ public static class LlmsIndexFiles
             partial?.Title ?? ".NET Release Index for AI")
         {
             AiNote = partial?.AiNote ?? "ALWAYS read required_pre_read first. HAL graph—follow _links only, never construct URLs.",
+            HumanNote = partial?.HumanNote,
             RequiredPreRead = requiredPreRead,
             Latest = latestVersion,
             LatestLts = latestLtsVersion,

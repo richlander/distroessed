@@ -19,6 +19,10 @@ public record LlmsIndex(
     public string? AiNote { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Note for human readers about this index")]
+    public string? HumanNote { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("URL to required pre-reading for optimal graph navigation")]
     public string? RequiredPreRead { get; init; }
 
@@ -109,6 +113,10 @@ public record PartialLlmsIndex
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Note for AI assistants on how to navigate this graph")]
     public string? AiNote { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Note for human readers about this index")]
+    public string? HumanNote { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Override title if needed")]
