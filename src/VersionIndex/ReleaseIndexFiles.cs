@@ -418,7 +418,15 @@ public class ReleaseIndexFiles
             throw new DirectoryNotFoundException($"Output directory does not exist: {rootDir}");
         }
 
-        var summaryTable = summaries.ToDictionary(
+        // Filter out preview patches once the major version has reached GA
+        // RC releases are kept (they have go-live support), only previews are excluded
+        // This reduces index size for GA releases by excluding historical previews
+        var isGaRelease = majorVersionLifecycle?.Phase is SupportPhase.Active or SupportPhase.Maintenance or SupportPhase.Eol;
+        var filteredSummaries = isGaRelease
+            ? summaries.Where(s => !s.PatchVersion.Contains("-preview.")).ToList()
+            : summaries.ToList();
+
+        var summaryTable = filteredSummaries.ToDictionary(
             s => s.PatchVersion,
             s => s,
             StringComparer.OrdinalIgnoreCase);
@@ -427,7 +435,7 @@ public class ReleaseIndexFiles
         var inputRoot = Path.GetDirectoryName(rootDir) ?? rootDir;
 
         // Convert to list for index-based access (for prev/next navigation)
-        var summaryList = summaries.ToList();
+        var summaryList = filteredSummaries;
 
         for (int i = 0; i < summaryList.Count; i++)
         {
@@ -437,9 +445,7 @@ public class ReleaseIndexFiles
                 continue;
             }
 
-            // Skip patches without a directory - this naturally filters out older preview/RC releases
-            // that only have markdown files (e.g., 8.0/preview/*.md) rather than full directories.
-            // Newer releases (10.0+) have proper directories (e.g., 10.0/preview/preview1/) and are included.
+            // Skip patches without a directory (required for index generation)
             if (summary.PatchDirPath == null)
             {
                 continue;
@@ -495,7 +501,8 @@ public class ReleaseIndexFiles
             var releaseDateOnly = summary.ReleaseDate;
             patchReleaseDate = new DateTimeOffset(releaseDateOnly.Year, releaseDateOnly.Month, releaseDateOnly.Day, 0, 0, 0, TimeSpan.Zero);
 
-            // Determine phase based on version string first (previews and RCs have specific phases)
+            // Determine phase based on version string and release date
+            // This synthesizes the phase AT TIME OF RELEASE (patch indexes are immutable)
             if (summary.PatchVersion.Contains("-preview."))
             {
                 patchPhase = SupportPhase.Preview;
@@ -506,13 +513,22 @@ public class ReleaseIndexFiles
             }
             else if (majorVersionLifecycle != null)
             {
-                // GA releases inherit phase from major version lifecycle
-                patchPhase = majorVersionLifecycle.Phase;
+                // GA patches: determine if Active or Maintenance based on release date
+                // Maintenance phase starts 6 months before EOL
+                var maintenanceStart = majorVersionLifecycle.EolDate.AddMonths(-6);
+                if (patchReleaseDate >= maintenanceStart)
+                {
+                    patchPhase = SupportPhase.Maintenance;
+                }
+                else
+                {
+                    patchPhase = SupportPhase.Active;
+                }
             }
             else
             {
-                // Fallback: determine phase based on whether the release date is in the future
-                patchPhase = patchReleaseDate > DateTimeOffset.UtcNow ? SupportPhase.Preview : SupportPhase.Active;
+                // Fallback: GA patches without lifecycle data are Active
+                patchPhase = SupportPhase.Active;
             }
 
             var patchLifecycle = new PatchLifecycle(patchPhase, patchReleaseDate);
