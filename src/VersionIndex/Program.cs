@@ -83,7 +83,4 @@ await ReleaseIndexFiles.GenerateAsync(summaries, inputDir, outputDir);
 // Generate downloads directory files for supported versions
 await DownloadsIndexFiles.GenerateAsync(summaries, outputDir);
 
-// Generate SDK index files for supported versions
-await SdkIndexFiles.GenerateAsync(summaries, outputDir);
-
 return 0;

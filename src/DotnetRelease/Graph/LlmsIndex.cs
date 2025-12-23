@@ -27,17 +27,25 @@ public record LlmsIndex(
     public string? RequiredPreRead { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest stable major version (e.g., '10.0')")]
-    public string? Latest { get; init; }
+     Description("Latest major .NET version (e.g., '10.0')")]
+    public string? LatestMajor { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest LTS major version")]
-    public string? LatestLts { get; init; }
+     Description("Latest LTS major .NET version (e.g., '10.0')")]
+    public string? LatestLtsMajor { get; init; }
 
-    [JsonPropertyName("supported_releases"),
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date of the latest patch across all supported releases")]
+    public DateTimeOffset? LatestPatchDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date of the latest security patch across all supported releases")]
+    public DateTimeOffset? LatestSecurityPatchDate { get; init; }
+
+    [JsonPropertyName("supported_major_releases"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Supported major version identifiers (e.g., ['10.0', '9.0', '8.0'])")]
-    public IReadOnlyList<string>? SupportedReleases { get; init; }
+    public IReadOnlyList<string>? SupportedMajorReleases { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
@@ -53,8 +61,8 @@ public record LlmsIndex(
 public record LlmsIndexEmbedded
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest patch for each supported release")]
-    public IReadOnlyList<LlmsPatchEntry>? LatestPatches { get; init; }
+     Description("Current patch for each supported release (one per entry in supported_major_releases)")]
+    public IReadOnlyList<LlmsPatchEntry>? Patches { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Last 3 security months (most recent first), crossing year boundaries if needed")]
@@ -62,46 +70,32 @@ public record LlmsIndexEmbedded
 }
 
 /// <summary>
-/// Patch entry shape for LLMs index - follows the unified patch entry shape from spec.
-/// Includes `release` property for consistent filtering across all contexts.
+/// Patch entry shape for LLMs index - optimized for AI consumption.
+/// Includes denormalized data to minimize required fetches.
 /// </summary>
-[Description("Patch entry with release property for AI consumption")]
+[Description("Patch entry optimized for AI consumption")]
 public record LlmsPatchEntry(
     [property: Description("Full patch version (e.g., '9.0.10', '10.0.1')")]
     string Version,
-    [property: Description("Major version this patch belongs to (e.g., '9.0', '10.0')")]
-    string Release)
-{
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release type: lts or sts")]
-    public ReleaseType? ReleaseType { get; init; }
-
-    [Description("Whether this release includes security fixes")]
-    public bool Security { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Current support phase")]
-    public SupportPhase? SupportPhase { get; init; }
-
-    [Description("Whether this release is currently supported")]
-    public bool Supported { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("SDK version shipped with this runtime patch")]
-    public string? SdkVersion { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest security patch version for this release")]
-    public string? LatestSecurity { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release date of the latest security patch")]
-    public DateOnly? LatestSecurityDate { get; init; }
-
-    [JsonPropertyName("_links"),
+    [property: JsonPropertyName("major_release"), Description("Major version this patch belongs to (e.g., '9.0', '10.0')")]
+    string MajorRelease,
+    [property: Description("Release type: lts or sts (denormalized from major)")]
+    ReleaseType ReleaseType,
+    [property: Description("Whether this release includes security fixes")]
+    bool Security,
+    [property: Description("Current support phase")]
+    SupportPhase SupportPhase,
+    [property: Description("Whether this release is currently supported")]
+    bool Supported,
+    [property: Description("SDK version shipped with this runtime patch")]
+    string SdkVersion,
+    [property: Description("Latest security patch version for this release")]
+    string LatestSecurityPatch,
+    [property: Description("Release date of the latest security patch")]
+    DateTimeOffset LatestSecurityPatchDate,
+    [property: JsonPropertyName("_links"),
      Description("HAL+JSON links - self points to patch index")]
-    public Dictionary<string, HalLink> Links { get; init; } = [];
-}
+    Dictionary<string, HalLink> Links);
 
 /// <summary>
 /// Partial LLMs index for hand-maintained fields (like ai_note).

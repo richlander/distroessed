@@ -20,20 +20,17 @@ public record SdkBand
         var eolDate = major.EolDate;
         var releaseType = major.ReleaseType;
         var latestReleaseDate = major.LatestReleaseDate;
-        string shortVersion = version.Substring(0, version.IndexOf('.'));
-        int verNum = int.Parse(shortVersion);
-
-        if (version is null || verNum < 8)
-        {
-            return Array.Empty<SdkBand>();
-        }
-
         var bands = new Dictionary<string, SdkBand>(StringComparer.Ordinal);
 
         bool latest = true;
 
         foreach (var release in major.Releases)
         {
+            if (release.Sdks is null)
+            {
+                continue;
+            }
+
             var date = release.ReleaseDate;
             foreach (var sdk in release.Sdks)
             {

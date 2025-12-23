@@ -78,7 +78,7 @@ public class ReleaseNavigator
     public async Task<IEnumerable<PatchSummary>> GetSecurityPatchesAsync(CancellationToken cancellationToken = default)
     {
         var patches = await GetAllPatchesAsync(cancellationToken);
-        return patches.Where(p => p.HasCves);
+        return patches.Where(p => p.IsSecurityUpdate);
     }
 
     /// <summary>

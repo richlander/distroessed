@@ -103,38 +103,57 @@ public static class LlmsIndexFiles
             {
                 var securityPatchDirPath = latestSecurityPatch.PatchDirPath ?? $"{summary.MajorVersion}/{latestSecurityPatch.PatchVersion}";
                 var securityPatchIndexPath = $"{securityPatchDirPath}/{FileNames.Index}";
-                patchLinks[LinkRelations.LatestSecurity] = new HalLink($"{Location.GitHubBaseUri}{securityPatchIndexPath}");
+                patchLinks[LinkRelations.LatestSecurityPatch] = new HalLink($"{Location.GitHubBaseUri}{securityPatchIndexPath}");
             }
 
             // Add release-major link to navigate to the major version index
-            patchLinks[LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}");
+            patchLinks[LinkRelations.Major] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}");
 
-            // Add latest-sdk link for versions that support SDK hive (8.0+)
+            // Add downloads link for versions that support SDK hive (8.0+)
             var majorVersionParts = summary.MajorVersion.Split('.');
             if (majorVersionParts.Length >= 1 && int.TryParse(majorVersionParts[0], out var majorNum) && majorNum >= 8)
             {
-                patchLinks[LinkRelations.LatestSdk] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Sdk}/{FileNames.Index}");
+                patchLinks[LinkRelations.Downloads] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Downloads}/{FileNames.Index}");
             }
 
-            // Add manifest link for direct access to reference data (compatibility, TFMs, OS support)
-            patchLinks[LinkRelations.Manifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
+            // Add major-manifest link for direct access to reference data (compatibility, TFMs, OS support)
+            patchLinks[LinkRelations.MajorManifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
 
-            var patchEntry = new LlmsPatchEntry(latestPatch.PatchVersion, summary.MajorVersion)
+            // Skip entries without complete lifecycle data (ReleaseType is nullable, Phase is not)
+            if (summary.Lifecycle == null || summary.Lifecycle.ReleaseType == null)
             {
-                ReleaseType = summary.Lifecycle?.ReleaseType,
-                Security = cveIds?.Count > 0,
-                SupportPhase = summary.Lifecycle?.Phase,
-                Supported = summary.Lifecycle?.Supported ?? false,
-                SdkVersion = sdkVersion,
-                LatestSecurity = latestSecurityPatch?.PatchVersion,
-                LatestSecurityDate = latestSecurityPatch?.ReleaseDate,
-                Links = patchLinks
-            };
+                continue;
+            }
+
+            // Skip entries without SDK version (shouldn't happen for supported releases)
+            if (sdkVersion == null)
+            {
+                continue;
+            }
+
+            // Use current patch as fallback if no security patches exist yet
+            var latestSecurityVersion = latestSecurityPatch?.PatchVersion ?? latestPatch.PatchVersion;
+            var latestSecurityDateOnly = latestSecurityPatch?.ReleaseDate ?? latestPatch.ReleaseDate;
+            var latestSecurityDate = new DateTimeOffset(latestSecurityDateOnly, TimeOnly.MinValue, TimeSpan.Zero);
+
+            var patchEntry = new LlmsPatchEntry(
+                latestPatch.PatchVersion,
+                summary.MajorVersion,
+                summary.Lifecycle.ReleaseType.Value,
+                cveIds?.Count > 0,
+                summary.Lifecycle.Phase,
+                summary.Lifecycle.Supported,
+                sdkVersion,
+                latestSecurityVersion,
+                latestSecurityDate,
+                HalHelpers.OrderLinks(patchLinks));
 
             latestPatches.Add(patchEntry);
         }
 
-        // Find latest security month for the link
+        // Find latest month and latest security month for links
+        string? latestMonthYear = null;
+        string? latestMonthNumber = null;
         string? latestSecurityMonthYear = null;
         string? latestSecurityMonthNumber = null;
 
@@ -143,6 +162,13 @@ public static class LlmsIndexFiles
             .OrderByDescending(m => m.Year)
             .ThenByDescending(m => m.Month)
             .ToList();
+
+        // First entry is the latest month
+        if (allMonths.Count > 0)
+        {
+            latestMonthYear = allMonths[0].Year;
+            latestMonthNumber = allMonths[0].Month;
+        }
 
         foreach (var (yearKey, monthKey, monthData) in allMonths)
         {
@@ -159,6 +185,42 @@ public static class LlmsIndexFiles
             }
         }
 
+        // Compute latest patch date and latest security patch date from embedded patches
+        DateTimeOffset? latestPatchDate = null;
+        DateTimeOffset? latestSecurityPatchDate = null;
+
+        foreach (var summary in supportedSummaries)
+        {
+            var latestPatch = summary.PatchReleases
+                .OrderByDescending(p => p.ReleaseDate)
+                .ThenByDescending(p => p.PatchVersion, numericStringComparer)
+                .FirstOrDefault();
+
+            if (latestPatch != null)
+            {
+                var patchDate = new DateTimeOffset(latestPatch.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero);
+                if (latestPatchDate == null || patchDate > latestPatchDate)
+                {
+                    latestPatchDate = patchDate;
+                }
+            }
+
+            var latestSecurityPatch = summary.PatchReleases
+                .Where(p => p.CveList?.Count > 0)
+                .OrderByDescending(p => p.ReleaseDate)
+                .ThenByDescending(p => p.PatchVersion, numericStringComparer)
+                .FirstOrDefault();
+
+            if (latestSecurityPatch != null)
+            {
+                var securityPatchDate = new DateTimeOffset(latestSecurityPatch.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero);
+                if (latestSecurityPatchDate == null || securityPatchDate > latestSecurityPatchDate)
+                {
+                    latestSecurityPatchDate = securityPatchDate;
+                }
+            }
+        }
+
         // Build root links
         var links = new Dictionary<string, HalLink>
         {
@@ -168,17 +230,17 @@ public static class LlmsIndexFiles
         // Add latest links
         if (latestVersion != null)
         {
-            links[LinkRelations.Latest] = new HalLink($"{Location.GitHubBaseUri}{latestVersion}/{FileNames.Index}")
+            links[LinkRelations.LatestMajor] = new HalLink($"{Location.GitHubBaseUri}{latestVersion}/{FileNames.Index}")
             {
-                Title = $"Latest release - .NET {latestVersion}"
+                Title = $"Latest major release - .NET {latestVersion}"
             };
         }
 
         if (latestLtsVersion != null)
         {
-            links[LinkRelations.LatestLts] = new HalLink($"{Location.GitHubBaseUri}{latestLtsVersion}/{FileNames.Index}")
+            links[LinkRelations.LatestLtsMajor] = new HalLink($"{Location.GitHubBaseUri}{latestLtsVersion}/{FileNames.Index}")
             {
-                Title = $"Latest LTS release - .NET {latestLtsVersion}"
+                Title = $"Latest LTS major release - .NET {latestLtsVersion}"
             };
         }
 
@@ -187,6 +249,15 @@ public static class LlmsIndexFiles
             links[LinkRelations.LatestYear] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestYear}/{FileNames.Index}")
             {
                 Title = $"Latest year - {latestYear}"
+            };
+        }
+
+        // Add latest-month link
+        if (latestMonthYear != null && latestMonthNumber != null)
+        {
+            links[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestMonthYear}/{latestMonthNumber}/{FileNames.Index}")
+            {
+                Title = $"Latest month - {IndexTitles.FormatMonthYear(latestMonthYear, latestMonthNumber)}"
             };
         }
 
@@ -200,12 +271,12 @@ public static class LlmsIndexFiles
         }
 
         // Add releases-index and timeline-index links
-        links[LinkRelations.ReleasesIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Index}")
+        links[LinkRelations.Root] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Index}")
         {
             Title = ".NET Release Index"
         };
 
-        links[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
+        links[LinkRelations.Timeline] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
         {
             Title = ".NET Release Timeline Index"
         };
@@ -225,19 +296,21 @@ public static class LlmsIndexFiles
 
         // Build the LlmsIndex
         var llmsIndex = new LlmsIndexRecord(
-            ReleaseKind.LlmsIndex,
+            ReleaseKind.Llms,
             partial?.Title ?? ".NET Release Index for AI")
         {
             AiNote = partial?.AiNote ?? "ALWAYS read required_pre_read first. HAL graph—follow _links only, never construct URLs.",
             HumanNote = partial?.HumanNote,
             RequiredPreRead = requiredPreRead,
-            Latest = latestVersion,
-            LatestLts = latestLtsVersion,
-            SupportedReleases = supportedReleases,
+            LatestMajor = latestVersion,
+            LatestLtsMajor = latestLtsVersion,
+            LatestPatchDate = latestPatchDate,
+            LatestSecurityPatchDate = latestSecurityPatchDate,
+            SupportedMajorReleases = supportedReleases,
             Links = HalHelpers.OrderLinks(links),
             Embedded = new LlmsIndexEmbedded
             {
-                LatestPatches = latestPatches.Count > 0 ? latestPatches : null
+                Patches = latestPatches.Count > 0 ? latestPatches : null
             }
         };
 

@@ -142,7 +142,7 @@ public class DownloadsIndexFiles
         var links = new Dictionary<string, HalLink>
         {
             [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{indexRelativePath}"),
-            [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
+            [LinkRelations.Major] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Index}")
             {
                 Title = $".NET {summary.MajorVersion}",
             }
@@ -180,7 +180,7 @@ public class DownloadsIndexFiles
             .ToList();
 
         var downloadsIndex = new DownloadsIndex(
-            ReleaseKind.DownloadsIndex,
+            ReleaseKind.Downloads,
             summary.MajorVersion,
             $".NET {summary.MajorVersion} Downloads")
         {
@@ -342,7 +342,7 @@ public class DownloadsIndexFiles
             {
                 Title = $".NET {version} Downloads",
             },
-            [LinkRelations.ReleaseMajor] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
+            [LinkRelations.Major] = new HalLink($"{Location.GitHubBaseUri}{version}/{FileNames.Index}")
             {
                 Title = $".NET {version}",
             }

@@ -50,7 +50,7 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
             // Map files to semantic HAL+JSON relations
             if (filename == "timeline/index.json")
             {
-                name = LinkRelations.TimelineIndex;
+                name = LinkRelations.Timeline;
             }
             else if (filename == "release-history/index.json")
             {
@@ -123,10 +123,10 @@ public class HalLinkGenerator(string rootPath, Func<string, LinkStyle, string> u
                 {
                     // Use pathValue without leading slash for URL generation
                     string urlPath = pathValue.TrimStart('/');
-                    // Raw content (Prod) is the default, GitHub blob is the rendered version
-                    var linkKey = selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown" : "markdown-rendered")}" : name);
+                    // Raw content (Prod) is markdown, GitHub blob renders as HTML
+                    var linkKey = selfKey ?? (isMarkdown ? $"{name}-{(style == LinkStyle.Prod ? "markdown" : "html")}" : name);
                     var baseTitle = titleGenerator(fileLink, linkKey);
-                    var title = isMarkdown && style == LinkStyle.GitHub ? $"{baseTitle} (Rendered)" : baseTitle;
+                    var title = isMarkdown && style == LinkStyle.GitHub ? $"{baseTitle} (HTML)" : baseTitle;
 
                     // GitHub blob view renders markdown as HTML
                     var linkType = style == LinkStyle.GitHub && isMarkdown ? MediaType.Html : fileType;

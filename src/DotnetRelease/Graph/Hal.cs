@@ -78,34 +78,36 @@ public class HalHelpers
 {
     public static string GetFileType(ReleaseKind kind) => kind switch
     {
-        ReleaseKind.Index => MediaType.Json,
+        ReleaseKind.Root => MediaType.Json,
+        ReleaseKind.Major => MediaType.Json,
+        ReleaseKind.Patch => MediaType.Json,
         ReleaseKind.Manifest => MediaType.Json,
-        ReleaseKind.MajorRelease => MediaType.Json,
-        ReleaseKind.PatchRelease => MediaType.Json,
         _ => MediaType.Text
     };
 
     /// <summary>
-    /// Orders HAL links with standard relations first (self, next, prev, prev-security), then HAL+JSON links alphabetically,
+    /// Orders HAL links with standard relations first (self, prev-*), then HAL+JSON links alphabetically,
     /// then non-HAL links (JSON, markdown) alphabetically.
     /// </summary>
     public static Dictionary<string, HalLink> OrderLinks(Dictionary<string, HalLink> links)
     {
         var ordered = new Dictionary<string, HalLink>();
-        var standardKeys = new[] { HalTerms.Self, HalTerms.Next, HalTerms.Prev, LinkRelations.PrevSecurity };
 
-        // Add standard relations in preferred order
+        // Add self first
         if (links.TryGetValue(HalTerms.Self, out var selfLink))
             ordered[HalTerms.Self] = selfLink;
-        if (links.TryGetValue(HalTerms.Next, out var nextLink))
-            ordered[HalTerms.Next] = nextLink;
-        if (links.TryGetValue(HalTerms.Prev, out var prevLink))
-            ordered[HalTerms.Prev] = prevLink;
-        if (links.TryGetValue(LinkRelations.PrevSecurity, out var prevSecurityLink))
-            ordered[LinkRelations.PrevSecurity] = prevSecurityLink;
 
-        // Add HAL+JSON links alphabetically (null type = HAL+JSON default, excluding standard keys already added)
-        foreach (var kvp in links.Where(k => (k.Value.Type == MediaType.HalJson || k.Value.Type == null) && !standardKeys.Contains(k.Key)).OrderBy(k => k.Key))
+        // Add prev-* relations in sorted order (prev-month, prev-patch, prev-security-month, prev-security-patch, prev-year)
+        foreach (var kvp in links.Where(k => k.Key.StartsWith("prev-")).OrderBy(k => k.Key))
+        {
+            ordered[kvp.Key] = kvp.Value;
+        }
+
+        // Track which keys we've already added
+        var addedKeys = ordered.Keys.ToHashSet();
+
+        // Add HAL+JSON links alphabetically (null type = HAL+JSON default, excluding keys already added)
+        foreach (var kvp in links.Where(k => (k.Value.Type == MediaType.HalJson || k.Value.Type == null) && !addedKeys.Contains(k.Key)).OrderBy(k => k.Key))
         {
             ordered[kvp.Key] = kvp.Value;
         }

@@ -2,123 +2,118 @@ namespace DotnetRelease.Graph;
 
 /// <summary>
 /// Standard link relation names for .NET release index files.
-/// These constants ensure consistency between "kind" values and link relation names.
-/// Pattern: {kind}-index where kind is the differentiator (release, major, patch, timeline, year, month)
+/// Link relations use simple nouns matching kind values.
 /// </summary>
 public static class LinkRelations
 {
     // Version-based hierarchy (organized by version number)
     // Root → Major → Patch
-    
+
     /// <summary>
     /// Link relation for root releases index (index.json)
-    /// Points to documents with kind="releases-index"
+    /// Points to documents with kind="root"
     /// </summary>
-    public const string ReleasesIndex = "releases-index";
-    
+    public const string Root = "root";
+
     /// <summary>
-    /// Link relation for major version index (e.g., 8.0/index.json)
-    /// Points to documents with kind="major-version-index"
+    /// Link relation for major version index (e.g., 9.0/index.json)
+    /// Points to documents with kind="major"
     /// </summary>
-    public const string ReleaseMajor = "release-major";
-    
+    public const string Major = "major";
+
     /// <summary>
-    /// Link relation for patch version index (e.g., 8.0.1/index.json)
-    /// Points to documents with kind="patch-version-index"
+    /// Link relation for patch version index (e.g., 9.0/9.0.1/index.json)
+    /// Points to documents with kind="patch"
     /// </summary>
-    public const string PatchVersionIndex = "patch-version-index";
-    
+    public const string Patch = "patch";
+
     // Timeline-based hierarchy (organized chronologically)
     // Timeline → Year → Month
-    
+
     /// <summary>
     /// Link relation for root timeline index (timeline/index.json)
-    /// Points to documents with kind="timeline-index"
+    /// Points to documents with kind="timeline"
     /// </summary>
-    public const string TimelineIndex = "timeline-index";
-    
+    public const string Timeline = "timeline";
+
     /// <summary>
     /// Link relation for year timeline index (e.g., timeline/2024/index.json)
-    /// Points to documents with kind="year-index"
+    /// Points to documents with kind="year"
     /// </summary>
-    public const string YearIndex = "year-index";
-    
+    public const string Year = "year";
+
     /// <summary>
     /// Link relation for month timeline index (e.g., timeline/2024/11/index.json)
-    /// Points to documents with kind="month-index"
+    /// Points to documents with kind="month"
     /// </summary>
-    public const string MonthIndex = "month-index";
-    
+    public const string Month = "month";
+
     // Manifest and supplementary documents
 
     /// <summary>
-    /// Link relation for manifest documents
+    /// Link relation for manifest documents (context-dependent)
     /// </summary>
     public const string Manifest = "manifest";
-    
+
+    /// <summary>
+    /// Link relation for major version manifest when referenced from a patch context.
+    /// Disambiguates from patch-level manifests.
+    /// </summary>
+    public const string MajorManifest = "major-manifest";
+
     /// <summary>
     /// Link relation for CVE information documents
     /// </summary>
     public const string CveJson = "cve-json";
-    
+
     /// <summary>
     /// Link relation for release information documents
     /// </summary>
     public const string Release = "release";
-    
-    // Latest link relations
-    
+
+    // Latest link relations (fully qualified)
+
     /// <summary>
-    /// Link relation for latest item in current collection.
-    /// Context-dependent: latest major (releases-index), latest patch (major-version-index), 
-    /// latest SDK band (sdk-index). The containing document's kind provides the noun.
+    /// Link relation for latest major version.
+    /// Used in root and timeline to point to the latest stable major version.
     /// </summary>
-    public const string Latest = "latest";
-    
+    public const string LatestMajor = "latest-major";
+
     /// <summary>
-    /// Link relation for latest LTS (Long-Term Support) version (releases-index only)
-    /// Points to the most recent Long-Term Support major version
+    /// Link relation for latest LTS (Long-Term Support) major version.
+    /// Used in root and timeline to point to the latest LTS major version.
     /// </summary>
-    public const string LatestLts = "latest-lts";
-    
+    public const string LatestLtsMajor = "latest-lts-major";
+
     /// <summary>
-    /// Link relation for latest SDK index.
-    /// Points to the SDK index (e.g., 8.0/sdk/index.json) for a major version.
+    /// Link relation for downloads index.
+    /// Points to the downloads index (e.g., 9.0/downloads/index.json) for a major version.
     /// </summary>
-    public const string LatestSdk = "latest-sdk";
-    
+    public const string Downloads = "downloads";
+
     /// <summary>
-    /// Link relation for latest patch with security fixes (major-version-index only)
-    /// Points to the most recent patch that includes CVE fixes
+    /// Link relation for latest patch with security fixes.
+    /// Used in major to point to the most recent patch that includes CVE fixes.
     /// </summary>
-    public const string LatestSecurity = "latest-security";
-    
+    public const string LatestSecurityPatch = "latest-security-patch";
+
     /// <summary>
-    /// Link relation for latest year (timeline-index only)
+    /// Link relation for latest year (timeline only)
     /// Points to the most recent year index in the timeline.
-    /// Note: Due to CDN caching, year-index should not have latest-month
-    /// to avoid cache inconsistency issues
     /// </summary>
     public const string LatestYear = "latest-year";
-    
+
     /// <summary>
-    /// Link relation for latest month (year-index only)
+    /// Link relation for latest month (year only)
     /// Points to the most recent month index within the year.
-    /// Cache-safe: year-index controls its own months (no multi-level chain).
     /// </summary>
     public const string LatestMonth = "latest-month";
 
     /// <summary>
-    /// Link relation for latest month with security releases (year-index only)
+    /// Link relation for latest month with security releases (year only)
     /// Points to the most recent month index within the year that had security patches.
     /// </summary>
     public const string LatestSecurityMonth = "latest-security-month";
-
-    /// <summary>
-    /// Link relation for latest release within a year (year-index only)
-    /// Points to the major version index for the highest .NET version released in the year.
-    /// </summary>
-    public const string LatestRelease = "latest-release";
 
     /// <summary>
     /// Link relation for latest patch of a major version.
@@ -127,33 +122,48 @@ public static class LinkRelations
     public const string LatestPatch = "latest-patch";
 
     /// <summary>
-    /// Link relation for the month a patch was released in.
-    /// Used in patch-version-index to link to the timeline month index.
-    /// </summary>
-    public const string ReleaseMonth = "release-month";
-
-    /// <summary>
-    /// Link relation for the year a patch was released in.
-    /// Used in patch-version-index to link to the timeline year index.
-    /// </summary>
-    public const string ReleaseYear = "release-year";
-
-    /// <summary>
     /// Link relation for compatibility document.
-    /// Used in major-version-index to link to compatibility.json.
+    /// Used in major to link to compatibility.json.
     /// </summary>
     public const string CompatibilityJson = "compatibility-json";
 
     /// <summary>
     /// Link relation for target frameworks document.
-    /// Used in major-version-index to link to target-frameworks.json.
+    /// Used in major to link to target-frameworks.json.
     /// </summary>
     public const string TargetFrameworksJson = "target-frameworks-json";
 
+    // Previous link relations (fully qualified)
+
     /// <summary>
-    /// Link relation for previous security release.
-    /// Used in patch-version-index and month-index to link to the previous release/month with security fixes.
-    /// Navigation pattern: start from "latest-security" and walk backwards via "prev-security" links.
+    /// Link relation for previous patch release.
+    /// Used in patch to navigate to the previous patch in the same major version.
     /// </summary>
-    public const string PrevSecurity = "prev-security";
+    public const string PrevPatch = "prev-patch";
+
+    /// <summary>
+    /// Link relation for previous month.
+    /// Used in month to navigate to the previous month in the timeline.
+    /// </summary>
+    public const string PrevMonth = "prev-month";
+
+    /// <summary>
+    /// Link relation for previous year.
+    /// Used in year to navigate to the previous year in the timeline.
+    /// </summary>
+    public const string PrevYear = "prev-year";
+
+    /// <summary>
+    /// Link relation for previous security patch release.
+    /// Used in patch to navigate to the previous patch with security fixes.
+    /// Navigation pattern: start from "latest-security-patch" and walk via "prev-security-patch" links.
+    /// </summary>
+    public const string PrevSecurityPatch = "prev-security-patch";
+
+    /// <summary>
+    /// Link relation for previous security month.
+    /// Used in month to navigate to the previous month with security fixes.
+    /// Navigation pattern: start from "latest-security-month" and walk via "prev-security-month" links.
+    /// </summary>
+    public const string PrevSecurityMonth = "prev-security-month";
 }

@@ -75,6 +75,10 @@ public class ShipIndexFiles
         // Track previous security month for prev-security links (year, month)
         // This is updated as we process months chronologically
         (string Year, string Month)? previousSecurityMonth = null;
+        DateTimeOffset? previousSecurityMonthDate = null;
+
+        // Track previous month date for prev-month-date property
+        DateTimeOffset? previousMonthDate = null;
 
         // Get sorted list of years for next/prev links
         var sortedYears = releaseHistory.Years.Keys.OrderBy(y => y, numericStringComparer).ToList();
@@ -202,7 +206,10 @@ public class ShipIndexFiles
                     var cveJsonRelativePath = Path.GetRelativePath(inputPath, Path.Combine(monthPath, FileNames.Cve));
                     var cveJsonPathValue = "/" + cveJsonRelativePath.Replace("\\", "/");
 
-                    monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod));
+                    monthSummaryLinks[LinkRelations.CveJson] = new HalLink(urlGenerator(cveJsonRelativePath, LinkStyle.Prod))
+                    {
+                        Type = MediaType.Json
+                    };
                 }
 
                 var monthSummary = new HistoryMonthSummary(
@@ -229,7 +236,7 @@ public class ShipIndexFiles
                     var prevMonthIndexPath = Path.Combine(yearPath, prevMonth, FileNames.Index);
                     var prevMonthIndexRelativePath = Path.GetRelativePath(inputPath, prevMonthIndexPath);
                     var prevMonthPathValue = "/" + prevMonthIndexRelativePath.Replace("\\", "/");
-                    monthIndexLinks[HalTerms.Prev] = new HalLink(urlGenerator(prevMonthIndexRelativePath, LinkStyle.Prod))
+                    monthIndexLinks[LinkRelations.PrevMonth] = new HalLink(urlGenerator(prevMonthIndexRelativePath, LinkStyle.Prod))
                     {
                         Title = $"Previous month - {IndexTitles.FormatMonthYear(year.Year, prevMonth)}",
                     };
@@ -247,7 +254,7 @@ public class ShipIndexFiles
                             var prevMonthIndexPath = Path.Combine(historyPath, prevYear, lastMonthOfPrevYear, FileNames.Index);
                             var prevMonthIndexRelativePath = Path.GetRelativePath(inputPath, prevMonthIndexPath);
                             var prevMonthPathValue = "/" + prevMonthIndexRelativePath.Replace("\\", "/");
-                            monthIndexLinks[HalTerms.Prev] = new HalLink(urlGenerator(prevMonthIndexRelativePath, LinkStyle.Prod))
+                            monthIndexLinks[LinkRelations.PrevMonth] = new HalLink(urlGenerator(prevMonthIndexRelativePath, LinkStyle.Prod))
                             {
                                 Title = $"Previous month - {IndexTitles.FormatMonthYear(prevYear, lastMonthOfPrevYear)}",
                             };
@@ -264,20 +271,20 @@ public class ShipIndexFiles
                 {
                     var prevSecurityMonthIndexPath = Path.Combine(historyPath, previousSecurityMonth.Value.Year, previousSecurityMonth.Value.Month, FileNames.Index);
                     var prevSecurityMonthIndexRelativePath = Path.GetRelativePath(inputPath, prevSecurityMonthIndexPath);
-                    monthIndexLinks[LinkRelations.PrevSecurity] = new HalLink(urlGenerator(prevSecurityMonthIndexRelativePath, LinkStyle.Prod))
+                    monthIndexLinks[LinkRelations.PrevSecurityMonth] = new HalLink(urlGenerator(prevSecurityMonthIndexRelativePath, LinkStyle.Prod))
                     {
                         Title = $"Previous security month - {IndexTitles.FormatMonthYear(previousSecurityMonth.Value.Year, previousSecurityMonth.Value.Month)}",
                     };
                 }
 
                 // Add timeline-index link (grandparent)
-                monthIndexLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
+                monthIndexLinks[LinkRelations.Timeline] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
                 {
                     Title = IndexTitles.TimelineIndexLink,
                 };
 
                 // Add year-index link (parent)
-                monthIndexLinks[LinkRelations.YearIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{year.Year}/{FileNames.Index}")
+                monthIndexLinks[LinkRelations.Year] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{year.Year}/{FileNames.Index}")
                 {
                     Title = IndexTitles.TimelineYearLink(year.Year),
                 };
@@ -344,26 +351,26 @@ public class ShipIndexFiles
                             };
 
                             // Get release date from the summary's patch releases if available
-                            DateTimeOffset? releaseDate = null;
+                            // Fall back to month release date if specific patch date not found
                             var patchSummary = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == patchVersion);
-                            if (patchSummary != null)
-                            {
-                                releaseDate = new DateTimeOffset(patchSummary.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero);
-                            }
+                            var releaseDate = patchSummary != null
+                                ? new DateTimeOffset(patchSummary.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero)
+                                : monthReleaseDate ?? new DateTimeOffset(int.Parse(year.Year), int.Parse(month.Month), 1, 0, 0, 0, TimeSpan.Zero);
 
+                            // Note: CVE IDs (cve_records) are intentionally omitted from patch entries.
+                            // CVEs are a timeline concept - use disclosures[] at month level or cve-json link.
                             return new PatchReleaseVersionIndexEntry(
                                 patchVersion,
-                                majorVersion,
                                 releaseDate,
                                 year.Year,
                                 month.Month,
                                 patchCveIds?.Count > 0,
-                                patchCveIds?.Count ?? 0,
-                                patchCveIds,
                                 phase,
-                                ReleaseStability.IsSupportedPhase(phase),
-                                sdkVersions?.FirstOrDefault(),
-                                HalHelpers.OrderLinks(patchLinks));
+                                HalHelpers.OrderLinks(patchLinks))
+                            {
+                                MajorRelease = majorVersion,
+                                SdkVersion = sdkVersions?.FirstOrDefault()
+                            };
                         });
                     })
                     .OrderByDescending(p => p.Version, numericStringComparer)
@@ -373,16 +380,17 @@ public class ShipIndexFiles
                 var monthCveIds = cveSummariesForMonth?.Select(d => d.Id).ToList();
 
                 var monthIndex = new HistoryMonthIndex(
-                    HistoryKind.MonthIndex,
+                    HistoryKind.Month,
                     IndexTitles.TimelineMonthTitle(year.Year, month.Month),
                     year.Year,
                     month.Month,
                     monthReleaseDate,
                     cveSummariesForMonth?.Count > 0)
                 {
-                    CveCount = monthCveIds?.Count > 0 ? monthCveIds.Count : null,
+                    PrevMonthDate = previousMonthDate,
+                    PrevSecurityMonthDate = previousSecurityMonthDate,
                     CveRecords = monthCveIds?.Count > 0 ? monthCveIds : null,
-                    Releases = sortedMonthReleases,
+                    MajorReleases = sortedMonthReleases,
                     Links = HalHelpers.OrderLinks(monthIndexLinks),
                     Embedded = new HistoryMonthIndexEmbedded
                     {
@@ -406,16 +414,16 @@ public class ShipIndexFiles
                 await File.WriteAllTextAsync(currentMonthIndexPath, finalMonthIndexJson);
 
                 // Generate month manifest with markdown links
-                // Note: HalLinkGenerator automatically adds "(Rendered)" suffix for GitHub markdown links
+                // Note: HalLinkGenerator automatically adds "(HTML)" suffix for GitHub markdown links
                 var cveTitle = $"CVE records - {IndexTitles.FormatMonthYear(year.Year, month.Month)}";
-                var cveTitleRendered = $"CVE records (Rendered) - {IndexTitles.FormatMonthYear(year.Year, month.Month)}";
+                var cveTitleHtml = $"CVE records (HTML) - {IndexTitles.FormatMonthYear(year.Year, month.Month)}";
                 var monthManifestLinks = halLinkGenerator.Generate(
                     monthPath,
                     HistoryManifestFileMappings.Values,
                     (fileLink, key) => key switch
                     {
                         "cve-markdown" => cveTitle,
-                        "cve-markdown-rendered" => cveTitleRendered,
+                        "cve-html" => cveTitleHtml,
                         _ => fileLink.Title
                     },
                     includeSelf: false);
@@ -475,7 +483,11 @@ public class ShipIndexFiles
                 if (cveSummariesForMonth?.Count > 0)
                 {
                     previousSecurityMonth = (year.Year, month.Month);
+                    previousSecurityMonthDate = monthReleaseDate;
                 }
+
+                // Update previousMonthDate tracker for next month's prev-month-date
+                previousMonthDate = monthReleaseDate;
             }
 
             // Generate the root links for the year index
@@ -496,7 +508,7 @@ public class ShipIndexFiles
                 var prevYearIndexPath = Path.Combine(prevYearPath, FileNames.Index);
                 var prevYearIndexRelativePath = Path.GetRelativePath(inputPath, prevYearIndexPath);
                 var prevYearPathValue = "/" + prevYearIndexRelativePath.Replace("\\", "/");
-                yearHalLinks[HalTerms.Prev] = new HalLink(urlGenerator(prevYearIndexRelativePath, LinkStyle.Prod))
+                yearHalLinks[LinkRelations.PrevYear] = new HalLink(urlGenerator(prevYearIndexRelativePath, LinkStyle.Prod))
                 {
                     Title = $"Previous year - {prevYear}",
                 };
@@ -505,7 +517,7 @@ public class ShipIndexFiles
             // Navigation pattern: start from latest-year and walk backwards via "prev" links.
 
             // Add timeline-index link (parent)
-            yearHalLinks[LinkRelations.TimelineIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
+            yearHalLinks[LinkRelations.Timeline] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{FileNames.Index}")
             {
                 Title = IndexTitles.TimelineIndexLink,
             };
@@ -571,13 +583,13 @@ public class ShipIndexFiles
             // Latest release is the highest major version (two-part, e.g., "10.0")
             var latestReleaseForYear = sortedReleasesForYear.FirstOrDefault();
 
-            // Add latest-release link if available
+            // Add latest-major link if available
             if (latestReleaseForYear != null)
             {
                 var latestReleaseIndexPath = $"{latestReleaseForYear}/{FileNames.Index}";
-                yearHalLinks[LinkRelations.Latest] = new HalLink($"{Location.GitHubBaseUri}{latestReleaseIndexPath}")
+                yearHalLinks[LinkRelations.LatestMajor] = new HalLink($"{Location.GitHubBaseUri}{latestReleaseIndexPath}")
                 {
-                    Title = $"Latest release - .NET {latestReleaseForYear}",
+                    Title = $"Latest major - .NET {latestReleaseForYear}",
                 };
             }
 
@@ -586,14 +598,14 @@ public class ShipIndexFiles
 
             // Create the year index (e.g., release-notes/2025/index.json)
             var yearHistory = new HistoryYearIndex(
-                HistoryKind.YearIndex,
+                HistoryKind.Year,
                 IndexTitles.TimelineYearTitle(year.Year),
                 year.Year)
             {
                 LatestMonth = latestMonth,
                 LatestSecurityMonth = effectiveLatestSecurityMonth,
-                Latest = latestReleaseForYear,
-                Releases = sortedReleasesForYear.Count > 0 ? sortedReleasesForYear : null,
+                LatestMajor = latestReleaseForYear,
+                MajorReleases = sortedReleasesForYear.Count > 0 ? sortedReleasesForYear : null,
                 Links = HalHelpers.OrderLinks(yearHalLinks)
             };
 
@@ -633,7 +645,7 @@ public class ShipIndexFiles
 
             yearEntries.Add(new HistoryYearEntry(year.Year)
             {
-                Releases = [.. sortedReleasesForYear],
+                MajorReleases = [.. sortedReleasesForYear],
                 Links = HalHelpers.OrderLinks(minimalYearLinks)
             });
         }
@@ -661,7 +673,7 @@ public class ShipIndexFiles
         var latestLtsRelease = latestLtsVersion != null ? summaries.First(s => s.MajorVersion == latestLtsVersion) : null;
 
         // Add releases-index link pointing back to root index.json
-        fullIndexLinks[LinkRelations.ReleasesIndex] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Index}")
+        fullIndexLinks[LinkRelations.Root] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Index}")
         {
             Title = IndexTitles.VersionIndexTitle,
         };
@@ -669,17 +681,17 @@ public class ShipIndexFiles
         // Add cross-reference links to latest versions (from releases-index)
         if (latestRelease != null)
         {
-            fullIndexLinks[LinkRelations.Latest] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.MajorVersion}/{FileNames.Index}")
+            fullIndexLinks[LinkRelations.LatestMajor] = new HalLink($"{Location.GitHubBaseUri}{latestRelease.MajorVersion}/{FileNames.Index}")
             {
-                Title = $"Latest release - .NET {latestRelease.MajorVersion}",
+                Title = $"Latest major release - .NET {latestRelease.MajorVersion}",
             };
         }
 
         if (latestLtsRelease != null)
         {
-            fullIndexLinks[LinkRelations.LatestLts] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.MajorVersion}/{FileNames.Index}")
+            fullIndexLinks[LinkRelations.LatestLtsMajor] = new HalLink($"{Location.GitHubBaseUri}{latestLtsRelease.MajorVersion}/{FileNames.Index}")
             {
-                Title = $"Latest LTS release - .NET {latestLtsRelease.MajorVersion}",
+                Title = $"Latest LTS major release - .NET {latestLtsRelease.MajorVersion}",
             };
         }
 
@@ -701,12 +713,12 @@ public class ShipIndexFiles
 
         // Create the history index
         var historyIndex = new ReleaseHistoryIndex(
-            HistoryKind.TimelineIndex,
+            HistoryKind.Timeline,
             IndexTitles.TimelineIndexTitle)
         {
             LatestYear = latestYear,
-            Latest = latestRelease?.MajorVersion,
-            LatestLts = latestLtsRelease?.MajorVersion,
+            LatestMajor = latestRelease?.MajorVersion,
+            LatestLtsMajor = latestLtsRelease?.MajorVersion,
             Links = HalHelpers.OrderLinks(fullIndexLinks),
             Embedded = new ReleaseHistoryIndexEmbedded
             {

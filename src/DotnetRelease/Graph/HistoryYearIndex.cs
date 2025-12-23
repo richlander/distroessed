@@ -26,11 +26,12 @@ public record HistoryYearIndex(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest major version with GA releases in this year (e.g., '10.0')")]
-    public string? Latest { get; init; }
+    public string? LatestMajor { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonPropertyName("major_releases"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Major versions with releases in this year (e.g., ['10.0', '9.0', '8.0'])")]
-    public IList<string>? Releases { get; init; }
+    public IList<string>? MajorReleases { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
@@ -62,8 +63,8 @@ public record HistoryMonthEntry(
     Dictionary<string, HalLink> Links,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("CVE security vulnerability records for this month")]
     IReadOnlyList<CveRecordSummary>? CveRecords,
-    [Description("List of .NET major version identifiers that had releases this month")]
-    IList<string> Releases,
+    [property: JsonPropertyName("major_releases"), Description("List of .NET major version identifiers that had releases this month")]
+    IList<string> MajorReleases,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), Description("List of specific patch version identifiers released this month")]
     IList<string>? PatchReleases
 )
@@ -103,17 +104,23 @@ public record HistoryMonthIndex(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Description of the month's releases")]
     public string? Description { get; init; }
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Number of CVEs disclosed this month")]
-    public int? CveCount { get; init; }
+     Description("Release date of the previous month with releases")]
+    public DateTimeOffset? PrevMonthDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date of the previous month with security releases")]
+    public DateTimeOffset? PrevSecurityMonthDate { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE identifiers disclosed this month (for quick enumeration)")]
     public IList<string>? CveRecords { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+    [JsonPropertyName("major_releases"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Major versions with releases in this month (e.g., ['10.0', '9.0', '8.0'])")]
-    public IList<string>? Releases { get; init; }
+    public IList<string>? MajorReleases { get; init; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]

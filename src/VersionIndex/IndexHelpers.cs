@@ -9,12 +9,12 @@ public class IndexHelpers
 
     private static readonly OrderedDictionary<string, ReleaseKindMapping> _halFileMappings = new()
     {
-        { FileNames.Index, new ReleaseKindMapping("index", FileNames.Index, ReleaseKind.Index, MediaType.Json) },
-        { FileNames.Release, new ReleaseKindMapping("release", FileNames.Release, ReleaseKind.PatchRelease, MediaType.Json) },
+        { FileNames.Index, new ReleaseKindMapping("index", FileNames.Index, ReleaseKind.Root, MediaType.Json) },
+        { FileNames.Release, new ReleaseKindMapping("release", FileNames.Release, ReleaseKind.Patch, MediaType.Json) },
         { FileNames.Manifest, new ReleaseKindMapping("manifest", FileNames.Manifest, ReleaseKind.Manifest, MediaType.Json) },
         { "usage.md", new ReleaseKindMapping("usage", "usage.md", ReleaseKind.Content, MediaType.Markdown) },
         { "terminology.md", new ReleaseKindMapping("terminology", "terminology.md", ReleaseKind.Content, MediaType.Markdown) },
-        { $"release-history/{FileNames.Index}", new ReleaseKindMapping("release-history", $"release-history/{FileNames.Index}", ReleaseKind.Index, MediaType.HalJson) }
+        { $"release-history/{FileNames.Index}", new ReleaseKindMapping("release-history", $"release-history/{FileNames.Index}", ReleaseKind.Root, MediaType.HalJson) }
     };
 
     public static readonly OrderedDictionary<string, FileLink> AuxFileMappings = new()
@@ -82,12 +82,12 @@ public class IndexHelpers
 
             if (mapping.Style.HasFlag(LinkStyle.GitHub))
             {
-                // GitHub blob view is the rendered version
-                var key = isMarkdown ? $"{name}-markdown-rendered" : name;
+                // GitHub blob view renders markdown as HTML
+                var key = isMarkdown ? $"{name}-html" : name;
                 yield return new HalTuple(key, ReleaseKind.Content, new HalLink(GetGitHubPath(urlRelativePath))
                 {
-                    Title = $"{mapping.Title} (Rendered)",
-                    Type = MediaType.Markdown
+                    Title = $"{mapping.Title} (HTML)",
+                    Type = MediaType.Html
                 });
             }
         }

@@ -24,12 +24,20 @@ public record PatchReleaseVersionIndex(
     public string? TargetFramework { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest patch version")]
-    public string? Latest { get; init; }
+     Description("Latest patch version (e.g., '9.0.11')")]
+    public string? LatestPatch { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest patch version with security fixes")]
-    public string? LatestSecurity { get; init; }
+     Description("Release date of the latest patch")]
+    public DateTimeOffset? LatestPatchDate { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Latest patch version with security fixes (e.g., '9.0.10')")]
+    public string? LatestSecurityPatch { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Release date of the latest security patch")]
+    public DateTimeOffset? LatestSecurityPatchDate { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Release type: lts (Long-Term Support) or sts (Standard-Term Support)")]
@@ -77,43 +85,44 @@ public record PatchReleaseVersionIndexEmbedded(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE IDs affecting this major version")]
     public IReadOnlyList<string>? CveRecords { get; set; }
+
+    [JsonPropertyName("sdk_feature_bands"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("SDK feature bands for this major version (8.0+)")]
+    public IReadOnlyList<SdkFeatureBandEntry>? SdkFeatureBands { get; init; }
 }
 
 // Support phases are defined in https://github.com/dotnet/core/blob/main/release-policies.md
 // Phases: preview, go-live, active, maintenance, eol
-[Description("Patch release entry within a major version index")]
+/// <summary>
+/// Patch release entry within a major version or month index.
+/// CVE details are available via the cve-json link in the month index.
+/// </summary>
+[Description("Patch release entry within a major version or month index. For CVE details, use the cve-json link.")]
 public record PatchReleaseVersionIndexEntry(
     [property: Description("Patch version identifier (e.g., '8.0.1', '9.0.2')")]
     string Version,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Major version this patch belongs to (e.g., '9.0', '10.0') - enables filtering by release currency")]
-    string? Release,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release date when this patch became generally available")]
-    DateTimeOffset? Date,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release year (e.g., '2025') for easy filtering")]
-    string? Year,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Release month (e.g., '10') for easy filtering")]
-    string? Month,
-    [property: Description("True if this release includes security fixes (CVEs); defaults to true for safety")]
+    [property: Description("Release date when this patch became generally available")]
+    DateTimeOffset Date,
+    [property: Description("Release year (e.g., '2025') for filtering")]
+    string Year,
+    [property: Description("Release month (e.g., '10') for filtering")]
+    string Month,
+    [property: Description("True if this release includes security fixes (CVEs)")]
     bool Security,
-    [Description("Number of CVEs fixed in this release")]
-    int CveCount,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("CVE IDs associated with this release")]
-    IReadOnlyList<string>? CveRecords,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
-    SupportPhase? SupportPhase,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Whether this release was supported at time of release (go-live, active, or maintenance phase)")]
-    bool? Supported,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Highest SDK version included in this patch release")]
-    string? SdkVersion,
+    [property: Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
+    SupportPhase SupportPhase,
     [property: JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this patch release's content")]
-    Dictionary<string, HalLink> Links);
+    Dictionary<string, HalLink> Links)
+{
+    [JsonPropertyName("major_release"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Major version this patch belongs to (e.g., '9.0', '10.0') - included in month-index for filtering, omitted in major-version-index")]
+    public string? MajorRelease { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Highest SDK version included in this patch release")]
+    public string? SdkVersion { get; init; }
+}
 

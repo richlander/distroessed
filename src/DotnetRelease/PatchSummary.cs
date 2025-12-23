@@ -4,8 +4,9 @@ using DotnetRelease.Graph;
 namespace DotnetRelease;
 
 /// <summary>
-/// Provides a summary of a .NET patch release with CVE information.
+/// Provides a summary of a .NET patch release.
 /// This wraps data from PatchReleaseVersionIndexEntry.
+/// For CVE details, follow the month or cve-json links.
 /// </summary>
 public class PatchSummary
 {
@@ -33,24 +34,10 @@ public class PatchSummary
     public DateTimeOffset? ReleaseDate => _entry.Date;
 
     /// <summary>
-    /// CVE IDs associated with this patch
+    /// True if this is a security update (has CVE fixes).
+    /// For CVE IDs and details, follow the month or cve-json links.
     /// </summary>
-    public IReadOnlyList<string>? CveRecords => _entry.CveRecords;
-
-    /// <summary>
-    /// True if this patch includes CVE fixes
-    /// </summary>
-    public bool HasCves => CveRecords?.Count > 0;
-
-    /// <summary>
-    /// Number of CVEs addressed in this patch
-    /// </summary>
-    public int CveCount => CveRecords?.Count ?? 0;
-
-    /// <summary>
-    /// True if this is a security update (has CVE fixes)
-    /// </summary>
-    public bool IsSecurityUpdate => HasCves;
+    public bool IsSecurityUpdate => _entry.Security;
 
     /// <summary>
     /// HAL links for navigation to this patch's content

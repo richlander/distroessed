@@ -35,7 +35,7 @@ public static class LinkTitles
     public static readonly string LatestPatch = string.Intern("Latest patch");
     public static readonly string LatestSecurityPatch = string.Intern("Latest security patch");
     public static readonly string LatestLts = string.Intern("Latest LTS");
-    public static readonly string LatestSdk = string.Intern("Latest SDK");
+    public static readonly string Sdk = string.Intern("SDK");
 
     // Support and documentation
     public static readonly string SupportPolicy = string.Intern("Support Policy");

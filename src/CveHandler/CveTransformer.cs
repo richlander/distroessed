@@ -9,7 +9,9 @@ namespace CveHandler;
 public static class CveTransformer
 {
     /// <summary>
-    /// Converts full CVE disclosure records to summary format for embedding in indexes
+    /// Converts full CVE disclosure records to summary format for embedding in indexes.
+    /// Summaries include metadata for filtering (severity, affected releases) but not
+    /// detailed fix information. For fix commits and version ranges, use cve.json.
     /// </summary>
     public static List<CveRecordSummary> ToSummaries(CveRecords cveRecords)
     {
@@ -39,53 +41,18 @@ public static class CveTransformer
                 links["self"] = new HalLink(announcementUrl);
             }
 
-            // Build fix commit links
-            var fixes = new List<CommitLink>();
-            if (cveRecords.CveCommits?.TryGetValue(disclosure.Id, out var commitHashes) == true)
-            {
-                foreach (var hash in commitHashes)
-                {
-                    if (cveRecords.Commits?.TryGetValue(hash, out var commitInfo) == true)
-                    {
-                        // Find the product or package entry for this commit to get release and version info
-                        var productMatch = cveRecords.Products?
-                            .FirstOrDefault(p => p.CveId == disclosure.Id && p.Commits.Contains(hash));
-
-                        var packageMatch = productMatch == null
-                            ? cveRecords.Packages?
-                                .FirstOrDefault(p => p.CveId == disclosure.Id && p.Commits.Contains(hash))
-                            : null;
-
-                        var release = productMatch?.Release ?? packageMatch?.Release;
-                        var minVulnerable = productMatch?.MinVulnerable ?? packageMatch?.MinVulnerable;
-                        var maxVulnerable = productMatch?.MaxVulnerable ?? packageMatch?.MaxVulnerable;
-                        var fixedVersion = productMatch?.Fixed ?? packageMatch?.Fixed;
-
-                        var repoFullName = $"{commitInfo.Org}/{commitInfo.Repo}";
-                        fixes.Add(new CommitLink(
-                            commitInfo.Url,
-                            repoFullName,
-                            commitInfo.Branch)
-                        {
-                            Title = $"Fix commit in {commitInfo.Repo} ({commitInfo.Branch})",
-                            Release = !string.IsNullOrEmpty(release) ? release : null,
-                            MinVulnerable = !string.IsNullOrEmpty(minVulnerable) ? minVulnerable : null,
-                            MaxVulnerable = !string.IsNullOrEmpty(maxVulnerable) ? maxVulnerable : null,
-                            Fixed = !string.IsNullOrEmpty(fixedVersion) ? fixedVersion : null
-                        });
-                    }
-                }
-            }
+            // Note: Fix commits and version ranges are intentionally omitted from summaries.
+            // This keeps the month index lean. For detailed fix information, follow the
+            // cve-json link to timeline/{year}/{month}/cve.json.
 
             return new CveRecordSummary(disclosure.Id, disclosure.Problem)
             {
                 Links = links.Count > 0 ? links : null,
-                Fixes = fixes.Count > 0 ? fixes : null,
                 CvssScore = disclosure.Cvss.Score,
                 CvssSeverity = disclosure.Cvss.Severity,
                 DisclosureDate = disclosure.Timeline.Disclosure.Date,
-                AffectedReleases = cveRecords.CveReleases?.TryGetValue(disclosure.Id, out var releases) == true 
-                    ? releases 
+                AffectedReleases = cveRecords.CveReleases?.TryGetValue(disclosure.Id, out var releases) == true
+                    ? releases
                     : null,
                 AffectedProducts = affectedProducts?.Count > 0 ? affectedProducts : null,
                 AffectedPackages = affectedPackages?.Count > 0 ? affectedPackages : null,

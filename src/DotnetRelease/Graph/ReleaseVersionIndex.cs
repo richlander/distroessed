@@ -102,20 +102,20 @@ public record ReleaseVersionIndexEntry(
 public enum ReleaseKind
 {
     [Description("Root index of all .NET releases")]
-    ReleasesIndex,
-    
+    Root,
+
     [Description("Index of patches within a major .NET version")]
-    MajorVersionIndex,
-    
+    Major,
+
     [Description("Index for a specific patch release with details")]
-    PatchVersionIndex,
-    
+    Patch,
+
     [Description("SDK index for a major version")]
-    SdkIndex,
-    
+    Sdk,
+
     [Description("Release metadata document (manifest.json)")]
     Manifest,
-    
+
     [Description("SDK feature band content")]
     Band,
 
@@ -123,43 +123,18 @@ public enum ReleaseKind
     SdkDownload,
 
     [Description("Downloads index for a major version")]
-    DownloadsIndex,
+    Downloads,
 
     [Description("Component download information (runtime, aspnetcore, windowsdesktop, sdk)")]
     ComponentDownload,
 
     [Description("AI-optimized index with latest patches and security status")]
-    LlmsIndex,
+    Llms,
 
     [Description("General content document")]
     Content,
-    
+
     [Description("Unspecified type")]
-    Unknown,
-    
-    // Legacy values (deprecated, for backwards compatibility)
-    [Description("Legacy: Use ReleasesIndex instead")]
-    ReleaseIndex,
-    
-    [Description("Legacy: Generic index (use more specific types)")]
-    Index,
-    
-    [Description("Legacy: Use MajorVersionIndex instead")]
-    MajorIndex,
-    
-    [Description("Legacy: Use MajorVersionIndex instead")]
-    MajorReleaseIndex,
-    
-    [Description("Legacy: Use PatchVersionIndex instead")]
-    PatchIndex,
-    
-    [Description("Legacy: Use PatchVersionIndex instead")]
-    PatchReleaseIndex,
-    
-    [Description("Legacy: Major version content")]
-    MajorRelease,
-    
-    [Description("Legacy: Patch version content")]
-    PatchRelease
+    Unknown
 }
 

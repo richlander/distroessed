@@ -23,12 +23,12 @@ public record MajorReleaseVersionIndex(
      Description("Description of the index scope")]
     public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest stable .NET version")]
-    public string? Latest { get; init; }
+     Description("Latest major .NET version (e.g., '10.0')")]
+    public string? LatestMajor { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest LTS (Long-Term Support) .NET version")]
-    public string? LatestLts { get; init; }
+     Description("Latest LTS major .NET version (e.g., '10.0')")]
+    public string? LatestLtsMajor { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest year with .NET releases (cross-reference to timeline)")]
@@ -53,9 +53,17 @@ public record MajorReleaseVersionIndex(
 }
 
 [Description("Container for embedded major version entries in a major release index")]
-public record MajorReleaseVersionIndexEmbedded(
-    [Description("List of major version entries with full lifecycle information")]
-    List<MajorReleaseVersionIndexEntry> Releases);
+public record MajorReleaseVersionIndexEmbedded
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("List of patch releases for this major version")]
+    public List<MajorReleaseVersionIndexEntry>? Releases { get; init; }
+
+    [JsonPropertyName("sdk_feature_bands"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("SDK feature bands for this major version (8.0+)")]
+    public IReadOnlyList<SdkFeatureBandEntry>? SdkFeatureBands { get; init; }
+}
 
 [Description("Major version entry within the root index, containing full lifecycle information")]
 public record MajorReleaseVersionIndexEntry(

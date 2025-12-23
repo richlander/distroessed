@@ -14,12 +14,12 @@ public record ReleaseHistoryIndex(
      Description("Context-aware description of the time period")]
     public string? Description { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest major .NET version (cross-reference to releases)")]
-    public string? Latest { get; init; }
+     Description("Latest major .NET version (e.g., '10.0')")]
+    public string? LatestMajor { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Latest LTS .NET version (cross-reference to releases)")]
-    public string? LatestLts { get; init; }
+     Description("Latest LTS major .NET version (e.g., '10.0')")]
+    public string? LatestLtsMajor { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Latest year with .NET releases (primary)")]
@@ -70,8 +70,9 @@ public record HistoryYearEntry(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Description of the year's releases")]
     public string? Description { get; init; }
-    [Description("List of .NET version identifiers released during this year")]
-    public IList<string>? Releases { get; set; }
+    [JsonPropertyName("major_releases"),
+     Description("List of .NET major version identifiers released during this year")]
+    public IList<string>? MajorReleases { get; set; }
 
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for navigation to this year's content")]
@@ -83,21 +84,13 @@ public record HistoryYearEntry(
 public enum HistoryKind
 {
     [Description("Root chronological index")]
-    TimelineIndex,
+    Timeline,
     [Description("Year-specific index")]
-    YearIndex,
+    Year,
     [Description("Month-specific index")]
-    MonthIndex,
+    Month,
     [Description("Resource manifest for a timeline entry")]
-    Manifest,
-
-    // Legacy values (deprecated, for backwards compatibility)
-    [Description("Legacy: Use TimelineIndex instead")]
-    ReleaseTimelineIndex,
-    [Description("Legacy: Use YearIndex instead")]
-    TimelineYearIndex,
-    [Description("Legacy: Use MonthIndex instead")]
-    TimelineMonthIndex,
+    Manifest
 }
 
 /*

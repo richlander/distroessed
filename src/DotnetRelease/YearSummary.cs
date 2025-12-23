@@ -27,14 +27,14 @@ public class YearSummary
     public string? Description => _yearEntry.Description;
 
     /// <summary>
-    /// .NET versions that had releases this year
+    /// .NET major versions that had releases this year
     /// </summary>
-    public IList<string>? Releases => _yearEntry.Releases;
+    public IList<string>? MajorReleases => _yearEntry.MajorReleases;
 
     /// <summary>
-    /// Number of .NET versions with releases this year
+    /// Number of .NET major versions with releases this year
     /// </summary>
-    public int ReleaseCount => Releases?.Count ?? 0;
+    public int MajorReleaseCount => MajorReleases?.Count ?? 0;
 
     /// <summary>
     /// HAL links for navigation to this year's content
