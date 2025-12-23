@@ -11,7 +11,7 @@ using LlmsIndexRecord = DotnetRelease.Graph.LlmsIndex;
 
 public static class LlmsIndexFiles
 {
-    private const int DefaultMaxWorkflows = 3;
+    private const int DefaultMaxWorkflows = 12;
 
     public static async Task GenerateAsync(
         string inputDir,
@@ -38,9 +38,9 @@ public static class LlmsIndexFiles
             }
         }
 
-        // Load workflows from skills/dotnet-releases/workflows.json
+        // Load workflows from skills/_workflows.json
         Dictionary<string, LlmsWorkflow>? inlineWorkflows = null;
-        var workflowsPath = Path.Combine(inputDir, "skills", "dotnet-releases", "workflows.json");
+        var workflowsPath = Path.Combine(inputDir, "skills", FileNames.PartialWorkflows);
         if (File.Exists(workflowsPath) && maxWorkflows > 0)
         {
             try
@@ -84,7 +84,7 @@ public static class LlmsIndexFiles
             .FirstOrDefault();
 
         // Build latest patches collection
-        var latestPatches = new List<LlmsPatchEntry>();
+        var latestPatches = new Dictionary<string, LlmsPatchEntry>();
         foreach (var summary in supportedSummaries)
         {
             var latestPatch = summary.PatchReleases
@@ -132,6 +132,11 @@ public static class LlmsIndexFiles
                 var securityPatchDirPath = latestSecurityPatch.PatchDirPath ?? $"{summary.MajorVersion}/{latestSecurityPatch.PatchVersion}";
                 var securityPatchIndexPath = $"{securityPatchDirPath}/{FileNames.Index}";
                 patchLinks[LinkRelations.LatestSecurityPatch] = new HalLink($"{Location.GitHubBaseUri}{securityPatchIndexPath}");
+
+                // Add latest-security-month link to timeline month for this release's security patch
+                var securityYear = latestSecurityPatch.ReleaseDate.Year.ToString("D4");
+                var securityMonth = latestSecurityPatch.ReleaseDate.Month.ToString("D2");
+                patchLinks[LinkRelations.LatestSecurityMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{securityYear}/{securityMonth}/{FileNames.Index}");
             }
 
             // Add release-major link to navigate to the major version index
@@ -166,7 +171,6 @@ public static class LlmsIndexFiles
 
             var patchEntry = new LlmsPatchEntry(
                 latestPatch.PatchVersion,
-                summary.MajorVersion,
                 summary.Lifecycle.ReleaseType.Value,
                 cveIds?.Count > 0,
                 summary.Lifecycle.Phase,
@@ -176,7 +180,7 @@ public static class LlmsIndexFiles
                 latestSecurityDate,
                 HalHelpers.OrderLinks(patchLinks));
 
-            latestPatches.Add(patchEntry);
+            latestPatches[summary.MajorVersion] = patchEntry;
         }
 
         // Find latest month and latest security month for links

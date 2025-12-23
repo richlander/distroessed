@@ -174,6 +174,18 @@ public class ReleaseIndexFiles
                 {
                     Title = $"Latest patch - {latestPatch.Version}",
                 };
+
+                // Add latest-month link to timeline month for the latest patch
+                if (latestPatch.Lifecycle?.GaDate != null)
+                {
+                    var patchDate = latestPatch.Lifecycle.GaDate;
+                    var patchYear = patchDate.Year.ToString("D4");
+                    var patchMonth = patchDate.Month.ToString("D2");
+                    orderedMajorVersionLinks[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{patchYear}/{patchMonth}/{FileNames.Index}")
+                    {
+                        Title = $"Latest month - {IndexTitles.FormatMonthYear(patchYear, patchMonth)}",
+                    };
+                }
             }
 
             if (latestSecurityPatch != null)
@@ -183,6 +195,30 @@ public class ReleaseIndexFiles
                 {
                     Title = $"Latest security patch - {latestSecurityPatch.Version}",
                 };
+
+                // Add latest-security-month and latest-cve-json links
+                if (latestSecurityPatch.Lifecycle?.GaDate != null)
+                {
+                    var securityPatchDate = latestSecurityPatch.Lifecycle.GaDate;
+                    var securityYear = securityPatchDate.Year.ToString("D4");
+                    var securityMonth = securityPatchDate.Month.ToString("D2");
+
+                    orderedMajorVersionLinks[LinkRelations.LatestSecurityMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{securityYear}/{securityMonth}/{FileNames.Index}")
+                    {
+                        Title = $"Latest security month - {IndexTitles.FormatMonthYear(securityYear, securityMonth)}",
+                    };
+
+                    // Add latest-cve-json link for direct access to CVE data (only if cve.json exists)
+                    var cveJsonPath = Path.Combine(inputDir, FileNames.Directories.Timeline, securityYear, securityMonth, FileNames.Cve);
+                    if (File.Exists(cveJsonPath))
+                    {
+                        orderedMajorVersionLinks[LinkRelations.LatestCveJson] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{securityYear}/{securityMonth}/{FileNames.Cve}")
+                        {
+                            Title = $"Latest CVE records - {IndexTitles.FormatMonthYear(securityYear, securityMonth)}",
+                            Type = MediaType.Json
+                        };
+                    }
+                }
             }
 
             majorVersionLinks = orderedMajorVersionLinks;

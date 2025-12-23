@@ -117,11 +117,6 @@ public record HistoryMonthIndex(
      Description("CVE identifiers disclosed this month (for quick enumeration)")]
     public IList<string>? CveRecords { get; init; }
 
-    [JsonPropertyName("major_releases"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Major versions with releases in this month (e.g., ['10.0', '9.0', '8.0'])")]
-    public IList<string>? MajorReleases { get; init; }
-
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
@@ -134,8 +129,8 @@ public record HistoryMonthIndex(
 [Description("Container for embedded month-level release entries")]
 public record HistoryMonthIndexEmbedded
 {
-    [Description("Patch releases this month - use 'release' property to filter by major version")]
-    public List<PatchReleaseVersionIndexEntry>? Patches { get; set; }
+    [Description("Patch releases this month, keyed by major version (e.g., '9.0', '10.0')")]
+    public Dictionary<string, PatchReleaseVersionIndexEntry>? Patches { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("CVE security vulnerability disclosures for this month")]

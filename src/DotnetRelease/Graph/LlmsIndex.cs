@@ -66,8 +66,8 @@ public record LlmsIndex(
 public record LlmsIndexEmbedded
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Current patch for each supported release (one per entry in supported_major_releases)")]
-    public IReadOnlyList<LlmsPatchEntry>? Patches { get; init; }
+     Description("Current patch for each supported release, keyed by major version (e.g., '9.0', '10.0')")]
+    public Dictionary<string, LlmsPatchEntry>? Patches { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Last 3 security months (most recent first), crossing year boundaries if needed")]
@@ -82,8 +82,6 @@ public record LlmsIndexEmbedded
 public record LlmsPatchEntry(
     [property: Description("Full patch version (e.g., '9.0.10', '10.0.1')")]
     string Version,
-    [property: JsonPropertyName("major_release"), Description("Major version this patch belongs to (e.g., '9.0', '10.0')")]
-    string MajorRelease,
     [property: Description("Release type: lts or sts (denormalized from major)")]
     ReleaseType ReleaseType,
     [property: Description("Whether this release includes security fixes")]

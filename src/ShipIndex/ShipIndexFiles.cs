@@ -303,78 +303,76 @@ public class ShipIndexFiles
                     .OrderByDescending(v => v, numericStringComparer)
                     .ToList();
 
-                // Create embedded releases - patch-centric (symmetric with major version index structure)
-                // Flatten all patches from all major versions released this month
+                // Create embedded releases dictionary keyed by major version
+                // For each major version, take the latest patch (by version)
                 // Note: Timeline represents historical releases, so we include ALL patches (including previews)
                 // even if the major version has since reached GA. This preserves release history.
-                var embeddedReleases = sortedMonthReleases
-                    .SelectMany(majorVersion =>
+                var embeddedReleases = new Dictionary<string, PatchReleaseVersionIndexEntry>();
+                foreach (var majorVersion in sortedMonthReleases)
+                {
+                    if (!releasesByMajor.TryGetValue(majorVersion, out var patches))
+                        continue;
+
+                    var summary = summaries.FirstOrDefault(s => s.MajorVersion == majorVersion);
+
+                    // Get the latest patch for this major version (by version string)
+                    var latestPatchVersion = patches.Keys
+                        .OrderByDescending(v => v, numericStringComparer)
+                        .First();
+                    var patchInfo = patches[latestPatchVersion];
+                    var phase = ReleaseStability.DeterminePhaseFromVersion(latestPatchVersion);
+
+                    // Filter CVE IDs for this major version
+                    IReadOnlyList<string>? patchCveIds = null;
+                    if (cveSummariesForMonth != null)
                     {
-                        if (!releasesByMajor.TryGetValue(majorVersion, out var patches))
-                            return Enumerable.Empty<PatchReleaseVersionIndexEntry>();
+                        var filteredCves = cveSummariesForMonth
+                            .Where(cve => cve.AffectedReleases?.Contains(majorVersion) == true)
+                            .Select(cve => cve.Id)
+                            .ToList();
+                        patchCveIds = filteredCves.Count > 0 ? filteredCves : null;
+                    }
 
-                        var summary = summaries.FirstOrDefault(s => s.MajorVersion == majorVersion);
+                    // Get SDK versions for this specific patch
+                    var sdkVersions = patchInfo.SdkVersions.Count > 0
+                        ? patchInfo.SdkVersions.OrderByDescending(v => v, numericStringComparer).ToList()
+                        : null;
 
-                        return patches.Keys.Select(patchVersion =>
-                        {
-                            var patchInfo = patches[patchVersion];
-                            var phase = ReleaseStability.DeterminePhaseFromVersion(patchVersion);
+                    // Find the patch summary to get PatchDirPath for the self link
+                    var patchSummaryForLinks = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == latestPatchVersion);
 
-                            // Filter CVE IDs for this major version
-                            IReadOnlyList<string>? patchCveIds = null;
-                            if (cveSummariesForMonth != null)
-                            {
-                                var filteredCves = cveSummariesForMonth
-                                    .Where(cve => cve.AffectedReleases?.Contains(majorVersion) == true)
-                                    .Select(cve => cve.Id)
-                                    .ToList();
-                                patchCveIds = filteredCves.Count > 0 ? filteredCves : null;
-                            }
+                    // Build links - self points to patch detail index
+                    // Use PatchDirPath if available (handles preview/rc paths correctly)
+                    var patchIndexPath = patchSummaryForLinks?.PatchDirPath != null
+                        ? $"{patchSummaryForLinks.PatchDirPath}/{FileNames.Index}"
+                        : $"{majorVersion}/{latestPatchVersion}/{FileNames.Index}";
 
-                            // Get SDK versions for this specific patch
-                            var sdkVersions = patchInfo.SdkVersions.Count > 0
-                                ? patchInfo.SdkVersions.OrderByDescending(v => v, numericStringComparer).ToList()
-                                : null;
+                    var patchLinks = new Dictionary<string, HalLink>
+                    {
+                        [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
+                    };
 
-                            // Find the patch summary to get PatchDirPath for the self link
-                            var patchSummaryForLinks = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == patchVersion);
+                    // Get release date from the summary's patch releases if available
+                    // Fall back to month release date if specific patch date not found
+                    var patchSummary = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == latestPatchVersion);
+                    var releaseDate = patchSummary != null
+                        ? new DateTimeOffset(patchSummary.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero)
+                        : monthReleaseDate ?? new DateTimeOffset(int.Parse(year.Year), int.Parse(month.Month), 1, 0, 0, 0, TimeSpan.Zero);
 
-                            // Build links - self points to patch detail index
-                            // Use PatchDirPath if available (handles preview/rc paths correctly)
-                            var patchIndexPath = patchSummaryForLinks?.PatchDirPath != null
-                                ? $"{patchSummaryForLinks.PatchDirPath}/{FileNames.Index}"
-                                : $"{majorVersion}/{patchVersion}/{FileNames.Index}";
-
-                            var patchLinks = new Dictionary<string, HalLink>
-                            {
-                                [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
-                            };
-
-                            // Get release date from the summary's patch releases if available
-                            // Fall back to month release date if specific patch date not found
-                            var patchSummary = summary?.PatchReleases.FirstOrDefault(p => p.PatchVersion == patchVersion);
-                            var releaseDate = patchSummary != null
-                                ? new DateTimeOffset(patchSummary.ReleaseDate, TimeOnly.MinValue, TimeSpan.Zero)
-                                : monthReleaseDate ?? new DateTimeOffset(int.Parse(year.Year), int.Parse(month.Month), 1, 0, 0, 0, TimeSpan.Zero);
-
-                            // Note: CVE IDs (cve_records) are intentionally omitted from patch entries.
-                            // CVEs are a timeline concept - use disclosures[] at month level or cve-json link.
-                            return new PatchReleaseVersionIndexEntry(
-                                patchVersion,
-                                releaseDate,
-                                year.Year,
-                                month.Month,
-                                patchCveIds?.Count > 0,
-                                phase,
-                                HalHelpers.OrderLinks(patchLinks))
-                            {
-                                MajorRelease = majorVersion,
-                                SdkVersion = sdkVersions?.FirstOrDefault()
-                            };
-                        });
-                    })
-                    .OrderByDescending(p => p.Version, numericStringComparer)
-                    .ToList();
+                    // Note: CVE IDs (cve_records) are intentionally omitted from patch entries.
+                    // CVEs are a timeline concept - use disclosures[] at month level or cve-json link.
+                    embeddedReleases[majorVersion] = new PatchReleaseVersionIndexEntry(
+                        latestPatchVersion,
+                        releaseDate,
+                        year.Year,
+                        month.Month,
+                        patchCveIds?.Count > 0,
+                        phase,
+                        HalHelpers.OrderLinks(patchLinks))
+                    {
+                        SdkVersion = sdkVersions?.FirstOrDefault()
+                    };
+                }
 
                 // Extract CVE IDs from disclosures for root-level quick enumeration
                 var monthCveIds = cveSummariesForMonth?.Select(d => d.Id).ToList();
@@ -390,11 +388,10 @@ public class ShipIndexFiles
                     PrevMonthDate = previousMonthDate,
                     PrevSecurityMonthDate = previousSecurityMonthDate,
                     CveRecords = monthCveIds?.Count > 0 ? monthCveIds : null,
-                    MajorReleases = sortedMonthReleases,
                     Links = HalHelpers.OrderLinks(monthIndexLinks),
                     Embedded = new HistoryMonthIndexEmbedded
                     {
-                        Patches = embeddedReleases,
+                        Patches = embeddedReleases.Count > 0 ? embeddedReleases : null,
                         Disclosures = cveSummariesForMonth
                     }
                 };
@@ -564,6 +561,17 @@ public class ShipIndexFiles
                 {
                     Title = $"Latest security month - {IndexTitles.FormatMonthYear(year.Year, latestSecurityMonthThisYear)}",
                 };
+
+                // Add latest-cve-json link for direct access to CVE data (only if cve.json exists)
+                var cveJsonPath = Path.Combine(inputPath, FileNames.Directories.Timeline, year.Year, latestSecurityMonthThisYear, FileNames.Cve);
+                if (File.Exists(cveJsonPath))
+                {
+                    yearHalLinks[LinkRelations.LatestCveJson] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{year.Year}/{latestSecurityMonthThisYear}/{FileNames.Cve}")
+                    {
+                        Title = $"Latest CVE records - {IndexTitles.FormatMonthYear(year.Year, latestSecurityMonthThisYear)}",
+                        Type = MediaType.Json
+                    };
+                }
             }
             else if (previousSecurityMonth != null)
             {
@@ -574,6 +582,17 @@ public class ShipIndexFiles
                 {
                     Title = $"Latest security month - {IndexTitles.FormatMonthYear(previousSecurityMonth.Value.Year, previousSecurityMonth.Value.Month)}",
                 };
+
+                // Add latest-cve-json link for direct access to CVE data (from previous year, only if cve.json exists)
+                var prevCveJsonPath = Path.Combine(inputPath, FileNames.Directories.Timeline, previousSecurityMonth.Value.Year, previousSecurityMonth.Value.Month, FileNames.Cve);
+                if (File.Exists(prevCveJsonPath))
+                {
+                    yearHalLinks[LinkRelations.LatestCveJson] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{previousSecurityMonth.Value.Year}/{previousSecurityMonth.Value.Month}/{FileNames.Cve}")
+                    {
+                        Title = $"Latest CVE records - {IndexTitles.FormatMonthYear(previousSecurityMonth.Value.Year, previousSecurityMonth.Value.Month)}",
+                        Type = MediaType.Json
+                    };
+                }
             }
 
             // Calculate latest release and sorted releases for the year
