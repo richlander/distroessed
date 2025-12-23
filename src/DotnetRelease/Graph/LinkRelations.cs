@@ -116,6 +116,12 @@ public static class LinkRelations
     public const string LatestSecurityMonth = "latest-security-month";
 
     /// <summary>
+    /// Link relation for latest CVE JSON file.
+    /// Points to the cve.json in the most recent month with security releases.
+    /// </summary>
+    public const string LatestCveJson = "latest-cve-json";
+
+    /// <summary>
     /// Link relation for latest patch of a major version.
     /// Used in embedded release entries to point directly to the latest patch index.
     /// </summary>

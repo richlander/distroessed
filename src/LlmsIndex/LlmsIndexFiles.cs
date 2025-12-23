@@ -268,6 +268,13 @@ public static class LlmsIndexFiles
             {
                 Title = $"Latest security month - {IndexTitles.FormatMonthYear(latestSecurityMonthYear, latestSecurityMonthNumber)}"
             };
+
+            // Add latest-cve-json link (direct access to CVE data)
+            links[LinkRelations.LatestCveJson] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestSecurityMonthYear}/{latestSecurityMonthNumber}/{FileNames.Cve}")
+            {
+                Title = $"Latest CVE records - {IndexTitles.FormatMonthYear(latestSecurityMonthYear, latestSecurityMonthNumber)}",
+                Type = MediaType.Json
+            };
         }
 
         // Add releases-index and timeline-index links
