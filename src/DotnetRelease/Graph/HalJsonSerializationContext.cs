@@ -99,8 +99,12 @@ public partial class TargetFrameworksSerializerContext : JsonSerializerContext
 [JsonSerializable(typeof(LlmsIndex))]
 [JsonSerializable(typeof(LlmsIndexEmbedded))]
 [JsonSerializable(typeof(LlmsPatchEntry))]
+[JsonSerializable(typeof(LlmsWorkflow))]
 [JsonSerializable(typeof(HistoryMonthSummary))]
 [JsonSerializable(typeof(PartialLlmsIndex))]
+[JsonSerializable(typeof(SourceWorkflowsFile))]
+[JsonSerializable(typeof(SourceWorkflowsEmbedded))]
+[JsonSerializable(typeof(SourceWorkflow))]
 public partial class LlmsIndexSerializerContext : JsonSerializerContext
 {
 }

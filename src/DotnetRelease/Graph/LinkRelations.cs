@@ -172,4 +172,12 @@ public static class LinkRelations
     /// Navigation pattern: start from "latest-security-month" and walk via "prev-security-month" links.
     /// </summary>
     public const string PrevSecurityMonth = "prev-security-month";
+
+    // Skill and workflow resources
+
+    /// <summary>
+    /// Link relation for workflows catalog.
+    /// Points to the full workflows.json file with all navigation workflows.
+    /// </summary>
+    public const string Workflows = "workflows";
 }

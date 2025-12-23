@@ -47,6 +47,11 @@ public record LlmsIndex(
      Description("Supported major version identifiers (e.g., ['10.0', '9.0', '8.0'])")]
     public IReadOnlyList<string>? SupportedMajorReleases { get; init; }
 
+    [JsonPropertyName("_workflows"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Inline navigation workflows for common queries")]
+    public Dictionary<string, LlmsWorkflow>? Workflows { get; init; }
+
     [JsonPropertyName("_links"),
      Description("HAL+JSON links for hypermedia navigation")]
     public Dictionary<string, HalLink> Links { get; init; } = [];
@@ -119,5 +124,110 @@ public record PartialLlmsIndex
     [JsonPropertyName("_links"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Additional links to merge")]
+    public Dictionary<string, HalLink>? Links { get; init; }
+}
+
+/// <summary>
+/// Inline workflow for LLMs index - navigation path for common queries.
+/// Simplified from external workflows (no keywords/intent).
+/// </summary>
+[Description("Navigation workflow for common queries")]
+public record LlmsWorkflow
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("What this workflow does")]
+    public string? Description { get; init; }
+
+    [JsonPropertyName("follow_path"),
+     Description("Route to destination as link relations (kind: prefix omitted for inline)")]
+    public IReadOnlyList<string> FollowPath { get; init; } = [];
+
+    [JsonPropertyName("destination_kind"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Document kind at destination (confirms arrival)")]
+    public string? DestinationKind { get; init; }
+
+    [JsonPropertyName("select_embedded"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Properties to extract from _embedded")]
+    public IReadOnlyList<string>? SelectEmbedded { get; init; }
+
+    [JsonPropertyName("select_property"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Top-level properties to extract")]
+    public IReadOnlyList<string>? SelectProperty { get; init; }
+
+    [JsonPropertyName("select_link"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Link hrefs to return without following")]
+    public IReadOnlyList<string>? SelectLink { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Output format: markdown, json, html, index")]
+    public string? Yields { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Path contains {placeholder} variables")]
+    public bool? Templated { get; init; }
+
+    [JsonPropertyName("query_hints"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Sample queries this workflow answers")]
+    public IReadOnlyList<string>? QueryHints { get; init; }
+
+    [JsonPropertyName("_links"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Reference to full workflow catalog")]
+    public Dictionary<string, HalLink>? Links { get; init; }
+}
+
+/// <summary>
+/// Source workflows file structure for deserialization.
+/// </summary>
+public record SourceWorkflowsFile
+{
+    [JsonPropertyName("_embedded")]
+    public SourceWorkflowsEmbedded? Embedded { get; init; }
+}
+
+public record SourceWorkflowsEmbedded
+{
+    public Dictionary<string, SourceWorkflow>? Workflows { get; init; }
+}
+
+/// <summary>
+/// Source workflow with all properties (including keywords/intent we'll drop).
+/// </summary>
+public record SourceWorkflow
+{
+    public string? Description { get; init; }
+
+    [JsonPropertyName("follow_path")]
+    public IReadOnlyList<string>? FollowPath { get; init; }
+
+    [JsonPropertyName("destination_kind")]
+    public string? DestinationKind { get; init; }
+
+    [JsonPropertyName("select_embedded")]
+    public IReadOnlyList<string>? SelectEmbedded { get; init; }
+
+    [JsonPropertyName("select_property")]
+    public IReadOnlyList<string>? SelectProperty { get; init; }
+
+    [JsonPropertyName("select_link")]
+    public IReadOnlyList<string>? SelectLink { get; init; }
+
+    public string? Yields { get; init; }
+
+    public bool? Templated { get; init; }
+
+    [JsonPropertyName("query_hints")]
+    public IReadOnlyList<string>? QueryHints { get; init; }
+
+    // These are dropped when inlining
+    public IReadOnlyList<string>? Keywords { get; init; }
+    public string? Intent { get; init; }
+
+    [JsonPropertyName("_links")]
     public Dictionary<string, HalLink>? Links { get; init; }
 }
