@@ -317,7 +317,7 @@ public class ReleaseIndexFiles
                         var monthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
                         links[LinkRelations.Month] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}");
 
-                        // Add cve-json link for security patches
+                        // Add cve-json and security-disclosures links for security patches
                         if (e.CveRecords?.Count > 0)
                         {
                             var cveJsonPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Cve}";
@@ -325,6 +325,9 @@ public class ReleaseIndexFiles
                             {
                                 Type = MediaType.Json
                             };
+
+                            // Add security-disclosures as semantic alias to month index (competes better with CVE/security queries)
+                            links[LinkRelations.SecurityDisclosures] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}");
                         }
 
                         // Note: CVE IDs (cve_records) are intentionally omitted from patch entries.
@@ -1010,6 +1013,12 @@ public class ReleaseIndexFiles
             {
                 Title = cveTitle,
                 Type = MediaType.Json
+            };
+
+            // Add security-disclosures as semantic alias to month index (competes better with CVE/security queries)
+            links[LinkRelations.SecurityDisclosures] = new HalLink($"{Location.GitHubBaseUri}{timelineMonthIndexPath}")
+            {
+                Title = $"Security disclosures - {IndexTitles.FormatMonthYear(cveYear, cveMonth)}",
             };
 
             // Add CVE markdown links to manifest (raw and rendered)

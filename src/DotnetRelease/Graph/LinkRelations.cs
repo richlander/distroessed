@@ -116,6 +116,20 @@ public static class LinkRelations
     public const string LatestSecurityMonth = "latest-security-month";
 
     /// <summary>
+    /// Link relation for security disclosures (semantic alias for month index).
+    /// Points to the month index containing CVE/security information.
+    /// Designed to compete semantically with security/CVE-related queries.
+    /// </summary>
+    public const string SecurityDisclosures = "security-disclosures";
+
+    /// <summary>
+    /// Link relation for latest security disclosures (semantic alias for latest-security-month).
+    /// Points to the latest security month index for a release.
+    /// Used in embedded patches where the link targets the latest security month, not a specific patch's month.
+    /// </summary>
+    public const string LatestSecurityDisclosures = "latest-security-disclosures";
+
+    /// <summary>
     /// Link relation for latest CVE JSON file.
     /// Points to the cve.json in the most recent month with security releases.
     /// </summary>

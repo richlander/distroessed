@@ -143,7 +143,11 @@ public static class LlmsIndexFiles
                 // Add latest-security-month link to timeline month for this release's security patch
                 var securityYear = latestSecurityPatch.ReleaseDate.Year.ToString("D4");
                 var securityMonth = latestSecurityPatch.ReleaseDate.Month.ToString("D2");
-                patchLinks[LinkRelations.LatestSecurityMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{securityYear}/{securityMonth}/{FileNames.Index}");
+                var securityMonthUrl = $"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{securityYear}/{securityMonth}/{FileNames.Index}";
+                patchLinks[LinkRelations.LatestSecurityMonth] = new HalLink(securityMonthUrl);
+
+                // Add latest-security-disclosures as semantic alias (competes better with CVE/security queries)
+                patchLinks[LinkRelations.LatestSecurityDisclosures] = new HalLink(securityMonthUrl);
             }
 
             // Add release-major link to navigate to the major version index
@@ -313,6 +317,12 @@ public static class LlmsIndexFiles
             {
                 Title = $"Latest CVE records - {IndexTitles.FormatMonthYear(latestSecurityMonthYear, latestSecurityMonthNumber)}",
                 Type = MediaType.Json
+            };
+
+            // Add latest-security-disclosures as semantic alias (competes better with CVE/security queries)
+            links[LinkRelations.LatestSecurityDisclosures] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{latestSecurityMonthYear}/{latestSecurityMonthNumber}/{FileNames.Index}")
+            {
+                Title = $"Latest security disclosures - {IndexTitles.FormatMonthYear(latestSecurityMonthYear, latestSecurityMonthNumber)}"
             };
         }
 
