@@ -42,6 +42,10 @@ public record LlmsIndex(
      Description("Release date of the latest security patch across all supported releases")]
     public DateTimeOffset? LatestSecurityPatchDate { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Date when this index was last generated")]
+    public DateTimeOffset? LastUpdatedDate { get; init; }
+
     [JsonPropertyName("supported_major_releases"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Supported major version identifiers (e.g., ['10.0', '9.0', '8.0'])")]

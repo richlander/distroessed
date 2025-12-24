@@ -9,17 +9,23 @@ using LlmsIndex;
 
 if (args.Length == 0)
 {
-    Console.Error.WriteLine("Usage: LlmsIndex <input-directory> [output-directory] [--url-root <url>]");
+    Console.Error.WriteLine("Usage: LlmsIndex <input-directory> [output-directory] [options]");
     Console.Error.WriteLine("  input-directory:  Directory containing release-notes data to read");
     Console.Error.WriteLine("  output-directory: Directory to write llms.json (optional, defaults to input-directory)");
-    Console.Error.WriteLine("  --url-root <url>: Base URL root (before /release-notes/) for generated links (optional, defaults to GitHub main)");
-    Console.Error.WriteLine("                    Example: https://raw.githubusercontent.com/dotnet/core/commit-sha");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine("Options:");
+    Console.Error.WriteLine("  --url-root <url>:    Base URL root (before /release-notes/) for generated links");
+    Console.Error.WriteLine("                       Example: https://raw.githubusercontent.com/dotnet/core/commit-sha");
+    Console.Error.WriteLine("  --output <filename>: Output filename (optional, defaults to llms.json)");
+    Console.Error.WriteLine("  --workflows:         Include embedded workflows in output");
     return 1;
 }
 
 string? inputDir = null;
 string? outputDir = null;
 string? urlRoot = null;
+string? outputFilename = null;
+bool includeWorkflows = false;
 
 // Parse arguments
 for (int i = 0; i < args.Length; i++)
@@ -27,6 +33,14 @@ for (int i = 0; i < args.Length; i++)
     if (args[i] == "--url-root" && i + 1 < args.Length)
     {
         urlRoot = args[++i];
+    }
+    else if (args[i] == "--output" && i + 1 < args.Length)
+    {
+        outputFilename = args[++i];
+    }
+    else if (args[i] == "--workflows")
+    {
+        includeWorkflows = true;
     }
     else if (inputDir == null)
     {
@@ -81,6 +95,6 @@ ReleaseHistory history = ReleaseSummaryLoader.GetReleaseCalendar(summaries);
 ReleaseSummaryLoader.PopulateCveInformation(history, inputDir);
 
 // Generate llms.json
-await LlmsIndexFiles.GenerateAsync(inputDir, outputDir, summaries, history);
+await LlmsIndexFiles.GenerateAsync(inputDir, outputDir, summaries, history, includeWorkflows, outputFilename);
 
 return 0;

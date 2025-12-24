@@ -18,6 +18,8 @@ public static class LlmsIndexFiles
         string outputDir,
         List<MajorReleaseSummary> summaries,
         ReleaseHistory releaseHistory,
+        bool includeWorkflows = false,
+        string? outputFilename = null,
         int maxWorkflows = DefaultMaxWorkflows)
     {
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
@@ -41,7 +43,7 @@ public static class LlmsIndexFiles
         // Load workflows from skills/_workflows.json
         Dictionary<string, LlmsWorkflow>? inlineWorkflows = null;
         var workflowsPath = Path.Combine(inputDir, "skills", FileNames.PartialWorkflows);
-        if (File.Exists(workflowsPath) && maxWorkflows > 0)
+        if (includeWorkflows && File.Exists(workflowsPath) && maxWorkflows > 0)
         {
             try
             {
@@ -119,6 +121,11 @@ public static class LlmsIndexFiles
             {
                 [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchIndexPath}")
             };
+
+            // Add latest-month link to timeline month for this patch's release date
+            var patchYear = latestPatch.ReleaseDate.Year.ToString("D4");
+            var patchMonth = latestPatch.ReleaseDate.Month.ToString("D2");
+            patchLinks[LinkRelations.LatestMonth] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{patchYear}/{patchMonth}/{FileNames.Index}");
 
             // Find latest security patch for this release (for quick hop when security=false)
             var latestSecurityPatch = summary.PatchReleases
@@ -350,6 +357,7 @@ public static class LlmsIndexFiles
             LatestLtsMajor = latestLtsVersion,
             LatestPatchDate = latestPatchDate,
             LatestSecurityPatchDate = latestSecurityPatchDate,
+            LastUpdatedDate = DateTimeOffset.UtcNow,
             SupportedMajorReleases = supportedReleases,
             Workflows = inlineWorkflows,
             Links = HalHelpers.OrderLinks(links),
@@ -365,7 +373,7 @@ public static class LlmsIndexFiles
             LlmsIndexSerializerContext.Default.LlmsIndex);
 
         // Write to file
-        var llmsIndexPath = Path.Combine(outputDir, FileNames.Llms);
+        var llmsIndexPath = outputFilename ?? Path.Combine(outputDir, FileNames.Llms);
         var finalJson = llmsIndexJson + '\n';
         await File.WriteAllTextAsync(llmsIndexPath, finalJson);
 

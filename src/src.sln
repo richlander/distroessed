@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LlmsIndex", "LlmsIndex\Llms
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceLinkExtractor", "SourceLinkExtractor\SourceLinkExtractor.csproj", "{769169D1-64E9-4A4F-8A37-628B903265E7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkflowCli", "WorkflowCli\WorkflowCli.csproj", "{0B8D6836-9551-4D3C-B63C-C138A131E5BA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -307,6 +309,18 @@ Global
 		{769169D1-64E9-4A4F-8A37-628B903265E7}.Release|x64.Build.0 = Release|Any CPU
 		{769169D1-64E9-4A4F-8A37-628B903265E7}.Release|x86.ActiveCfg = Release|Any CPU
 		{769169D1-64E9-4A4F-8A37-628B903265E7}.Release|x86.Build.0 = Release|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Debug|x64.Build.0 = Debug|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Debug|x86.Build.0 = Debug|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Release|x64.ActiveCfg = Release|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Release|x64.Build.0 = Release|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Release|x86.ActiveCfg = Release|Any CPU
+		{0B8D6836-9551-4D3C-B63C-C138A131E5BA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
