@@ -109,9 +109,4 @@ echo -e "${GREEN}Running LlmsIndex...${NC}"
 "$TOOLS_DIR/LlmsIndex" $ARGS
 echo ""
 
-# Run LlmsIndex (generates llms.json)
-echo -e "${GREEN}Running LlmsIndex...${NC}"
-"$TOOLS_DIR/LlmsIndex" $ARGS --workflows --output "$TARGET_DIR/llms2.json"
-echo ""
-
 echo -e "${GREEN}=== Complete ===${NC}"

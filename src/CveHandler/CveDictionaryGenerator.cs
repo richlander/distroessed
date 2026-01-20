@@ -216,16 +216,10 @@ public static class CveDictionaryGenerator
             return;
         }
 
-        var normalized = severity.Trim();
-        var severityIndex = SeverityLevels.FindIndex(level => string.Equals(level, normalized, StringComparison.OrdinalIgnoreCase));
-        if (severityIndex == -1)
+        var normalized = severity.Trim().ToUpperInvariant();
+        if (severityCves.TryGetValue(normalized, out var cveSet))
         {
-            return;
-        }
-
-        for (int i = severityIndex; i < SeverityLevels.Count; i++)
-        {
-            severityCves[SeverityLevels[i]].Add(cveId);
+            cveSet.Add(cveId);
         }
     }
 

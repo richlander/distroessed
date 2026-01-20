@@ -171,7 +171,7 @@ static async Task<bool> ValidateCveFile(string filePath, bool skipUrls, bool qui
         ValidateVersionCoherence(cves, errors);
         ValidateReleaseFields(cves, errors);
         ValidateReleaseVersionFormats(cves, errors);
-        ValidateCommitBranchMatch(cves, errors);
+        ValidateCommitKeyFormat(cves, errors);
         ValidateForeignKeys(cves, errors, warnings);
         ValidateDictionaries(cves, errors);
         await ValidateNuGetPackages(cves, errors);
@@ -377,19 +377,18 @@ static async Task<bool> UpdateCveFile(string filePath, bool skipUrls)
         }
 
         var generated = CveDictionaryGenerator.GenerateAll(cveRecords);
-        
+
         // Update cve_commits dictionary
         var cveCommits = CveDictionaryGenerator.GenerateCommits(cveRecords);
-        
-        // Fetch and update CVSS scores from CVE.org
-        var updatedCves = await UpdateCvssScores(cveRecords.Disclosures);
-        
-        // Fetch CNA data from MSRC (unless --skip-urls is specified)
+
+        // Fetch CVSS scores and CNA data from external sources (unless --skip-urls is specified)
+        IList<Cve> updatedCves = cveRecords.Disclosures;
         if (!skipUrls)
         {
+            updatedCves = await UpdateCvssScores(cveRecords.Disclosures);
             updatedCves = await UpdateCnaDataFromMsrc(filePath, updatedCves);
         }
-        
+
         // Create new record with updated dictionaries
         var updated = cveRecords with
         {
@@ -407,7 +406,8 @@ static async Task<bool> UpdateCveFile(string filePath, bool skipUrls)
         string json = JsonSerializer.Serialize(updated, CveSerializerContext.Default.CveRecords);
         await File.WriteAllTextAsync(filePath, json);
 
-        Console.WriteLine($"  ✓ Updated dictionaries, cve_commits, and CVSS scores");
+        var updateMsg = skipUrls ? "dictionaries and cve_commits" : "dictionaries, cve_commits, and CVSS scores";
+        Console.WriteLine($"  ✓ Updated {updateMsg}");
         return true;
     }
     catch (Exception ex)
@@ -636,90 +636,40 @@ static bool IsTwoPartVersion(string version)
     return int.TryParse(parts[0], out _) && int.TryParse(parts[1], out _);
 }
 
-static void ValidateCommitBranchMatch(CveRecords cves, List<string> errors)
+static void ValidateCommitKeyFormat(CveRecords cves, List<string> errors)
 {
+    // Commit keys must be in format: repo@short_hash (e.g., "runtime@9865d1c")
+    // where short_hash is 7 characters and matches the start of the full hash
     if (cves.Commits is null)
         return;
 
-    // Group products/packages by CVE to provide better error messages
-    var cveProductsMap = new Dictionary<string, List<(string name, string release, IList<string> commits)>>();
-    
-    if (cves.Products is not null)
-    {
-        foreach (var product in cves.Products)
-        {
-            if (!string.IsNullOrEmpty(product.Release) && product.Commits is not null && product.Commits.Count > 0)
-            {
-                if (!cveProductsMap.ContainsKey(product.CveId))
-                {
-                    cveProductsMap[product.CveId] = new List<(string, string, IList<string>)>();
-                }
-                cveProductsMap[product.CveId].Add((product.Name, product.Release, product.Commits));
-            }
-        }
-    }
+    var commitKeyPattern = new Regex(@"^([a-zA-Z0-9-]+)@([a-f0-9]{7})$", RegexOptions.IgnoreCase);
 
-    if (cves.Packages is not null)
+    foreach (var kvp in cves.Commits)
     {
-        foreach (var package in cves.Packages)
-        {
-            if (!string.IsNullOrEmpty(package.Release) && package.Commits is not null && package.Commits.Count > 0)
-            {
-                if (!cveProductsMap.ContainsKey(package.CveId))
-                {
-                    cveProductsMap[package.CveId] = new List<(string, string, IList<string>)>();
-                }
-                cveProductsMap[package.CveId].Add((package.Name, package.Release, package.Commits));
-            }
-        }
-    }
+        var key = kvp.Key;
+        var commit = kvp.Value;
 
-    // Check each CVE
-    foreach (var kvp in cveProductsMap)
-    {
-        var cveId = kvp.Key;
-        var items = kvp.Value;
-        
-        var mismatches = new List<string>();
-        var correctMatches = new List<string>();
-
-        foreach (var (name, release, commits) in items)
+        var match = commitKeyPattern.Match(key);
+        if (!match.Success)
         {
-            foreach (var commitHash in commits)
-            {
-                if (cves.Commits.TryGetValue(commitHash, out var commitInfo))
-                {
-                    var expectedBranch = $"release/{release}";
-                    if (!commitInfo.Branch.Equals(expectedBranch, StringComparison.OrdinalIgnoreCase))
-                    {
-                        mismatches.Add($"    {name} (release {release}) uses commit {commitHash} from branch '{commitInfo.Branch}'");
-                    }
-                    else
-                    {
-                        correctMatches.Add($"    {name} (release {release}) correctly uses commit {commitHash} from branch '{commitInfo.Branch}'");
-                    }
-                }
-            }
+            errors.Add($"Commit key '{key}' has invalid format (expected: repo@short_hash, e.g., 'runtime@9865d1c')");
+            continue;
         }
 
-        // Only report error if there are mismatches
-        if (mismatches.Count > 0)
+        var keyRepo = match.Groups[1].Value;
+        var keyShortHash = match.Groups[2].Value;
+
+        // Validate repo matches
+        if (!string.Equals(keyRepo, commit.Repo, StringComparison.OrdinalIgnoreCase))
         {
-            errors.Add($"Commit branch mismatch for {cveId}:");
-            foreach (var mismatch in mismatches)
-            {
-                errors.Add(mismatch);
-            }
-            
-            // Show which releases have correct commits for context
-            if (correctMatches.Count > 0)
-            {
-                errors.Add($"    Note: Other releases have correct branch commits:");
-                foreach (var match in correctMatches)
-                {
-                    errors.Add(match);
-                }
-            }
+            errors.Add($"Commit key '{key}' repo mismatch: key has '{keyRepo}', commit has '{commit.Repo}'");
+        }
+
+        // Validate short hash matches start of full hash
+        if (!commit.Hash.StartsWith(keyShortHash, StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add($"Commit key '{key}' hash mismatch: key has '{keyShortHash}', full hash is '{commit.Hash}'");
         }
     }
 }

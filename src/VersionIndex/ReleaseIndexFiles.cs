@@ -208,6 +208,12 @@ public class ReleaseIndexFiles
                         Title = $"Latest security month - {IndexTitles.FormatMonthYear(securityYear, securityMonth)}",
                     };
 
+                    // Add latest-security-disclosures as semantic alias
+                    orderedMajorVersionLinks[LinkRelations.LatestSecurityDisclosures] = new HalLink($"{Location.GitHubBaseUri}{FileNames.Directories.Timeline}/{securityYear}/{securityMonth}/{FileNames.Index}")
+                    {
+                        Title = $"Latest security disclosures - {IndexTitles.FormatMonthYear(securityYear, securityMonth)}",
+                    };
+
                     // Add latest-cve-json link for direct access to CVE data (only if cve.json exists)
                     var cveJsonPath = Path.Combine(inputDir, FileNames.Directories.Timeline, securityYear, securityMonth, FileNames.Cve);
                     if (File.Exists(cveJsonPath))
@@ -338,10 +344,10 @@ public class ReleaseIndexFiles
                             year,
                             month,
                             e.CveRecords?.Count > 0,
-                            phase,
-                            HalHelpers.OrderLinks(links))
+                            phase)
                         {
-                            SdkVersion = e.SdkVersions?.FirstOrDefault()
+                            SdkVersion = e.SdkVersions?.FirstOrDefault(),
+                            Links = HalHelpers.OrderLinks(links)
                         };
                     }).ToList())
                 {
@@ -766,87 +772,78 @@ public class ReleaseIndexFiles
         // For security patches, start from "latest-security-patch" and walk backwards via "prev-security-patch" links.
 
         // release-month will be added below after we determine the release date (HAL+JSON)
-        // cve-json link will be added to index; release-json goes to manifest
 
-        // Build manifest links (markdown/documentation links go in manifest.json)
-        var manifestLinks = new Dictionary<string, HalLink>
-        {
-            [HalTerms.Self] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Manifest}")
-        };
+        // Determine runtime release notes file (always {version}.md format)
+        var runtimeMdFileName = $"{patchVersion}.md";
+        var runtimeMdPath = Path.Combine(patchDir, runtimeMdFileName);
+        var runtimeMdExists = File.Exists(runtimeMdPath);
 
-        // Add release notes markdown links to manifest
-        var versionMdPath = Path.Combine(patchDir, $"{patchVersion}.md");
-        var readmePath = Path.Combine(patchDir, "README.md");
-
-        if (File.Exists(versionMdPath))
-        {
-            var mdFileName = $"{patchVersion}.md";
-            manifestLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{mdFileName}")
-            {
-                Title = "Release notes",
-                Type = MediaType.Markdown
-            };
-            manifestLinks["release-notes-html"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{patchDirPath}/{mdFileName}")
-            {
-                Title = "Release notes (HTML)",
-                Type = MediaType.Html
-            };
-        }
-        else if (File.Exists(readmePath))
-        {
-            manifestLinks["release-notes-markdown"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/README.md")
-            {
-                Title = "Release notes",
-                Type = MediaType.Markdown
-            };
-            manifestLinks["release-notes-html"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{patchDirPath}/README.md")
-            {
-                Title = "Release notes (HTML)",
-                Type = MediaType.Html
-            };
-        }
-
-        // Add additional markdown files (component-specific release notes like aspnetcore.md, csharp.md, etc.)
-        var mainMdFile = File.Exists(versionMdPath) ? $"{patchVersion}.md" : "README.md";
+        // Collect additional markdown files (component-specific release notes like aspnetcore.md, csharp.md, etc.)
         var additionalMdFiles = Directory.GetFiles(patchDir, "*.md")
             .Select(Path.GetFileName)
-            .Where(f => f != null && !f.Equals(mainMdFile, StringComparison.OrdinalIgnoreCase) && !f.Equals("README.md", StringComparison.OrdinalIgnoreCase))
+            .Where(f => f != null &&
+                   !f.Equals(runtimeMdFileName, StringComparison.OrdinalIgnoreCase) &&
+                   !f.Equals("README.md", StringComparison.OrdinalIgnoreCase))
             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        foreach (var mdFile in additionalMdFiles)
+        // Build runtime entry with release notes (downloads available via downloads relation)
+        RuntimeEntry? runtimeEntry = null;
+        Dictionary<string, HalLink>? documentation = null;
+        if (IsVersionSdkSupported(majorVersion))
         {
-            var baseName = Path.GetFileNameWithoutExtension(mdFile)!;
+            var runtimeLinks = new Dictionary<string, HalLink>();
 
-            // Determine relation name based on whether filename looks like a version
-            // Version files (e.g., 9.0.111.md) -> release-notes-9.0.111-markdown
-            // Component files (e.g., aspnetcore.md) -> whats-new-aspnetcore
-            var relationName = IsVersionString(baseName)
-                ? $"release-notes-{baseName.ToLowerInvariant()}-markdown"
-                : $"whats-new-{baseName.ToLowerInvariant()}";
-
-            // Extract H1 title from the markdown file, fall back to formatted filename
-            var mdFilePath = Path.Combine(patchDir, mdFile!);
-            var title = await ExtractMarkdownH1Async(mdFilePath) ?? FormatMarkdownTitle(baseName);
-
-            manifestLinks[relationName] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{mdFile}")
+            // Add runtime release notes if the file exists
+            if (runtimeMdExists)
             {
-                Title = title,
-                Type = MediaType.Markdown
-            };
-        }
+                runtimeLinks["release-notes"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{runtimeMdFileName}")
+                {
+                    Type = MediaType.Markdown
+                };
+            }
 
-        // Add manifest link to index
-        links[LinkRelations.Manifest] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Manifest}")
-        {
-            Title = $"Manifest - .NET {majorVersion}",
-        };
+            // Build component-specific "what's new" links separately
+            foreach (var mdFile in additionalMdFiles)
+            {
+                var baseName = Path.GetFileNameWithoutExtension(mdFile)!;
+
+                // Skip version-specific files (e.g., 9.0.111.md) - those are SDK release notes
+                if (IsVersionString(baseName))
+                {
+                    continue;
+                }
+
+                // Component files (e.g., aspnetcore.md) -> aspnetcore key
+                documentation ??= new Dictionary<string, HalLink>();
+                documentation[baseName.ToLowerInvariant()] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{mdFile}")
+                {
+                    Type = MediaType.Markdown
+                };
+            }
+
+            if (runtimeLinks.Count > 0)
+            {
+                runtimeEntry = new RuntimeEntry(patchVersion, HalHelpers.OrderLinks(runtimeLinks));
+            }
+        }
 
         // Load SDK versions from release.json and build SDK feature band entries
         List<string>? sdkVersionsList = null;
         List<SdkFeatureBandEntry>? sdkFeatureBandEntries = null;
         string? highestSdkVersion = null;
         var releaseJsonPath = Path.Combine(patchDir, FileNames.Release);
+
+        // Add release-json link if the file exists
+        if (File.Exists(releaseJsonPath))
+        {
+            links[LinkRelations.ReleaseJson] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Release}")
+            {
+                Title = "Release information",
+                Type = MediaType.Json
+            };
+        }
+
         if (File.Exists(releaseJsonPath) && IsVersionSdkSupported(majorVersion))
         {
             try
@@ -903,29 +900,39 @@ public class ReleaseIndexFiles
 
                         // Build links for this feature band entry
                         // Note: No titles or types in _embedded links - context established by parent
+                        // Note: release-month and release-patch omitted - available from parent patch index
                         var bandLinks = new Dictionary<string, HalLink>
                         {
                             ["downloads"] = new HalLink($"{Location.GitHubBaseUri}{majorVersion}/{FileNames.Directories.Downloads}/sdk-{featureBand}.json")
                         };
 
-                        // Add release-month link if we have lifecycle date
-                        if (lifecycle?.GaDate != null)
+                        // Add SDK release notes with fallback logic:
+                        // 1. Look for SDK-specific file (e.g., 9.0.111.md)
+                        // 2. Fall back to runtime release notes (e.g., 9.0.1.md) if not found
+                        var sdkMdFileName = $"{sdkVersion}.md";
+                        var sdkMdPath = Path.Combine(patchDir, sdkMdFileName);
+                        if (File.Exists(sdkMdPath))
                         {
-                            var year = lifecycle.GaDate.Year.ToString("D4");
-                            var month = lifecycle.GaDate.Month.ToString("D2");
-                            var monthIndexPath = $"{FileNames.Directories.Timeline}/{year}/{month}/{FileNames.Index}";
-                            bandLinks["release-month"] = new HalLink($"{Location.GitHubBaseUri}{monthIndexPath}");
+                            bandLinks["release-notes"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{sdkMdFileName}")
+                            {
+                                Type = MediaType.Markdown
+                            };
                         }
-
-                        // Add release-patch link (to this patch release)
-                        bandLinks["release-patch"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Index}");
+                        else if (runtimeMdExists)
+                        {
+                            // Fall back to runtime release notes
+                            bandLinks["release-notes"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{runtimeMdFileName}")
+                            {
+                                Type = MediaType.Markdown
+                            };
+                        }
 
                         sdkFeatureBandEntries.Add(new SdkFeatureBandEntry(
                             sdkVersion,                  // version (latest SDK in band for this patch)
                             featureBand,                 // band (e.g., "9.0.3xx")
                             lifecycle?.GaDate,           // date
                             $".NET SDK {featureBand}",   // label
-                            lifecycle?.Phase,            // support_phase
+                            null,                        // support_phase omitted - implied by patch index
                             HalHelpers.OrderLinks(bandLinks)));
                     }
                 }
@@ -995,16 +1002,6 @@ public class ReleaseIndexFiles
             }
         }
 
-        // Add release-json to manifest if the file exists (older versions may not have it)
-        if (File.Exists(releaseJsonPath))
-        {
-            manifestLinks["release-json"] = new HalLink($"{Location.GitHubBaseUri}{patchDirPath}/{FileNames.Release}")
-            {
-                Title = "Release information",
-                Type = MediaType.Json
-            };
-        }
-
         // Add CVE JSON link if there are disclosures
         if (hasCveDisclosures && timelineCveJsonPath != null && cveYear != null && cveMonth != null)
         {
@@ -1020,20 +1017,6 @@ public class ReleaseIndexFiles
             {
                 Title = $"Security disclosures - {IndexTitles.FormatMonthYear(cveYear, cveMonth)}",
             };
-
-            // Add CVE markdown links to manifest (raw and rendered)
-            // timelineCveJsonPath is like "timeline/2025/01/cve.json", change to "timeline/2025/01/cve.md"
-            var timelineCveMdPath = timelineCveJsonPath.Replace("cve.json", "cve.md");
-            manifestLinks["cve-markdown"] = new HalLink($"{Location.GitHubBaseUri}{timelineCveMdPath}")
-            {
-                Title = cveTitle,
-                Type = MediaType.Markdown
-            };
-            manifestLinks["cve-html"] = new HalLink($"https://github.com/dotnet/core/blob/main/release-notes/{timelineCveMdPath}")
-            {
-                Title = $"CVE records (HTML) - {IndexTitles.FormatMonthYear(cveYear, cveMonth)}",
-                Type = MediaType.Html
-            };
         }
 
         // Build embedded content
@@ -1047,12 +1030,14 @@ public class ReleaseIndexFiles
         // Note: CVE disclosures are intentionally omitted from patch detail embedded content.
         // CVEs are a timeline concept - use month or cve-json link for details.
         PatchDetailIndexEmbedded? embedded = null;
-        if (sdkFeatureBandEntries != null)
+        if (runtimeEntry != null || sdkFeatureBandEntries != null || documentation != null)
         {
             embedded = new PatchDetailIndexEmbedded
             {
+                Runtime = runtimeEntry,
                 Sdk = sdkFeatureBandEntries?.FirstOrDefault(),  // highest SDK (list is sorted descending)
-                SdkFeatureBands = sdkFeatureBandEntries
+                SdkFeatureBands = sdkFeatureBandEntries,
+                Documentation = documentation
             };
         }
 
@@ -1092,49 +1077,6 @@ public class ReleaseIndexFiles
         var indexPath = Path.Combine(outputPatchDir, FileNames.Index);
         var finalJson = (updatedJson ?? patchDetailJson) + '\n';
         await File.WriteAllTextAsync(indexPath, finalJson);
-
-        // Read _manifest.json if it exists and merge links
-        var partialManifestPath = Path.Combine(patchDir, FileNames.PartialManifest);
-        if (File.Exists(partialManifestPath))
-        {
-            try
-            {
-                var partialJson = await File.ReadAllTextAsync(partialManifestPath);
-                var partial = JsonSerializer.Deserialize<PartialContentManifest>(partialJson, ReleaseManifestSerializerContext.Default.PartialContentManifest);
-                if (partial?.Links != null)
-                {
-                    foreach (var (key, link) in partial.Links)
-                    {
-                        if (key == HalTerms.Self)
-                            continue;
-                        manifestLinks[key] = link;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Warning: Failed to read {partialManifestPath}: {ex.Message}");
-            }
-        }
-
-        // Write manifest.json
-        var manifest = new ContentManifest(
-            "manifest",
-            $"Manifest - .NET {patchVersion}")
-        {
-            Links = HalHelpers.OrderLinks(manifestLinks)
-        };
-
-        var manifestJson = JsonSerializer.Serialize(
-            manifest,
-            ReleaseManifestSerializerContext.Default.ContentManifest);
-
-        // Add schema reference
-        var manifestSchemaUri = $"{Location.GitHubBaseUri}{FileNames.Directories.Schemas}/{FileNames.Schemas.ReleaseManifest}";
-        var updatedManifestJson = JsonSchemaInjector.JsonSchemaInjector.AddSchemaToContent(manifestJson, manifestSchemaUri);
-
-        var manifestPath = Path.Combine(outputPatchDir, FileNames.Manifest);
-        await File.WriteAllTextAsync(manifestPath, (updatedManifestJson ?? manifestJson) + '\n');
     }
 
     /// <summary>
@@ -1146,91 +1088,5 @@ public class ReleaseIndexFiles
         return !string.IsNullOrEmpty(name)
             && char.IsDigit(name[0])
             && name.Contains('.');
-    }
-
-    /// <summary>
-    /// Extracts the H1 title from a markdown file.
-    /// Returns null if no H1 is found.
-    /// </summary>
-    private static async Task<string?> ExtractMarkdownH1Async(string filePath)
-    {
-        try
-        {
-            using var reader = new StreamReader(filePath);
-            string? line;
-            while ((line = await reader.ReadLineAsync()) != null)
-            {
-                // Skip empty lines
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                // Check for ATX-style H1: # Title
-                if (line.StartsWith("# "))
-                {
-                    return line[2..].Trim();
-                }
-
-                // If the first non-empty line isn't an H1, stop looking
-                // (H1 should be at the top of the document)
-                break;
-            }
-        }
-        catch
-        {
-            // Ignore errors reading the file
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Formats a markdown filename base into a human-readable title.
-    /// </summary>
-    private static string FormatMarkdownTitle(string baseName)
-    {
-        // Handle known component names with special formatting
-        return baseName.ToLowerInvariant() switch
-        {
-            "aspnetcore" => "ASP.NET Core",
-            "dotnetmaui" or "maui" => ".NET MAUI",
-            "csharp" => "C#",
-            "fsharp" => "F#",
-            "vb" or "visualbasic" => "Visual Basic",
-            "efcore" or "entityframeworkcore" => "Entity Framework Core",
-            "wpf" => "WPF",
-            "winforms" => "Windows Forms",
-            "windowsdesktop" => "Windows Desktop",
-            "sdk" => "SDK",
-            "runtime" => "Runtime",
-            "libraries" => "Libraries",
-            "networking" => "Networking",
-            "containers" => "Containers",
-            "blazor" => "Blazor",
-            "signalr" => "SignalR",
-            "grpc" => "gRPC",
-            "json" => "JSON",
-            "xml" => "XML",
-            "api" or "apis" => "APIs",
-            _ => ToTitleCase(baseName)
-        };
-    }
-
-    /// <summary>
-    /// Converts a string to title case, handling camelCase and kebab-case.
-    /// </summary>
-    private static string ToTitleCase(string input)
-    {
-        if (string.IsNullOrEmpty(input))
-            return input;
-
-        // Handle kebab-case: split on hyphens, title case each word
-        if (input.Contains('-'))
-        {
-            return string.Join(" ", input.Split('-').Select(word =>
-                char.ToUpperInvariant(word[0]) + word[1..].ToLowerInvariant()));
-        }
-
-        // Simple title case for single words
-        return char.ToUpperInvariant(input[0]) + input[1..].ToLowerInvariant();
     }
 }

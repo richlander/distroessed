@@ -63,9 +63,13 @@ public record PatchDetailIndex(
 /// Embedded content for patch detail index.
 /// CVE disclosures are in the timeline month index, not here.
 /// </summary>
-[Description("Container for embedded SDK releases. For CVE disclosures, use the cve-json link.")]
+[Description("Container for embedded runtime and SDK releases. For CVE disclosures, use the cve-json link.")]
 public record PatchDetailIndexEmbedded
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Runtime release with release notes")]
+    public RuntimeEntry? Runtime { get; set; }
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Highest SDK release as a feature band object (for quick lookup)")]
     public SdkFeatureBandEntry? Sdk { get; set; }
@@ -73,4 +77,19 @@ public record PatchDetailIndexEmbedded
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("All SDK feature bands shipped with this runtime patch")]
     public IReadOnlyList<SdkFeatureBandEntry>? SdkFeatureBands { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Component-specific documentation (e.g., aspnetcore, efcore)")]
+    public Dictionary<string, HalLink>? Documentation { get; set; }
 }
+
+/// <summary>
+/// Runtime entry containing version and release notes links.
+/// </summary>
+[Description("Runtime release entry with release notes")]
+public record RuntimeEntry(
+    [property: Description("Runtime version (same as patch version, e.g., '9.0.1')")]
+    string Version,
+    [property: JsonPropertyName("_links"),
+     Description("HAL+JSON links for runtime release notes")]
+    Dictionary<string, HalLink> Links);

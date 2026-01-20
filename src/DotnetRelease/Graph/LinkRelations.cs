@@ -71,6 +71,11 @@ public static class LinkRelations
     /// </summary>
     public const string Release = "release";
 
+    /// <summary>
+    /// Link relation for release.json file (detailed release data)
+    /// </summary>
+    public const string ReleaseJson = "release-json";
+
     // Latest link relations (fully qualified)
 
     /// <summary>

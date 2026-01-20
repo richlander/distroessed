@@ -10,6 +10,7 @@ namespace DotnetRelease.Graph;
 [JsonSerializable(typeof(PatchReleaseVersionIndex))]
 [JsonSerializable(typeof(PatchDetailIndex))]
 [JsonSerializable(typeof(PatchDetailIndexEmbedded))]
+[JsonSerializable(typeof(RuntimeEntry))]
 [JsonSerializable(typeof(SdkFeatureBandEntry))]
 [JsonSerializable(typeof(ReleaseVersionIndex))]
 [JsonSerializable(typeof(MajorReleaseVersionIndexEntry))]
@@ -105,6 +106,7 @@ public partial class TargetFrameworksSerializerContext : JsonSerializerContext
 [JsonSerializable(typeof(SourceWorkflowsFile))]
 [JsonSerializable(typeof(SourceWorkflowsEmbedded))]
 [JsonSerializable(typeof(SourceWorkflow))]
+[JsonSerializable(typeof(WorkflowYields))]
 public partial class LlmsIndexSerializerContext : JsonSerializerContext
 {
 }

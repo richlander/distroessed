@@ -7,7 +7,12 @@ namespace DotnetRelease.Summary;
 
 public static class ReleaseSummaryLoader
 {
-    public static async Task<List<MajorReleaseSummary>> GetReleaseSummariesAsync(string rootDir)
+    /// <summary>
+    /// Loads release summaries from the release-notes directory.
+    /// </summary>
+    /// <param name="rootDir">Root directory containing release-notes data</param>
+    /// <param name="supportedOnly">When true, skips expensive patch loading for unsupported versions</param>
+    public static async Task<List<MajorReleaseSummary>> GetReleaseSummariesAsync(string rootDir, bool supportedOnly = false)
     {
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
 
@@ -25,6 +30,16 @@ public static class ReleaseSummaryLoader
             }
 
             var majorVersionDirName = Path.GetFileName(majorVersionDir);
+
+            // When supportedOnly is true, check lifecycle status first to avoid expensive patch loading
+            if (supportedOnly)
+            {
+                var quickLifecycle = await LoadLifecycleAsync(majorVersionDir, releasesJson);
+                if (quickLifecycle?.Supported != true)
+                {
+                    continue;
+                }
+            }
 
             Console.WriteLine($"Processing major version directory: {majorVersionDir}");
 
@@ -254,5 +269,61 @@ public static class ReleaseSummaryLoader
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Loads just the lifecycle information for a major version (fast path for supportedOnly filtering).
+    /// Reads _manifest.json first, falls back to releases.json for minimal data.
+    /// </summary>
+    private static async Task<Lifecycle?> LoadLifecycleAsync(string majorVersionDir, string releasesJsonPath)
+    {
+        // Try _manifest.json first (authoritative source for lifecycle data)
+        var manifestPath = Path.Combine(majorVersionDir, FileNames.PartialManifest);
+        if (File.Exists(manifestPath))
+        {
+            try
+            {
+                var manifestJson = await File.ReadAllTextAsync(manifestPath);
+                var partialManifest = JsonSerializer.Deserialize<PartialManifest>(manifestJson, ReleaseManifestSerializerContext.Default.PartialManifest);
+
+                if (partialManifest != null)
+                {
+                    // Create a minimal lifecycle - we only need Supported for filtering
+                    var lifecycle = new Lifecycle(
+                        partialManifest.ReleaseType ?? ReleaseType.STS,
+                        partialManifest.SupportPhase ?? SupportPhase.Eol,
+                        partialManifest.GaDate ?? DateTimeOffset.MinValue,
+                        partialManifest.EolDate ?? DateTimeOffset.MaxValue);
+
+                    // Use explicit Supported value if available, otherwise compute it
+                    lifecycle.Supported = partialManifest.Supported ?? ReleaseStability.IsSupported(lifecycle);
+                    return lifecycle;
+                }
+            }
+            catch
+            {
+                // Fall through to releases.json fallback
+            }
+        }
+
+        // Fallback: read minimal data from releases.json
+        try
+        {
+            await using var stream = File.OpenRead(releasesJsonPath);
+            var major = await ReleaseNotes.GetMajorRelease(stream);
+            if (major != null)
+            {
+                var eolDate = new DateTimeOffset(major.EolDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+                var lifecycle = new Lifecycle(major.ReleaseType, major.SupportPhase, DateTimeOffset.MinValue, eolDate);
+                lifecycle.Supported = ReleaseStability.IsSupported(lifecycle);
+                return lifecycle;
+            }
+        }
+        catch
+        {
+            // Unable to determine lifecycle
+        }
+
+        return null;
     }
 }

@@ -111,10 +111,7 @@ public record PatchReleaseVersionIndexEntry(
     [property: Description("True if this release includes security fixes (CVEs)")]
     bool Security,
     [property: Description("Support phase at time of release (preview, go-live, active, maintenance, eol)")]
-    SupportPhase SupportPhase,
-    [property: JsonPropertyName("_links"),
-     Description("HAL+JSON links for navigation to this patch release's content")]
-    Dictionary<string, HalLink> Links)
+    SupportPhase SupportPhase)
 {
     [JsonPropertyName("major_release"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
@@ -124,5 +121,9 @@ public record PatchReleaseVersionIndexEntry(
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Highest SDK version included in this patch release")]
     public string? SdkVersion { get; init; }
+
+    [JsonPropertyName("_links"),
+     Description("HAL+JSON links for navigation to this patch release's content")]
+    public Dictionary<string, HalLink> Links { get; init; } = [];
 }
 

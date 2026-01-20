@@ -19,10 +19,6 @@ public record LlmsIndex(
     public string? AiNote { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Note for human readers about this index")]
-    public string? HumanNote { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("URL to required pre-reading for optimal graph navigation")]
     public string? RequiredPreRead { get; init; }
 
@@ -116,10 +112,6 @@ public record PartialLlmsIndex
     public string? AiNote { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Note for human readers about this index")]
-    public string? HumanNote { get; init; }
-
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Override title if needed")]
     public string? Title { get; init; }
 
@@ -165,8 +157,8 @@ public record LlmsWorkflow
     public IReadOnlyList<string>? SelectLink { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
-     Description("Output format: markdown, json, html, index")]
-    public string? Yields { get; init; }
+     Description("What data this workflow yields")]
+    public WorkflowYields? Yields { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
      Description("Path contains {placeholder} variables")]
@@ -219,7 +211,7 @@ public record SourceWorkflow
     [JsonPropertyName("select_link")]
     public IReadOnlyList<string>? SelectLink { get; init; }
 
-    public string? Yields { get; init; }
+    public WorkflowYields? Yields { get; init; }
 
     public bool? Templated { get; init; }
 
@@ -232,4 +224,23 @@ public record SourceWorkflow
 
     [JsonPropertyName("_links")]
     public Dictionary<string, HalLink>? Links { get; init; }
+}
+
+/// <summary>
+/// Describes what data a workflow yields.
+/// </summary>
+[Description("Data yielded by a workflow")]
+public record WorkflowYields
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("JSONPath-like expression for the data to extract")]
+    public string? Data { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Specific fields to include from the data")]
+    public IReadOnlyList<string>? Fields { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull),
+     Description("Filter condition to apply to the data")]
+    public string? Filter { get; init; }
 }

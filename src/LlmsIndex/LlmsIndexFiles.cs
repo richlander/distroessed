@@ -11,16 +11,11 @@ using LlmsIndexRecord = DotnetRelease.Graph.LlmsIndex;
 
 public static class LlmsIndexFiles
 {
-    private const int DefaultMaxWorkflows = 12;
-
     public static async Task GenerateAsync(
         string inputDir,
         string outputDir,
         List<MajorReleaseSummary> summaries,
-        ReleaseHistory releaseHistory,
-        bool includeWorkflows = false,
-        string? outputFilename = null,
-        int maxWorkflows = DefaultMaxWorkflows)
+        ReleaseHistory releaseHistory)
     {
         var numericStringComparer = StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering);
 
@@ -37,31 +32,6 @@ public static class LlmsIndexFiles
             catch (Exception ex)
             {
                 Console.WriteLine($"Warning: Failed to read {partialPath}: {ex.Message}");
-            }
-        }
-
-        // Load workflows from skills/_workflows.json
-        Dictionary<string, LlmsWorkflow>? inlineWorkflows = null;
-        var workflowsPath = Path.Combine(inputDir, "skills", FileNames.PartialWorkflows);
-        if (includeWorkflows && File.Exists(workflowsPath) && maxWorkflows > 0)
-        {
-            try
-            {
-                var workflowsJson = await File.ReadAllTextAsync(workflowsPath);
-                var sourceWorkflows = JsonSerializer.Deserialize<SourceWorkflowsFile>(workflowsJson, LlmsIndexSerializerContext.Default.SourceWorkflowsFile);
-
-                if (sourceWorkflows?.Embedded?.Workflows != null)
-                {
-                    inlineWorkflows = sourceWorkflows.Embedded.Workflows
-                        .Take(maxWorkflows)
-                        .ToDictionary(
-                            kvp => kvp.Key,
-                            kvp => TransformWorkflow(kvp.Value));
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Warning: Failed to read {workflowsPath}: {ex.Message}");
             }
         }
 
@@ -160,8 +130,8 @@ public static class LlmsIndexFiles
                 patchLinks[LinkRelations.Downloads] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Directories.Downloads}/{FileNames.Index}");
             }
 
-            // Add major-manifest link for direct access to reference data (compatibility, TFMs, OS support)
-            patchLinks[LinkRelations.MajorManifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
+            // Add manifest link for direct access to reference data (compatibility, TFMs, OS support)
+            patchLinks[LinkRelations.Manifest] = new HalLink($"{Location.GitHubBaseUri}{summary.MajorVersion}/{FileNames.Manifest}");
 
             // Skip entries without complete lifecycle data (ReleaseType is nullable, Phase is not)
             if (summary.Lifecycle == null || summary.Lifecycle.ReleaseType == null)
@@ -337,11 +307,6 @@ public static class LlmsIndexFiles
             Title = ".NET Release Timeline Index"
         };
 
-        links[LinkRelations.Workflows] = new HalLink($"{Location.GitHubBaseUri}skills/dotnet-releases/workflows.json")
-        {
-            Title = "Navigation workflows catalog"
-        };
-
         // Build required_pre_read URL (skill file in release-notes/)
         var requiredPreRead = $"{Location.GitHubBaseUri}skills/dotnet-releases/SKILL.md";
 
@@ -361,7 +326,6 @@ public static class LlmsIndexFiles
             partial?.Title ?? ".NET Release Index for AI")
         {
             AiNote = partial?.AiNote ?? "ALWAYS read required_pre_read first. HAL graph—follow _links only, never construct URLs.",
-            HumanNote = partial?.HumanNote,
             RequiredPreRead = requiredPreRead,
             LatestMajor = latestVersion,
             LatestLtsMajor = latestLtsVersion,
@@ -369,7 +333,6 @@ public static class LlmsIndexFiles
             LatestSecurityPatchDate = latestSecurityPatchDate,
             LastUpdatedDate = DateTimeOffset.UtcNow,
             SupportedMajorReleases = supportedReleases,
-            Workflows = inlineWorkflows,
             Links = HalHelpers.OrderLinks(links),
             Embedded = new LlmsIndexEmbedded
             {
@@ -383,38 +346,10 @@ public static class LlmsIndexFiles
             LlmsIndexSerializerContext.Default.LlmsIndex);
 
         // Write to file
-        var llmsIndexPath = outputFilename ?? Path.Combine(outputDir, FileNames.Llms);
+        var llmsIndexPath = Path.Combine(outputDir, FileNames.Llms);
         var finalJson = llmsIndexJson + '\n';
         await File.WriteAllTextAsync(llmsIndexPath, finalJson);
 
         Console.WriteLine($"Generated {llmsIndexPath}");
-    }
-
-    /// <summary>
-    /// Transforms a source workflow to an inline workflow.
-    /// Strips kind:llms prefix from follow_path and drops keywords/intent.
-    /// </summary>
-    private static LlmsWorkflow TransformWorkflow(SourceWorkflow source)
-    {
-        // Strip kind:llms prefix from follow_path (implicit for inline workflows)
-        var followPath = source.FollowPath?
-            .Select(step => step.StartsWith("kind:") ? null : step)
-            .Where(step => step != null)
-            .Cast<string>()
-            .ToList() ?? [];
-
-        return new LlmsWorkflow
-        {
-            Description = source.Description,
-            FollowPath = followPath,
-            DestinationKind = source.DestinationKind,
-            SelectEmbedded = source.SelectEmbedded,
-            SelectProperty = source.SelectProperty,
-            SelectLink = source.SelectLink,
-            Yields = source.Yields,
-            Templated = source.Templated,
-            QueryHints = source.QueryHints,
-            Links = source.Links
-        };
     }
 }
